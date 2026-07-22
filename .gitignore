@@ -1,0 +1,12 @@
+# Swift Package Manager
+/.build/
+Package.resolved
+
+# App bundle output
+/build/
+
+# Icon intermediate (regenerated from AppIcon.png)
+/Resources/AppIcon.iconset/
+
+# macOS
+.DS_Store

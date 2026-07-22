@@ -2,7 +2,11 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>com.apple.security.app-sandbox</key>
-	<true/>
+	<!--
+	  Intentionally NOT sandboxed. MacTweak spawns system tools (pmset, mdutil,
+	  launchctl, defaults) and escalates via the native authorization prompt,
+	  none of which is possible inside the App Sandbox. This is a personal,
+	  locally-signed build — not for the Mac App Store.
+	-->
 </dict>
 </plist>

@@ -2,8 +2,8 @@
 //  MacTweakApp.swift
 //  MacTweak
 //
-//  Menu-bar-only app (LSUIElement). No dock icon → a lightweight, premium feel.
-//  Skeleton: a menu-bar icon, a panel, and a main window. Fill in later.
+//  Menu-bar app with a full main window. LSUIElement is set in the bundle's
+//  Info.plist so there's no Dock icon — the whole thing lives in the menu bar.
 //
 
 import SwiftUI
@@ -14,16 +14,21 @@ struct MacTweakApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuView(model: model)
+            MenuView()
+                .environmentObject(model)
         } label: {
             Image(systemName: "slider.horizontal.3")
         }
         .menuBarExtraStyle(.window)
 
         Window("MacTweak", id: "main") {
-            MainWindowView(model: model)
+            MainWindowView()
+                .environmentObject(model)
+                .frame(minWidth: 880, minHeight: 620)
+                .task { model.boot() }
         }
         .windowResizability(.contentSize)
+        .defaultSize(width: 960, height: 680)
         .defaultPosition(.center)
     }
 }

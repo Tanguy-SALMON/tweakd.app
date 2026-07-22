@@ -1,0 +1,100 @@
+//
+//  AppModel.swift
+//  MacTweak
+//
+//  Shared app state: the engine, live metrics, benchmarks, navigation, and the
+//  onboarding wizard's answers.
+//
+
+import SwiftUI
+
+enum Panel: Hashable {
+    case dashboard
+    case favorites
+    case benchmark
+    case actions
+    case category(TweakCategory)
+}
+
+@MainActor
+final class AppModel: ObservableObject {
+    let engine = TweakEngine()
+    let metrics = SystemMetrics()
+    let benchmark = BenchmarkEngine()
+
+    @Published var panel: Panel = .dashboard
+    @Published var showOnboarding = false
+    @Published var wizard = WizardAnswers()
+
+    @AppStorage("didOnboard") private var didOnboard = false
+    private var booted = false
+
+    init() { boot() }
+
+    func boot() {
+        guard !booted else { return }
+        booted = true
+        metrics.start()
+        Task { await engine.refreshAll() }
+        if !didOnboard { showOnboarding = true }
+    }
+
+    func finishOnboarding(apply: Bool) async {
+        if apply {
+            await engine.apply(keys: wizard.recommendedKeys())
+        }
+        didOnboard = true
+        showOnboarding = false
+    }
+}
+
+// MARK: - Onboarding answers & recommendation logic
+
+enum Priority: String, CaseIterable, Identifiable {
+    case battery = "Battery life"
+    case balanced = "Balanced"
+    case performance = "Performance"
+    var id: String { rawValue }
+    var icon: String {
+        switch self {
+        case .battery: return "leaf.fill"
+        case .balanced: return "circle.lefthalf.filled"
+        case .performance: return "flame.fill"
+        }
+    }
+}
+
+struct WizardAnswers {
+    var usesAI = true
+    var usesSpotlight = true
+    var usesPhotos = true
+    var usesAirDrop = true
+    var privacyFocused = false
+    var wantsSnappyUI = true
+    var priority: Priority = .balanced
+
+    /// Turn the answers into a tailored set of tweak keys.
+    func recommendedKeys() -> Set<String> {
+        var keys = Set<String>()
+        for t in TweakCatalog.all {
+            // Never auto-pick advanced or SIP-blocked tweaks.
+            if t.risk == .advanced { continue }
+            if t.sipRequired && SystemInfo.sipEnabled { continue }
+
+            // Respect features the user wants to keep.
+            if t.tags.contains(.usesAI) && usesAI { continue }
+            if t.tags.contains(.usesSpotlight) && usesSpotlight { continue }
+            if t.tags.contains(.usesPhotos) && usesPhotos { continue }
+            if t.tags.contains(.usesAirDropAirPlay) && usesAirDrop { continue }
+
+            var include = t.recommended
+            if wantsSnappyUI && t.tags.contains(.snappyUI) { include = true }
+            if privacyFocused && t.tags.contains(.privacyFocused) { include = true }
+            if priority == .performance && t.tags.contains(.prioritizePerformance) { include = true }
+            if priority == .battery && t.tags.contains(.prioritizeBattery) { include = true }
+
+            if include { keys.insert(t.key) }
+        }
+        return keys
+    }
+}
