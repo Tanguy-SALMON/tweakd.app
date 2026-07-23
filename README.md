@@ -47,6 +47,19 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 - **Favorites & reordering** — pin tweaks (★) for the menu-bar panel, drag to reorder
   within a category. Order and favorites persist.
 
+## Documentation
+
+Full docs live in [`docs/`](docs/):
+
+- **[docs/index.html](docs/index.html)** — web docs: every tweak with its exact
+  Terminal command and **click-to-copy** (works offline).
+- **[docs/TWEAKS.md](docs/TWEAKS.md)** — all 35 tweaks + 6 actions with manual
+  apply/revert commands. **You can do everything by hand — no app required.**
+- **[docs/SAFETY.md](docs/SAFETY.md)** — `sudo`, SIP, reversibility, verification.
+- **[docs/FAQ.md](docs/FAQ.md)** — high CPU, `coreaudiod`, "the app disappeared", more.
+- **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the app is built.
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** · **[CHANGELOG.md](CHANGELOG.md)**
+
 ## Build & run
 
 Requirements: **macOS 15+** and **Xcode 16+** (uses Swift 6 / Swift Charts).

@@ -1,0 +1,36 @@
+# MacTweak Documentation
+
+Everything about MacTweak — the app, and how to do all of it **by hand** in Terminal.
+
+## Start here
+
+- **[index.html](index.html)** — the web docs. Every tweak with its exact Apply/Revert
+  command and **click-to-copy**. Open it in a browser (works offline).
+- **[TWEAKS.md](TWEAKS.md)** — the same reference in Markdown: all 35 tweaks + 6
+  one-shot actions, grouped by category, with manual commands.
+
+## Reference
+
+- **[SAFETY.md](SAFETY.md)** — privileges (`sudo`), System Integrity Protection (SIP),
+  reversibility, the emergency revert script, and how to verify changes yourself.
+- **[FAQ.md](FAQ.md)** — troubleshooting: high CPU, `coreaudiod`, `PerfPowerServices`,
+  "the app disappeared", passwordless admin, uninstalling.
+- **[ARCHITECTURE.md](ARCHITECTURE.md)** — how the app is built (SwiftUI, TweakEngine,
+  CommandRunner escalation, Mach metrics, watchdog, logging, theme).
+
+## Project root
+
+- **[../README.md](../README.md)** — project overview & install.
+- **[../CONTRIBUTING.md](../CONTRIBUTING.md)** — build, and how to add a tweak safely.
+- **[../CHANGELOG.md](../CHANGELOG.md)** — version history.
+- **[../SYSTEM-CHANGES.md](../SYSTEM-CHANGES.md)** — log of settings changed on the dev
+  Mac during testing (all reverted).
+
+## The one-paragraph version
+
+MacTweak is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
+optimizations — Performance, Power, Snappiness, Privacy, Background Services, Network,
+AI. It drives plain `defaults` / `pmset` / `sysctl` / `launchctl` / `mdutil` / `nvram`
+commands (all documented here), re-probes the real state after every change, and can
+revert everything in one click. **You don't need the app** — [TWEAKS.md](TWEAKS.md)
+lists every command to run yourself.
