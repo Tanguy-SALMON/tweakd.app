@@ -44,5 +44,11 @@ enum Presets {
         Preset(id: "server", name: "AI / Server", icon: "server.rack",
                blurb: "Throughput for local LLM & dev servers.",
                matches: { $0.risk <= .moderate && $0.tags.contains(.serverWorkload) }),
+        Preset(id: "hardened", name: "Hardened Security", icon: "lock.shield.fill",
+               blurb: "Firewall, stealth & privacy DNS.",
+               matches: { $0.risk <= .moderate && $0.tags.contains(.security) }),
+        Preset(id: "lowlatency", name: "Low-Latency Net", icon: "bolt.horizontal.fill",
+               blurb: "Tune the network stack for latency.",
+               matches: { $0.risk <= .moderate && $0.tags.contains(.lowLatency) }),
     ]
 }
