@@ -51,6 +51,37 @@ enum TweakTag: String, CaseIterable, Sendable {
     case serverWorkload    // throughput/latency tuning for local servers & dev tooling
 }
 
+/// The benefit a tweak delivers — shown as a small chip in the UI (and mirrored
+/// by the website's gain indicator). Keep in sync with `docs/TWEAKS.md`.
+enum Gain: String, Hashable, Sendable {
+    case faster, snappier, privacy, battery, frees, throughput, disk
+
+    var label: String {
+        switch self {
+        case .faster:     return "Faster"
+        case .snappier:   return "Snappier UI"
+        case .privacy:    return "More private"
+        case .battery:    return "Better battery"
+        case .frees:      return "Frees resources"
+        case .throughput: return "More throughput"
+        case .disk:       return "Frees disk"
+        }
+    }
+    /// SF Symbol paired with the label (the app's native equivalent of the
+    /// website's wireframe gain icons).
+    var symbol: String {
+        switch self {
+        case .faster:     return "bolt.fill"
+        case .snappier:   return "speedometer"
+        case .privacy:    return "lock.shield.fill"
+        case .battery:    return "leaf.fill"
+        case .frees:      return "wind"
+        case .throughput: return "arrow.up.arrow.down"
+        case .disk:       return "internaldrive.fill"
+        }
+    }
+}
+
 struct Tweak: Identifiable, Sendable {
     let key: String
     let title: String
@@ -79,6 +110,9 @@ struct Tweak: Identifiable, Sendable {
 
     /// Per-tweak SF Symbol, falling back to the category glyph.
     var icon: String { TweakCatalog.iconOverrides[key] ?? category.icon }
+
+    /// What this tweak improves (usually one, sometimes two). Drives the gain chips.
+    var gains: [Gain] { TweakCatalog.gainsByKey[key] ?? [] }
 
     var privilegeRunner: (String) -> CommandResult {
         privilege == .admin ? CommandRunner.admin : CommandRunner.user

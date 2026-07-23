@@ -36,6 +36,7 @@ struct TweakRow: View {
                     if tweak.sipRequired {
                         Pill(text: "Needs SIP off", systemImage: "exclamationmark.shield")
                     }
+                    ForEach(tweak.gains, id: \.self) { GainChip(gain: $0) }
                 }
                 .padding(.top, 1)
             }
@@ -101,5 +102,24 @@ struct TweakRow: View {
             .labelsHidden()
             .toggleStyle(.switch)
         }
+    }
+}
+
+/// A small chip showing what a tweak improves — the app-native twin of the
+/// website's gain indicator: a benefit glyph, its label, and an up-arrow that
+/// reads as "this gets better". Kept static (no looping animation) so a list of
+/// 30 rows stays at the near-zero idle cost the metrics work bought back.
+struct GainChip: View {
+    let gain: Gain
+    var body: some View {
+        HStack(spacing: 4) {
+            Image(systemName: gain.symbol).foregroundStyle(Theme.accent)
+            Text(gain.label).foregroundStyle(.secondary)
+            Image(systemName: "arrow.up")
+                .font(.system(size: 8, weight: .bold)).foregroundStyle(Theme.accent)
+        }
+        .font(.system(size: 11, weight: .semibold))
+        .padding(.horizontal, Space.xs).padding(.vertical, 3)
+        .background(Theme.accent.opacity(0.10), in: Capsule())
     }
 }

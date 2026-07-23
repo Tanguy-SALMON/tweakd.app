@@ -485,6 +485,32 @@ enum TweakCatalog {
         "disable-duetexpertd": "brain",
     ]
 
+    /// What each tweak improves — mirrors the website's gain chips exactly.
+    static let gainsByKey: [String: [Gain]] = [
+        // Performance & power → raw speed
+        "timer-coalescing": [.faster], "disable-app-nap": [.faster], "raise-gpu-vram": [.faster],
+        "disable-lowpri-throttle": [.faster], "serverperfmode": [.faster], "lowpowermode-off": [.faster],
+        "disable-powernap": [.battery], "disable-hibernation-image": [.disk],
+        // Snappiness → responsiveness
+        "fast-window-resize": [.snappier], "disable-window-anim": [.snappier], "instant-dock": [.snappier],
+        "fast-key-repeat": [.snappier], "fast-mission-control": [.snappier],
+        "instant-fullscreen-menubar": [.snappier], "disable-smooth-scroll": [.snappier],
+        "manual-window-tabbing": [.snappier], "reduce-transparency": [.snappier, .frees],
+        "reduce-motion": [.snappier], "disable-finder-anim": [.snappier],
+        "dock-scale-minimize": [.snappier], "disable-launch-bounce": [.snappier],
+        // Privacy
+        "crashreporter-silent": [.privacy], "disable-personalized-ads": [.privacy],
+        "disable-analyticsd": [.privacy], "chromium-telemetry-off": [.privacy],
+        "firefox-telemetry-off": [.privacy], "mdns-no-advertise": [.privacy],
+        "disable-lookup-suggestions": [.privacy],
+        // Background services & AI daemons → frees resources (+ privacy)
+        "disable-mediaanalysisd": [.frees, .privacy], "disable-photoanalysisd": [.frees, .privacy],
+        "disable-spotlight": [.frees], "disable-siri-daemon": [.frees, .privacy],
+        "disable-duetexpertd": [.frees, .privacy],
+        // Network throughput
+        "tcp-buffers": [.throughput], "socket-backlog": [.throughput],
+    ]
+
     // MARK: - One-shot actions
 
     static let actions: [SystemAction] = [
