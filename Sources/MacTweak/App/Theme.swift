@@ -49,11 +49,11 @@ enum Radius {
 }
 
 enum Theme {
-    /// The single accent — MyD1 brand orange (#FF6900), nudged brighter in dark mode.
-    static let accent = Color.dynamic(Color(hex: 0xFF6900), Color(hex: 0xFF7A1A))
+    /// The single accent — oklch(64.6% 0.222 41.116), a vibrant orange (#F54900 in sRGB).
+    static let accent = Color(hex: 0xF54900)
 
-    /// Deep end of the juicy gradient — vibrant red the orange melts into.
-    static let accentDeep = Color.dynamic(Color(hex: 0xE5261F), Color(hex: 0xFF3B30))
+    /// Deep end of the juicy gradient — oklch(57.7% 0.245 27.325), vibrant red (#E7000E).
+    static let accentDeep = Color(hex: 0xE7000E)
 
     /// The juicy MyD1 gradient: a 135° wash of bright-orange → vibrant orange →
     /// vibrant red (mirrors the .acct-avatar avatar gradient). Used on hero tiles,

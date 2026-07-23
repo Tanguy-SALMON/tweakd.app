@@ -192,7 +192,10 @@ final class TweakEngine: ObservableObject {
     }
 
     func unlockAdmin() async {
+        Log.info("unlockAdmin start")
         let result = await Task.detached { CommandRunner.enablePasswordlessAdmin() }.value
+        Self.reactivate()   // the auth dialog steals focus; pull our window back to front
+        Log.info("unlockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         await refreshAdminStatus()
         lastMessage = adminUnlocked
@@ -201,10 +204,21 @@ final class TweakEngine: ObservableObject {
     }
 
     func lockAdmin() async {
+        Log.info("lockAdmin start")
         let result = await Task.detached { CommandRunner.disablePasswordlessAdmin() }.value
+        Self.reactivate()
+        Log.info("lockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         await refreshAdminStatus()
         lastMessage = adminUnlocked ? "Couldn't lock admin." : "Admin locked — your password will be required again."
+    }
+
+    /// After the macOS auth dialog closes, macOS hands focus back to whatever was
+    /// frontmost before — for a menu-bar (accessory) app that means our window
+    /// drops behind everything and looks like a crash. Grab focus back and raise it.
+    static func reactivate() {
+        NSApp.activate(ignoringOtherApps: true)
+        NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
     }
 
     // MARK: - Apply / revert
@@ -358,6 +372,7 @@ final class TweakEngine: ObservableObject {
         let runner = action.runner
         let cmd = action.command
         let result = await Task.detached { runner(cmd) }.value
+        if action.privilege == .admin { Self.reactivate() }   // don't let the auth dialog leave us behind
         Log.info("action result: \(action.key) exit=\(result.exitCode)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
