@@ -35,7 +35,21 @@ struct MainWindowView: View {
                 .frame(width: 620, height: 560)
         }
         .overlay(alignment: .bottom) { toast }
+        .overlay {
+            if model.showSearch {
+                CommandPaletteView().environmentObject(model)
+            }
+        }
+        .animation(.spring(duration: 0.28, bounce: 0.15), value: model.showSearch)
         .animation(.spring(duration: 0.35), value: model.engine.lastMessage)
+        .background {
+            // Hidden global shortcut — ⌘K opens the command palette from anywhere
+            // in the main window, mirroring Spotlight/Raycast's search trigger.
+            Button("") { model.showSearch = true }
+                .keyboardShortcut("k", modifiers: .command)
+                .opacity(0)
+                .accessibilityHidden(true)
+        }
     }
 
     @ViewBuilder private var detail: some View {

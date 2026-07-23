@@ -47,19 +47,22 @@ struct SidebarView: View {
     }
 
     private var header: some View {
-        HStack(spacing: Space.s) {
-            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                .fill(Theme.accent)
-                .frame(width: 28, height: 28)
-                .overlay(Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.white))
-            VStack(alignment: .leading, spacing: 0) {
-                Text("MacTweak").font(.system(size: 14, weight: .semibold))
-                Text("v\(appVersion)").font(.system(size: 10)).foregroundStyle(.secondary)
+        VStack(spacing: Space.s) {
+            HStack(spacing: Space.s) {
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .fill(Theme.accent)
+                    .frame(width: 28, height: 28)
+                    .overlay(Image(systemName: "slider.horizontal.3")
+                        .font(.system(size: 13, weight: .bold)).foregroundStyle(.white))
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("MacTweak").font(.system(size: 14, weight: .semibold))
+                    Text("v\(appVersion)").font(.system(size: 10)).foregroundStyle(.secondary)
+                }
+                Spacer()
             }
-            Spacer()
+            SearchTriggerBar { model.showSearch = true }
         }
-        .padding(.horizontal, Space.s).padding(.vertical, Space.s)
+        .padding(.horizontal, Space.s).padding(.top, Space.s).padding(.bottom, Space.xs)
         .background(.bar)
     }
 
@@ -89,6 +92,49 @@ struct SidebarView: View {
 
     private var appVersion: String {
         Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.1.0"
+    }
+}
+
+/// A search-field-styled button that opens the ⌘K command palette. It isn't a
+/// live text field itself — tapping (or ⌘K) hands off to `CommandPaletteView`,
+/// which owns the actual typing/results — but it reads and behaves like a
+/// real search bar, the same handoff pattern as macOS System Settings.
+private struct SearchTriggerBar: View {
+    let action: () -> Void
+    @State private var hovering = false
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: Space.xs) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(.secondary)
+                Text("Search")
+                    .font(.system(size: 12))
+                    .foregroundStyle(.secondary)
+                Spacer(minLength: Space.xxs)
+                Text("⌘K")
+                    .font(.system(size: 10, weight: .semibold))
+                    .foregroundStyle(.secondary)
+                    .padding(.horizontal, 5).padding(.vertical, 1)
+                    .background(Color.secondary.opacity(0.14), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
+            }
+            .padding(.horizontal, Space.xs)
+            .frame(height: 26)
+            .frame(maxWidth: .infinity)
+            .background(
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .fill(Color.secondary.opacity(hovering ? 0.16 : 0.10))
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                    .strokeBorder(Theme.hairline, lineWidth: 1)
+            )
+        }
+        .buttonStyle(.plain)
+        .onHover { hovering = $0 }
+        .scaleEffect(hovering ? 1.015 : 1)
+        .animation(.easeOut(duration: 0.12), value: hovering)
     }
 }
 

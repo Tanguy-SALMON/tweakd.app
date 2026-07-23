@@ -28,6 +28,7 @@ final class AppModel: ObservableObject {
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
+    @Published var showSearch = false
     @Published var wizard = WizardAnswers()
 
     @AppStorage("didOnboard") private var didOnboard = false
