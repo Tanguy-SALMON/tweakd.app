@@ -250,7 +250,7 @@ enum TweakCatalog {
             revertCommand: "sysctl -w net.inet.tcp.autorcvbufmax=4194304 net.inet.tcp.autosndbufmax=4194304",
             statusCommand: "[ \"$(sysctl -n net.inet.tcp.autorcvbufmax)\" -gt 4194304 ] && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
-            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload, .lowLatency], recommended: false
         ),
         Tweak(
             key: "socket-backlog",
@@ -261,7 +261,86 @@ enum TweakCatalog {
             revertCommand: "sysctl -w kern.ipc.somaxconn=128",
             statusCommand: "[ \"$(sysctl -n kern.ipc.somaxconn)\" -gt 128 ] && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
-            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload, .lowLatency], recommended: false
+        ),
+
+        // MARK: Security & Network hardening
+        Tweak(
+            key: "firewall-enable",
+            title: "Enable Application Firewall",
+            summary: "Turns on the built-in application firewall to block unsolicited incoming connections.",
+            category: .security, privilege: .admin, risk: .safe, sipRequired: false,
+            applyCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on",
+            revertCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off",
+            statusCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate 2>/dev/null | grep -q 'State = 1' && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security, .privacyFocused], recommended: true
+        ),
+        Tweak(
+            key: "firewall-stealth",
+            title: "Enable Stealth Mode",
+            summary: "Your Mac stops replying to pings/probes on closed ports. Needs the firewall on.",
+            category: .security, privilege: .admin, risk: .safe, sipRequired: false,
+            applyCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on",
+            revertCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode off",
+            statusCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode 2>/dev/null | grep -qiE 'on|enabled' && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security, .privacyFocused], recommended: false
+        ),
+        Tweak(
+            key: "firewall-block-signed",
+            title: "Block Auto-Allow Signed Apps",
+            summary: "Even signed apps must be approved for incoming connections. You'll get more firewall prompts.",
+            category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned off --setallowsignedapp off",
+            revertCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setallowsignedapp on",
+            statusCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned 2>/dev/null | grep -qi disabled && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security], recommended: false
+        ),
+        Tweak(
+            key: "dns-privacy",
+            title: "Use Privacy DNS (Cloudflare)",
+            summary: "Routes DNS for every network service to Cloudflare's 1.1.1.1/1.0.0.1 privacy resolver. This is plaintext DNS — macOS has no built-in command to enable encrypted DNS-over-HTTPS (that needs a configuration profile). Reverts to your DHCP-provided DNS.",
+            category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -setdnsservers \"$s\" 1.1.1.1 1.0.0.1; done; true",
+            revertCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -setdnsservers \"$s\" Empty; done; true",
+            statusCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -getdnsservers \"$s\"; done | grep -q 1.1.1.1 && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security, .privacyFocused], recommended: false
+        ),
+        Tweak(
+            key: "disable-ipv6",
+            title: "Disable IPv6",
+            summary: "Turns off IPv6 on all network services. Advanced — can break IPv6-only networks; leave off unless you know you want it.",
+            category: .security, privilege: .admin, risk: .advanced, sipRequired: false,
+            applyCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -setv6off \"$s\"; done; true",
+            revertCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -setv6automatic \"$s\"; done; true",
+            statusCommand: "networksetup -listallnetworkservices | tail -n +2 | sed 's/^\\* //' | while IFS= read -r s; do networksetup -getinfo \"$s\"; done | grep -q 'IPv6: Off' && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security], recommended: false
+        ),
+        Tweak(
+            key: "tcp-window-scaling",
+            title: "Enable TCP Window Scaling",
+            summary: "Raises the TCP window scaling factor to 8 for better throughput on high-latency/high-bandwidth links. Resets on reboot.",
+            category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "sysctl -w net.inet.tcp.win_scale_factor=8",
+            revertCommand: "sysctl -w net.inet.tcp.win_scale_factor=3",
+            statusCommand: "[ \"$(sysctl -n net.inet.tcp.win_scale_factor)\" -gt 3 ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.lowLatency, .serverWorkload], recommended: false
+        ),
+        Tweak(
+            key: "max-file-descriptors",
+            title: "Raise Max File Descriptors",
+            summary: "Allows far more concurrent open files/sockets for servers and heavy dev workloads. Resets on reboot.",
+            category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "sysctl -w kern.maxfiles=524288 kern.maxfilesperproc=262144",
+            revertCommand: "sysctl -w kern.maxfiles=122880 kern.maxfilesperproc=61440",
+            statusCommand: "[ \"$(sysctl -n kern.maxfilesperproc)\" -gt 61440 ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.serverWorkload], recommended: false
         ),
 
         // MARK: AI & Intelligence
@@ -479,6 +558,13 @@ enum TweakCatalog {
         "mdns-no-advertise": "dot.radiowaves.left.and.right",
         "tcp-buffers": "arrow.up.arrow.down.circle",
         "socket-backlog": "square.stack.3d.up",
+        "firewall-enable": "shield.lefthalf.filled",
+        "firewall-stealth": "eye.slash",
+        "firewall-block-signed": "hand.raised.slash",
+        "dns-privacy": "lock.badge.clock",
+        "disable-ipv6": "6.circle",
+        "tcp-window-scaling": "arrow.left.and.right",
+        "max-file-descriptors": "doc.on.doc",
         // AI & Intelligence
         "disable-siri-daemon": "mic",
         "disable-lookup-suggestions": "text.magnifyingglass",
@@ -508,7 +594,12 @@ enum TweakCatalog {
         "disable-spotlight": [.frees], "disable-siri-daemon": [.frees, .privacy],
         "disable-duetexpertd": [.frees, .privacy],
         // Network throughput
-        "tcp-buffers": [.throughput], "socket-backlog": [.throughput],
+        "tcp-buffers": [.throughput, .latency], "socket-backlog": [.throughput, .latency],
+        // Security & network hardening
+        "firewall-enable": [.secure, .privacy], "firewall-stealth": [.secure, .privacy],
+        "firewall-block-signed": [.secure], "dns-privacy": [.privacy, .secure],
+        "disable-ipv6": [.secure], "tcp-window-scaling": [.throughput, .latency],
+        "max-file-descriptors": [.throughput],
     ]
 
     // MARK: - One-shot actions
