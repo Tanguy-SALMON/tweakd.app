@@ -44,6 +44,7 @@ struct MainWindowView: View {
         case .favorites: TweakListView(section: .favorites)
         case .benchmark: BenchmarkView()
         case .actions:   ActionsView()
+        case .processPriority: ProcessPriorityView()
         case .category(let c): TweakListView(section: .category(c))
         }
     }

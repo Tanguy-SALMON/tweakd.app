@@ -19,6 +19,8 @@ struct SidebarView: View {
                     badge: model.engine.favorites.isEmpty ? nil : "\(model.engine.favorites.count)")
                 row(.benchmark, "Benchmark", "chart.bar")
                 row(.actions, "Quick Actions", "bolt")
+                row(.processPriority, "Process Priority", "cpu",
+                    badge: model.priority.managedCount == 0 ? nil : "\(model.priority.managedCount)")
             }
 
             Section("Tweaks") {

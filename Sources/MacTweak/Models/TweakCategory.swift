@@ -12,6 +12,7 @@ enum TweakCategory: String, CaseIterable, Identifiable, Sendable {
     case privacy = "Privacy"
     case services = "Background Services"
     case network = "Network"
+    case security = "Security & Network"
     case ai = "AI & Intelligence"
 
     var id: String { rawValue }
@@ -24,6 +25,7 @@ enum TweakCategory: String, CaseIterable, Identifiable, Sendable {
         case .privacy: return "hand.raised.fill"
         case .services: return "gearshape.2.fill"
         case .network: return "network"
+        case .security: return "lock.shield.fill"
         case .ai: return "sparkles"
         }
     }
@@ -36,6 +38,7 @@ enum TweakCategory: String, CaseIterable, Identifiable, Sendable {
         case .privacy: return "Reduce telemetry and analytics."
         case .services: return "Silence heavy background daemons."
         case .network: return "Trim chatty discovery traffic."
+        case .security: return "Firewall, stealth, and network tuning."
         case .ai: return "Turn off on-device intelligence work."
         }
     }

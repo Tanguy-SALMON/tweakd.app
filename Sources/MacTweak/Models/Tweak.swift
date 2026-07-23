@@ -49,12 +49,14 @@ enum TweakTag: String, CaseIterable, Sendable {
     case privacyFocused
     case snappyUI
     case serverWorkload    // throughput/latency tuning for local servers & dev tooling
+    case security          // firewall / stealth / network hardening
+    case lowLatency        // network-latency tuning (buffers, backlog, priorities)
 }
 
 /// The benefit a tweak delivers — shown as a small chip in the UI (and mirrored
 /// by the website's gain indicator). Keep in sync with `docs/TWEAKS.md`.
 enum Gain: String, Hashable, Sendable {
-    case faster, snappier, privacy, battery, frees, throughput, disk
+    case faster, snappier, privacy, battery, frees, throughput, disk, secure, latency
 
     var label: String {
         switch self {
@@ -65,6 +67,8 @@ enum Gain: String, Hashable, Sendable {
         case .frees:      return "Frees resources"
         case .throughput: return "More throughput"
         case .disk:       return "Frees disk"
+        case .secure:     return "Hardened"
+        case .latency:    return "Lower latency"
         }
     }
     /// SF Symbol paired with the label (the app's native equivalent of the
@@ -78,6 +82,8 @@ enum Gain: String, Hashable, Sendable {
         case .frees:      return "wind"
         case .throughput: return "arrow.up.arrow.down"
         case .disk:       return "internaldrive.fill"
+        case .secure:     return "checkerboard.shield"
+        case .latency:    return "timer"
         }
     }
 }

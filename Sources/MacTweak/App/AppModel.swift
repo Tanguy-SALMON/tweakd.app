@@ -14,6 +14,7 @@ enum Panel: Hashable {
     case favorites
     case benchmark
     case actions
+    case processPriority
     case category(TweakCategory)
 }
 
@@ -23,6 +24,7 @@ final class AppModel: ObservableObject {
     let metrics = SystemMetrics()
     let benchmark = BenchmarkEngine()
     let audioWatchdog = CoreAudioWatchdog()
+    let priority = PriorityManager()
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
@@ -40,6 +42,7 @@ final class AppModel: ObservableObject {
         // views, so they're intentionally not forwarded here.)
         engine.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         benchmark.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        priority.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
     }
 
     func boot() {
@@ -91,6 +94,9 @@ struct WizardAnswers {
     var privacyFocused = false
     var wantsSnappyUI = true
     var priority: Priority = .balanced
+    var runsNetworkServices = false   // web servers, SSH, containers → server/low-latency tuning
+    var hardenSecurity = false        // prefers security over convenience → firewall/stealth
+    var needsLowLatency = false       // gaming / remote desktop → network + priority boosts
 
     /// Turn the answers into a tailored set of tweak keys.
     func recommendedKeys() -> Set<String> {
@@ -111,6 +117,9 @@ struct WizardAnswers {
             if privacyFocused && t.tags.contains(.privacyFocused) { include = true }
             if priority == .performance && t.tags.contains(.prioritizePerformance) { include = true }
             if priority == .battery && t.tags.contains(.prioritizeBattery) { include = true }
+            if hardenSecurity && t.tags.contains(.security) { include = true }
+            if runsNetworkServices && t.tags.contains(.serverWorkload) { include = true }
+            if needsLowLatency && t.tags.contains(.lowLatency) { include = true }
 
             if include { keys.insert(t.key) }
         }
