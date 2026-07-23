@@ -9,9 +9,6 @@ import Foundation
 
 enum SystemInfo {
 
-    /// e.g. "Version 26.5.2 (Build 25F84)"
-    static let osVersion: String = ProcessInfo.processInfo.operatingSystemVersionString
-
     /// Marketing-ish short version, e.g. "26.5.2"
     static let osShortVersion: String = {
         let v = ProcessInfo.processInfo.operatingSystemVersion
@@ -24,10 +21,6 @@ enum SystemInfo {
         // "System Integrity Protection status: enabled." / "disabled."
         return r.output.localizedCaseInsensitiveContains("enabled")
     }()
-
-    static let uid: uid_t = getuid()
-
-    static let hostName: String = ProcessInfo.processInfo.hostName
 
     static let physicalMemory: UInt64 = ProcessInfo.processInfo.physicalMemory
 

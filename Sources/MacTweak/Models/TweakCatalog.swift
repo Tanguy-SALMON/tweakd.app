@@ -403,6 +403,11 @@ enum TweakCatalog {
         "instant-fullscreen-menubar": "menubar.rectangle",
         "disable-smooth-scroll": "scroll",
         "manual-window-tabbing": "rectangle.stack",
+        "reduce-transparency": "circle.righthalf.filled",
+        "reduce-motion": "tortoise",
+        "disable-finder-anim": "folder",
+        "dock-scale-minimize": "arrow.down.right.and.arrow.up.left",
+        "disable-launch-bounce": "arrow.up.forward.app",
         // Privacy
         "crashreporter-silent": "exclamationmark.bubble",
         "disable-analyticsd": "antenna.radiowaves.left.and.right",

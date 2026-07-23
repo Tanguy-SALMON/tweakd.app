@@ -25,7 +25,15 @@ final class TweakEngine: ObservableObject {
 
     /// Persisted custom order (tweak keys). Missing keys fall back to catalog order.
     @Published var order: [String] {
-        didSet { UserDefaults.standard.set(order, forKey: "tweak.order") }
+        didSet {
+            UserDefaults.standard.set(order, forKey: "tweak.order")
+            orderIndex = Self.indexMap(order)
+        }
+    }
+    /// key → position, rebuilt only when `order` changes (not on every query).
+    private var orderIndex: [String: Int] = [:]
+    private static func indexMap(_ order: [String]) -> [String: Int] {
+        Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
     }
     @Published var favorites: Set<String> {
         didSet { UserDefaults.standard.set(Array(favorites), forKey: "tweak.favorites") }
@@ -37,6 +45,7 @@ final class TweakEngine: ObservableObject {
         // Fold in any tweaks added since the order was last saved.
         let known = Set(order)
         order += TweakCatalog.all.map(\.key).filter { !known.contains($0) }
+        orderIndex = Self.indexMap(order)   // didSet doesn't fire during init
     }
 
     // MARK: - Queries
@@ -44,20 +53,23 @@ final class TweakEngine: ObservableObject {
     func state(of tweak: Tweak) -> TweakState { state[tweak.key] ?? .unknown }
 
     func tweaks(in category: TweakCategory) -> [Tweak] {
-        let index = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
-        return tweaks
+        tweaks
             .filter { $0.category == category }
-            .sorted { (index[$0.key] ?? 0) < (index[$1.key] ?? 0) }
+            .sorted { (orderIndex[$0.key] ?? 0) < (orderIndex[$1.key] ?? 0) }
     }
 
     var favoriteTweaks: [Tweak] {
-        let index = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
-        return tweaks
+        tweaks
             .filter { favorites.contains($0.key) }
-            .sorted { (index[$0.key] ?? 0) < (index[$1.key] ?? 0) }
+            .sorted { (orderIndex[$0.key] ?? 0) < (orderIndex[$1.key] ?? 0) }
     }
 
     var appliedCount: Int { state.values.filter { $0 == .applied }.count }
+
+    /// Applied count for a category — one pass, no sort (used by the sidebar badges).
+    func appliedCount(in category: TweakCategory) -> Int {
+        tweaks.reduce(0) { $0 + ($1.category == category && state(of: $1) == .applied ? 1 : 0) }
+    }
 
     // MARK: - Ordering & favorites
 
@@ -89,11 +101,13 @@ final class TweakEngine: ObservableObject {
         isRefreshing = true
         defer { isRefreshing = false }
         let snapshot = tweaks
-        let probed: [String: TweakState] = await Task.detached {
+        // Probe concurrently — each is an independent read-only shell spawn.
+        let probed = await withTaskGroup(of: (String, TweakState).self) { group in
+            for t in snapshot { group.addTask { (t.key, Self.probe(t)) } }
             var result: [String: TweakState] = [:]
-            for t in snapshot { result[t.key] = Self.probe(t) }
+            for await (key, st) in group { result[key] = st }
             return result
-        }.value
+        }
         state = probed
     }
 
@@ -168,6 +182,18 @@ final class TweakEngine: ObservableObject {
         }
     }
 
+    /// Apply/revert a batch, owning the busy flag and success/failure tally.
+    private func runBatch(_ items: [Tweak], to target: TweakState) async -> (done: Int, failed: Int) {
+        batchRunning = true
+        defer { batchRunning = false }
+        var done = 0, failed = 0
+        for t in items {
+            await set(t, to: target)
+            if state(of: t) == target { done += 1 } else { failed += 1 }
+        }
+        return (done, failed)
+    }
+
     func applyRecommended() async {
         let recommended = tweaks.filter(\.recommended)
         let pending = recommended.filter { state(of: $0) == .notApplied }
@@ -181,14 +207,7 @@ final class TweakEngine: ObservableObject {
             return
         }
 
-        batchRunning = true
-        var applied = 0, failed = 0
-        for t in pending {
-            await set(t, to: .applied)
-            if state(of: t) == .applied { applied += 1 } else { failed += 1 }
-        }
-        batchRunning = false
-
+        let (applied, failed) = await runBatch(pending, to: .applied)
         var msg = "Applied \(applied) tweak\(applied == 1 ? "" : "s")."
         if failed > 0 { msg += " \(failed) couldn't be applied." }
         if !blocked.isEmpty { msg += " \(blocked.count) need SIP off." }
@@ -199,14 +218,7 @@ final class TweakEngine: ObservableObject {
         let applied = tweaks.filter { state(of: $0) == .applied }
         guard !applied.isEmpty else { lastMessage = "Nothing to revert — everything is stock."; return }
 
-        batchRunning = true
-        var reverted = 0, failed = 0
-        for t in applied {
-            await set(t, to: .notApplied)
-            if state(of: t) == .notApplied { reverted += 1 } else { failed += 1 }
-        }
-        batchRunning = false
-
+        let (reverted, failed) = await runBatch(applied, to: .notApplied)
         var msg = "Reverted \(reverted) tweak\(reverted == 1 ? "" : "s") to stock."
         if failed > 0 { msg += " \(failed) couldn't be reverted." }
         lastMessage = msg
@@ -219,13 +231,7 @@ final class TweakEngine: ObservableObject {
             lastMessage = "\(preset.name): already active (\(keys.count) tweaks)."
             return
         }
-        batchRunning = true
-        var applied = 0, failed = 0
-        for t in pending {
-            await set(t, to: .applied)
-            if state(of: t) == .applied { applied += 1 } else { failed += 1 }
-        }
-        batchRunning = false
+        let (applied, failed) = await runBatch(pending, to: .applied)
         var msg = "\(preset.name) preset — applied \(applied) tweak\(applied == 1 ? "" : "s")."
         if failed > 0 { msg += " \(failed) couldn't be applied." }
         lastMessage = msg
@@ -271,9 +277,8 @@ final class TweakEngine: ObservableObject {
 
     // Apply a specific set (used by the onboarding wizard).
     func apply(keys: Set<String>) async {
-        for t in tweaks where keys.contains(t.key) && state(of: t) == .notApplied {
-            await set(t, to: .applied)
-        }
+        let pending = tweaks.filter { keys.contains($0.key) && state(of: $0) == .notApplied }
+        _ = await runBatch(pending, to: .applied)
         lastMessage = "Your tailored setup is ready."
     }
 

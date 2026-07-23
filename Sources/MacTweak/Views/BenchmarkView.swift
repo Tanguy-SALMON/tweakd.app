@@ -27,16 +27,9 @@ struct BenchmarkView: View {
     }
 
     private var header: some View {
-        HStack(spacing: Space.s) {
-            GlyphTile(systemName: "chart.bar", size: 42)
-            VStack(alignment: .leading, spacing: 2) {
-                Text("Benchmark").font(.system(size: 26, weight: .bold))
-                Text("Measure CPU, memory and disk before and after your tweaks.")
-                    .font(.system(size: 14)).foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
-        .padding(.bottom, Space.xxs)
+        HeroHeader(icon: "chart.bar", title: "Benchmark",
+                   blurb: "Measure CPU, memory and disk before and after your tweaks.")
+            .padding(.bottom, Space.xxs)
     }
 
     private var runner: some View {

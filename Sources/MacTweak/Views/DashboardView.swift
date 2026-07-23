@@ -152,15 +152,7 @@ private struct LiveMetrics: View {
     private var chart: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("CPU · last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
-            Chart(metrics.history) { p in
-                AreaMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
-                    .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.01)],
-                                                    startPoint: .top, endPoint: .bottom))
-                LineMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
-                    .foregroundStyle(Theme.accent)
-                    .lineStyle(StrokeStyle(lineWidth: 1.5))
-                    .interpolationMethod(.catmullRom)
-            }
+            Chart { cpuHistoryMarks(metrics.history) }
             .chartYScale(domain: 0...100)
             .chartXAxis(.hidden)
             .chartYAxis {

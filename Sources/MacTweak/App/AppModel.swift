@@ -45,6 +45,9 @@ final class AppModel: ObservableObject {
         guard !booted else { return }
         booted = true
         metrics.start()
+        // Warm the lazy `csrutil status` / sysctl probes off-main so the first
+        // Dashboard render doesn't block on them.
+        Task.detached { _ = SystemInfo.sipEnabled; _ = SystemInfo.chip }
         Task {
             await engine.refreshAdminStatus()
             await engine.refreshAll()

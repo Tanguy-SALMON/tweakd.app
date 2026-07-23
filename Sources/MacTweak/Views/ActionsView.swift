@@ -12,16 +12,9 @@ struct ActionsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.m) {
-                HStack(spacing: Space.s) {
-                    GlyphTile(systemName: "bolt", size: 42)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Quick Actions").font(.system(size: 26, weight: .bold))
-                        Text("One-shot maintenance. Nothing here is permanent.")
-                            .font(.system(size: 14)).foregroundStyle(.secondary)
-                    }
-                    Spacer()
-                }
-                .padding(.bottom, Space.xxs)
+                HeroHeader(icon: "bolt", title: "Quick Actions",
+                           blurb: "One-shot maintenance. Nothing here is permanent.")
+                    .padding(.bottom, Space.xxs)
 
                 emergencyScriptRow
 

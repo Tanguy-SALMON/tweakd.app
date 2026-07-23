@@ -74,14 +74,7 @@ struct TweakListView: View {
     }
 
     private func titleBlock(icon: String, title: String, blurb: String) -> some View {
-        HStack(spacing: Space.s) {
-            GlyphTile(systemName: icon, size: 42)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(size: 26, weight: .bold))
-                Text(blurb).font(.system(size: 14)).foregroundStyle(.secondary)
-            }
-            Spacer()
-        }
+        HeroHeader(icon: icon, title: title, blurb: blurb)
     }
 
     private var emptyState: some View {

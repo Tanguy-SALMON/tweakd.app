@@ -33,7 +33,7 @@ struct SidebarView: View {
     }
 
     private func appliedBadge(_ c: TweakCategory) -> String? {
-        let n = model.engine.tweaks(in: c).filter { model.engine.state(of: $0) == .applied }.count
+        let n = model.engine.appliedCount(in: c)
         return n == 0 ? nil : "\(n)"
     }
 

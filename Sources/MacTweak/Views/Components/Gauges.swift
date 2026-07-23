@@ -6,6 +6,39 @@
 //
 
 import SwiftUI
+import Charts
+
+/// The section hero used at the top of list/benchmark/actions panes.
+struct HeroHeader: View {
+    let icon: String
+    let title: String
+    let blurb: String
+    var body: some View {
+        HStack(spacing: Space.s) {
+            GlyphTile(systemName: icon, size: 42)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title).font(.system(size: 26, weight: .bold))
+                Text(blurb).font(.system(size: 14)).foregroundStyle(.secondary)
+            }
+            Spacer()
+        }
+    }
+}
+
+/// The accent area+line marks for the CPU history — shared by the dashboard
+/// chart and the menu sparkline (each wraps it with its own axes/chrome).
+@ChartContentBuilder
+func cpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
+    ForEach(history) { p in
+        AreaMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
+            .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
+                                            startPoint: .top, endPoint: .bottom))
+        LineMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
+            .foregroundStyle(Theme.accent)
+            .lineStyle(StrokeStyle(lineWidth: 1.5))
+            .interpolationMethod(.catmullRom)
+    }
+}
 
 struct RingGauge: View {
     let value: Double        // 0...100

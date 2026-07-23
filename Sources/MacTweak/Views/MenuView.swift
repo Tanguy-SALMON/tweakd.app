@@ -155,15 +155,7 @@ private struct MenuMetrics: View {
                 RuleMark(y: .value("mid", 50))
                     .foregroundStyle(Theme.hairline)
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
-                ForEach(metrics.history) { p in
-                    AreaMark(x: .value("t", p.id), y: .value("cpu", p.cpu))
-                        .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.25), Theme.accent.opacity(0.02)],
-                                                        startPoint: .top, endPoint: .bottom))
-                    LineMark(x: .value("t", p.id), y: .value("cpu", p.cpu))
-                        .foregroundStyle(Theme.accent)
-                        .lineStyle(StrokeStyle(lineWidth: 1.5))
-                        .interpolationMethod(.catmullRom)
-                }
+                cpuHistoryMarks(metrics.history)
                 if let last = metrics.history.last {
                     PointMark(x: .value("t", last.id), y: .value("cpu", last.cpu))
                         .foregroundStyle(Theme.accent).symbolSize(24)

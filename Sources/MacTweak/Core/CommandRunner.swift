@@ -73,20 +73,22 @@ enum CommandRunner {
 
     // MARK: - Escalation backends
 
+    /// Base64-wrap a command so arbitrary quoting/piping survives, decoded and
+    /// run inside the privileged shell. Keeps the escalation encoding in one place.
+    private static func zshPipeline(_ command: String) -> String {
+        let b64 = Data(command.utf8).base64EncodedString()
+        return "/bin/echo \(b64) | /usr/bin/base64 -D | /bin/zsh"
+    }
+
     /// Root via `sudo -n` (no prompt). Requires the sudoers rule.
     private static func adminNoPrompt(_ command: String) -> CommandResult {
-        let b64 = Data(command.utf8).base64EncodedString()
-        let inner = "/bin/echo \(b64) | /usr/bin/base64 -D | /bin/zsh"
-        return run(executable: "/usr/bin/sudo",
-                   arguments: ["-n", "/bin/zsh", "-c", inner])
+        run(executable: "/usr/bin/sudo",
+            arguments: ["-n", "/bin/zsh", "-c", zshPipeline(command)])
     }
 
     /// Root via the native authorization dialog (one password prompt).
     private static func adminPrompt(_ command: String) -> CommandResult {
-        let b64 = Data(command.utf8).base64EncodedString()
-        // Decoded and piped into zsh entirely inside the privileged shell.
-        let inner = "/bin/echo \(b64) | /usr/bin/base64 -D | /bin/zsh"
-        let script = "do shell script \"\(inner)\" with administrator privileges"
+        let script = "do shell script \"\(zshPipeline(command))\" with administrator privileges"
         return run(executable: "/usr/bin/osascript", arguments: ["-e", script])
     }
 
