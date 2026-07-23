@@ -4,6 +4,22 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Security & Process Priority module (PRP_5)
+- **Security & Network** category with seven new tweaks: Enable Application
+  Firewall, Enable Stealth Mode, Block Auto-Allow Signed Apps, Use Privacy DNS
+  (Cloudflare), Disable IPv6, Enable TCP Window Scaling, and Raise Max File
+  Descriptors. (Bonjour, TCP buffers, and socket backlog moved into this category.)
+- **Process Priority** pane: a live table of network/UI processes (mDNSResponder,
+  Firefox, Chrome, Docker, sshd, Media Analysis) with a per-process `renice`
+  slider, one-tap Boost/Yield, an "Apply at login" LaunchAgent, a per-card
+  "Show command" disclosure, and an emergency "Reset all to default".
+- **Presets:** Hardened Security and Low-Latency Net.
+- **Guided Setup** gained three questions (network services, security-first,
+  low-latency) that steer the recommended set.
+- **Menu-bar quick actions:** Quick Security, Low-Latency Network, Reset Priorities.
+- Emergency revert script now also resets renice priorities and removes
+  MacTweak's priority LaunchAgents.
+
 ### Fixed (code review, max-effort pass)
 - **Emergency revert script** now single-quotes admin revert commands, so reverts
   containing `"` or `$(…)` reach root's shell intact instead of being mangled or run
