@@ -41,7 +41,7 @@ enum TweakCatalog {
             revertCommand: "sysctl -w kern.timer.coalescing_enabled=1",
             statusCommand: "sysctl -n kern.timer.coalescing_enabled",
             appliedWhenOutputContains: "0",
-            tags: [.prioritizePerformance], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload], recommended: false
         ),
         Tweak(
             key: "disable-app-nap",
@@ -207,6 +207,29 @@ enum TweakCatalog {
             appliedWhenOutputContains: "1",
             tags: [.usesAirDropAirPlay, .privacyFocused], recommended: false
         ),
+        // Throughput tuning for local servers / dev tooling (PRP_4). Both reset on reboot.
+        Tweak(
+            key: "tcp-buffers",
+            title: "Enlarge TCP Buffers",
+            summary: "Raises max TCP send/receive buffers to 16 MB for higher throughput on busy local servers. Resets on reboot.",
+            category: .network, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "sysctl -w net.inet.tcp.autorcvbufmax=16777216 net.inet.tcp.autosndbufmax=16777216",
+            revertCommand: "sysctl -w net.inet.tcp.autorcvbufmax=4194304 net.inet.tcp.autosndbufmax=4194304",
+            statusCommand: "[ \"$(sysctl -n net.inet.tcp.autorcvbufmax)\" -gt 4194304 ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+        ),
+        Tweak(
+            key: "socket-backlog",
+            title: "Raise Socket Backlog",
+            summary: "Raises the max pending-connection queue (somaxconn) from 128 to 1024 so servers accept bursts of connections. Resets on reboot.",
+            category: .network, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "sysctl -w kern.ipc.somaxconn=1024",
+            revertCommand: "sysctl -w kern.ipc.somaxconn=128",
+            statusCommand: "[ \"$(sysctl -n kern.ipc.somaxconn)\" -gt 128 ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+        ),
 
         // MARK: AI & Intelligence
         Tweak(
@@ -264,18 +287,19 @@ enum TweakCatalog {
             revertCommand: "sysctl -w debug.lowpri_throttle_enabled=1",
             statusCommand: "sysctl -n debug.lowpri_throttle_enabled",
             appliedWhenOutputContains: "0",
-            tags: [.prioritizePerformance], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload], recommended: false
         ),
         Tweak(
             key: "serverperfmode",
             title: "Server Performance Mode",
-            summary: "Biases the scheduler and memory for sustained throughput. Needs SIP off + reboot; replaces boot-args.",
+            summary: "Biases the scheduler and memory for sustained throughput. Needs SIP off + reboot; preserves other boot-args.",
             category: .performance, privilege: .admin, risk: .advanced, sipRequired: true,
-            applyCommand: "nvram boot-args=\"serverperfmode=1\"",
+            // Prepend serverperfmode while keeping any existing boot-args (nvram prints "boot-args\t<value>").
+            applyCommand: "nvram boot-args=\"serverperfmode=1 $(nvram boot-args 2>/dev/null | cut -f2-)\"",
             revertCommand: "nvram -d boot-args",
             statusCommand: "nvram boot-args 2>/dev/null | grep -q serverperfmode && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
-            tags: [.prioritizePerformance], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload], recommended: false
         ),
 
         // MARK: Responsiveness — WindowServer / Finder / Dock (all safe, reversible)
@@ -417,6 +441,8 @@ enum TweakCatalog {
         "disable-spotlight": "magnifyingglass",
         // Network
         "mdns-no-advertise": "dot.radiowaves.left.and.right",
+        "tcp-buffers": "arrow.up.arrow.down.circle",
+        "socket-backlog": "square.stack.3d.up",
         // AI & Intelligence
         "disable-siri-daemon": "mic",
         "disable-lookup-suggestions": "text.magnifyingglass",
@@ -454,6 +480,13 @@ enum TweakCatalog {
             icon: "wind", privilege: .admin,
             command: "for p in mediaanalysisd photoanalysisd analyticsd spotlightknowledged knowledgeconstructiond geoanalyticsd; do killall -TERM $p 2>/dev/null; done; true",
             destructive: false
+        ),
+        SystemAction(
+            key: "restart-coreaudio",
+            title: "Restart Core Audio",
+            summary: "Restarts coreaudiod to fix stuck audio or runaway CPU. It relaunches automatically; audio blips for a second.",
+            icon: "waveform", privilege: .admin,
+            command: "killall coreaudiod 2>/dev/null; true", destructive: false
         ),
         SystemAction(
             key: "reindex-spotlight",

@@ -66,6 +66,10 @@ password prompt was ever approved). They remain at their original values:
 - `com.apple.mDNSResponder NoMulticastAdvertisements`
 - `com.apple.analyticsd` (blocked by SIP anyway)
 - `com.apple.assistantd` (Siri agent — was not booted out)
+- `net.inet.tcp.autorcvbufmax` / `autosndbufmax` (Enlarge TCP Buffers — default 4 MB, resets on reboot)
+- `kern.ipc.somaxconn` (Raise Socket Backlog — default 128, resets on reboot)
+- `serverperfmode` boot-arg (Server Performance Mode — needs SIP off + reboot; unavailable while SIP on)
+- `killall coreaudiod` (Restart Core Audio quick action — one-shot, self-respawns)
 
 ---
 

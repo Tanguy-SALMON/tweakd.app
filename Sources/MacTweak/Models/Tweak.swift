@@ -48,6 +48,7 @@ enum TweakTag: String, CaseIterable, Sendable {
     case prioritizePerformance
     case privacyFocused
     case snappyUI
+    case serverWorkload    // throughput/latency tuning for local servers & dev tooling
 }
 
 struct Tweak: Identifiable, Sendable {

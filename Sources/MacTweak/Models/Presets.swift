@@ -41,5 +41,8 @@ enum Presets {
         Preset(id: "privacy", name: "Privacy", icon: "hand.raised.fill",
                blurb: "Reduce telemetry & suggestions.",
                matches: { $0.risk <= .moderate && $0.tags.contains(.privacyFocused) }),
+        Preset(id: "server", name: "AI / Server", icon: "server.rack",
+               blurb: "Throughput for local LLM & dev servers.",
+               matches: { $0.risk <= .moderate && $0.tags.contains(.serverWorkload) }),
     ]
 }

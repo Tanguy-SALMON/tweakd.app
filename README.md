@@ -16,24 +16,27 @@ tailors everything to how *you* use your Mac.
 - **Dashboard** — live CPU & memory ring gauges (read straight from the Mach kernel,
   no shelling out; CPU smoothed so the menu and window stay consistent), a rolling
   90-second chart, and system facts.
-- **30 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
+- **32 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
   Services, Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
   unthrottle background I/O, server performance mode), RAM/GPU responsiveness (reduce
   transparency & motion), Finder/Dock snappiness (faster Mission Control, instant dock,
-  no smooth-scroll, manual tabbing), and AI/bloat daemons (media/photo analysis, Siri,
-  proactive intelligence/`duetexpertd`). Each has its **own SF Symbol icon**, is
-  **reversible**, and shows a risk badge, live applied/stock state, and whether it needs
-  admin or SIP-off. Advanced-risk tweaks confirm before enabling.
-- **Presets** — one-tap bundles (Balanced · Performance · Snappy UI · Battery · Privacy)
-  that only include real, available tweaks (SIP-blocked and advanced ones are excluded).
+  no smooth-scroll, manual tabbing), network throughput (enlarge TCP buffers, raise
+  socket backlog), and AI/bloat daemons (media/photo analysis, Siri, proactive
+  intelligence/`duetexpertd`). Each has its **own SF Symbol icon**, is **reversible**,
+  and shows a risk badge, live applied/stock state, and whether it needs admin or SIP-off.
+  Advanced-risk tweaks confirm before enabling.
+- **Presets** — one-tap bundles (Balanced · Performance · Snappy UI · Battery · Privacy ·
+  AI / Server) that only include real, available tweaks (SIP-blocked and advanced ones
+  are excluded).
 - **Guided Setup** — a short wizard that asks how you use your Mac (AI, Spotlight,
   Photos, AirDrop, priority…) and builds a tailored set that never disables things
   you rely on.
 - **Benchmark** — single-core, multi-core, memory-bandwidth and disk micro-benchmarks.
   Run a *Baseline*, apply tweaks, run *After tweaks*, and see the delta in a chart.
 - **Quick Actions** — one-shot maintenance: purge inactive memory, flush DNS, restart
-  Dock/Finder, purge bloat daemons, rebuild Spotlight, and **generate an emergency
-  revert script** (`~/Documents/MacTweak_Revert.sh`) that undoes everything from Terminal.
+  Dock/Finder, restart Core Audio, purge bloat daemons, rebuild Spotlight, and
+  **generate an emergency revert script** (`~/Documents/MacTweak_Revert.sh`) that undoes
+  everything from Terminal.
 - **Menu-bar panel** — live CPU/MEM tiles + a labelled sparkline (shows % used), quick
   toggles for your favorites, and Apply Recommended with an inline result message.
 - **Favorites & reordering** — pin tweaks (★) for the menu-bar panel, drag to reorder
