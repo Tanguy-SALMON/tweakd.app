@@ -12,8 +12,9 @@ import Darwin
 
 struct MetricPoint: Identifiable {
     let id: Int
-    let cpu: Double   // 0...100
-    let mem: Double   // 0...100
+    let time: Date    // real wall-clock stamp, so the chart is a true time series
+    let cpu: Double    // 0...100
+    let mem: Double    // 0...100
 }
 
 @MainActor
@@ -86,7 +87,7 @@ final class SystemMetrics: ObservableObject {
         memUsedBytes = used
         memUsedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
 
-        history.append(MetricPoint(id: tick, cpu: cpuPercent, mem: memUsedPercent))
+        history.append(MetricPoint(id: tick, time: Date(), cpu: cpuPercent, mem: memUsedPercent))
         if history.count > capacity { history.removeFirst(history.count - capacity) }
         tick += 1
     }

@@ -138,9 +138,9 @@ private struct MenuMetrics: View {
         .onDisappear { metrics.release() }
     }
 
-    private var xDomain: ClosedRange<Int> {
-        let maxId = metrics.history.last?.id ?? 0
-        return (maxId - 89)...maxId
+    private var xDomain: ClosedRange<Date> {
+        let end = metrics.history.last?.time ?? Date()
+        return end.addingTimeInterval(-90)...end
     }
 
     private var cpuChart: some View {
@@ -160,7 +160,7 @@ private struct MenuMetrics: View {
                     .lineStyle(StrokeStyle(lineWidth: 1, dash: [3, 3]))
                 cpuHistoryMarks(metrics.history)
                 if let last = metrics.history.last {
-                    PointMark(x: .value("t", last.id), y: .value("cpu", last.cpu))
+                    PointMark(x: .value("t", last.time), y: .value("cpu", last.cpu))
                         .foregroundStyle(Theme.accent).symbolSize(24)
                 }
             }

@@ -193,10 +193,18 @@ private struct LiveMetrics: View {
         .onDisappear { metrics.release() }
     }
 
+    /// A trailing 90-second window anchored on the newest sample, so the chart
+    /// scrolls with real time instead of squashing every tick into the x-domain.
+    private var xWindow: ClosedRange<Date> {
+        let end = metrics.history.last?.time ?? Date()
+        return end.addingTimeInterval(-90)...end
+    }
+
     private var chart: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("CPU · last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
             Chart { cpuHistoryMarks(metrics.history) }
+            .chartXScale(domain: xWindow)
             .chartYScale(domain: 0...100)
             .chartXAxis(.hidden)
             .chartYAxis {

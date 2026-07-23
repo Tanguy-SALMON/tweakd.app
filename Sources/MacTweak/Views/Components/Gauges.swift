@@ -30,10 +30,10 @@ struct HeroHeader: View {
 @ChartContentBuilder
 func cpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
     ForEach(history) { p in
-        AreaMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
+        AreaMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
             .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
                                             startPoint: .top, endPoint: .bottom))
-        LineMark(x: .value("t", p.id), y: .value("CPU", p.cpu))
+        LineMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
             .foregroundStyle(Theme.accent)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
             .interpolationMethod(.catmullRom)
