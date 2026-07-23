@@ -102,7 +102,7 @@
   .cat-head .dot svg { width: 17px; height: 17px; stroke: #fff; }
   .tweak { border-top: 1px solid var(--hairline); padding: 26px 0; }
   .tweak:first-of-type { border-top: none; }
-  .th { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .th { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
   .th h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
   .tweak .desc { font-size: 15.5px; color: var(--text-secondary); margin: 6px 0 4px; max-width: 760px; }
 
@@ -142,6 +142,49 @@
 
   footer { text-align: center; color: var(--text-secondary); font-size: 12px; padding: 40px 0 60px; }
   footer a { color: var(--text-secondary); }
+
+  /* ── Muted micro-interactions ── gentle, low-amplitude feedback on hover/press.
+     Short easings, small moves; disabled entirely under reduced-motion. */
+  a, nav a, .chip, .card, .cmd, .cmd button, .mark, .navmark,
+  .card .ic svg, .cat-head .dot, .badge {
+    transition: color .22s ease, border-color .25s ease, background-color .25s ease,
+                box-shadow .32s ease, transform .32s cubic-bezier(.2,.7,.2,1), opacity .22s ease;
+    will-change: transform;
+  }
+
+  /* Brand marks — the lightest touch */
+  nav .brand:hover .navmark { transform: rotate(-6deg); }
+  .mark:hover { transform: translateY(-4px) rotate(-1.5deg); }
+
+  /* Nav + content links */
+  nav a:hover { transform: translateY(-1px); }
+  .lead a:hover, .sub a:hover, .callout a:hover, .spec a:hover, footer a:hover { opacity: .72; }
+
+  /* Chips lift a hair and warm up */
+  .chip:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.06); }
+
+  /* Feature cards float; their icon breathes */
+  .card:hover { transform: translateY(-3px); box-shadow: 0 14px 32px rgba(0,0,0,0.07); }
+  .card:hover .ic svg { transform: scale(1.09); }
+
+  /* Command blocks + copy buttons */
+  .cmd:hover { border-color: color-mix(in srgb, var(--accent) 26%, var(--hairline)); }
+  .cmd button:hover { transform: translateY(-1px); }
+  .cmd button:active { transform: scale(.94); }
+
+  /* Category tiles tilt gently when their section is hovered */
+  .cat-head:hover .dot { transform: rotate(-4deg) scale(1.06); }
+
+  /* Badges settle slightly on hover of their row */
+  .tweak:hover .badge { transform: translateY(-1px); }
+
+  /* Respect the system setting — no motion when the user asked for none. */
+  @media (prefers-reduced-motion: reduce) {
+    * { transition-duration: 1ms !important; }
+    nav .brand:hover .navmark, .mark:hover, nav a:hover, .chip:hover, .card:hover,
+    .card:hover .ic svg, .cmd button:hover, .cmd button:active,
+    .cat-head:hover .dot, .tweak:hover .badge { transform: none; }
+  }
 
   @media (max-width: 734px) {
     section { padding: 60px 0; }
