@@ -100,7 +100,7 @@ struct RingGauge: View {
             }
             .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.bordered)
+        .buttonStyle(.gradient)
         .controlSize(.small)
         .disabled(a.busy)
         .padding(.top, Space.xxs)

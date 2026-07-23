@@ -35,7 +35,11 @@ enum CommandRunner {
     /// Run a command as root. Passwordless once admin is unlocked; otherwise
     /// falls back to a one-off native authorization prompt.
     static func admin(_ command: String) -> CommandResult {
-        hasPasswordlessAdmin() ? adminNoPrompt(command) : adminPrompt(command)
+        let passwordless = hasPasswordlessAdmin()
+        Log.info("admin start (\(passwordless ? "sudo -n" : "osascript prompt")): \(command.prefix(80))")
+        let r = passwordless ? adminNoPrompt(command) : adminPrompt(command)
+        Log.info("admin done exit=\(r.exitCode) out=\(r.output.prefix(60)) err=\(r.error.prefix(120))")
+        return r
     }
 
     // MARK: - Passwordless admin (one-time unlock)
@@ -114,6 +118,7 @@ enum CommandRunner {
         do {
             try task.run()
         } catch {
+            Log.error("process launch failed \(executable): \(error.localizedDescription)")
             return CommandResult(output: "", error: "launch failed: \(error.localizedDescription)", exitCode: -1)
         }
 

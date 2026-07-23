@@ -60,11 +60,10 @@ enum Theme {
     /// the ring gauge, and gradient cards.
     static let accentGradient = LinearGradient(
         stops: [
-            .init(color: Color(hex: 0xFF9A4D), location: 0.0),   // bright wash
-            .init(color: accent,               location: 0.52),  // vibrant orange
-            .init(color: accentDeep,           location: 1.0),   // vibrant red
+            .init(color: accent,     location: 0.0),   // darker, vibrant orange up top
+            .init(color: accentDeep, location: 1.0),   // vibrant red at the bottom
         ],
-        startPoint: .topLeading, endPoint: .bottomTrailing
+        startPoint: .top, endPoint: .bottom
     )
 
     /// Page background — the exact apple.com grey.
@@ -133,47 +132,87 @@ struct Pill: View {
     }
 }
 
-/// A neutral square that holds a monochrome glyph (sidebar/list/menu icons).
+/// A square that holds a glyph. Every tile now fills with the juicy orange→red
+/// gradient and a white glyph — the brand accent leads *every* icon in the app.
+/// `active`/`prominent` are kept for call-site compatibility; `prominent` (heroes)
+/// simply reads a touch bolder via a stronger shadow.
 struct GlyphTile: View {
     let systemName: String
     var size: CGFloat = 34
     var active: Bool = false
-    /// Prominent tiles fill with the vibrant orange gradient and a white glyph —
-    /// used for section heroes so the brand accent leads every page.
     var prominent: Bool = false
-
-    private var fill: AnyShapeStyle {
-        if prominent { return AnyShapeStyle(Theme.accentGradient) }
-        if active { return AnyShapeStyle(Theme.accent.opacity(0.14)) }
-        return AnyShapeStyle(Color.secondary.opacity(0.10))
-    }
-    private var glyph: AnyShapeStyle {
-        if prominent { return AnyShapeStyle(.white) }
-        return AnyShapeStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-    }
 
     var body: some View {
         RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
-            .fill(fill)
+            .fill(Theme.accentGradient)
             .overlay {
                 // Radial white glint (top-left) — the sheen that makes the
                 // orange→red gradient read as "juicy", straight from MyD1.
-                if prominent {
-                    RadialGradient(colors: [.white.opacity(0.5), .clear],
-                                   center: UnitPoint(x: 0.24, y: 0.22),
-                                   startRadius: 0, endRadius: size * 0.9)
-                        .allowsHitTesting(false)
-                }
+                RadialGradient(colors: [.white.opacity(0.5), .clear],
+                               center: UnitPoint(x: 0.24, y: 0.22),
+                               startRadius: 0, endRadius: size * 0.9)
+                    .allowsHitTesting(false)
             }
             .frame(width: size, height: size)
             .overlay(
                 Image(systemName: systemName)
                     .font(.system(size: size * 0.44, weight: .semibold))
-                    .foregroundStyle(glyph)
-                    .shadow(color: prominent ? .black.opacity(0.15) : .clear, radius: 1, y: 1)
+                    .foregroundStyle(.white)
+                    .shadow(color: .black.opacity(0.15), radius: 1, y: 1)
             )
-            .shadow(color: prominent ? Theme.accentDeep.opacity(0.38) : .clear, radius: 9, x: 0, y: 3)
     }
+}
+
+// MARK: - Gradient button style (the juicy accent on every action)
+
+/// The app-wide button look: the orange→red gradient on a capsule, white label,
+/// a top glint and an accent shadow. `filled: false` gives the secondary variant
+/// — a gradient-tinted outline for less-prominent actions (Back, Lock, Cancel).
+struct GradientButtonStyle: ButtonStyle {
+    var filled: Bool = true
+    @Environment(\.controlSize) private var controlSize
+    @Environment(\.isEnabled) private var isEnabled
+
+    private var scale: CGFloat {
+        switch controlSize {
+        case .large: return 1.15
+        case .small, .mini: return 0.82
+        default: return 1
+        }
+    }
+
+    func makeBody(configuration: Configuration) -> some View {
+        let shape = Capsule(style: .continuous)
+        configuration.label
+            .font(.system(size: 13 * scale, weight: .semibold))
+            .foregroundStyle(filled ? AnyShapeStyle(.white) : AnyShapeStyle(Theme.accentGradient))
+            .padding(.horizontal, 16 * scale)
+            .padding(.vertical, 7 * scale)
+            .background {
+                if filled {
+                    shape.fill(Theme.accentGradient)
+                        .overlay(
+                            RadialGradient(colors: [.white.opacity(0.35), .clear],
+                                           center: UnitPoint(x: 0.3, y: 0.05),
+                                           startRadius: 0, endRadius: 70 * scale)
+                                .clipShape(shape).allowsHitTesting(false))
+                } else {
+                    shape.fill(Theme.accent.opacity(0.10))
+                        .overlay(shape.strokeBorder(Theme.accentGradient, lineWidth: 1.5))
+                }
+            }
+            .clipShape(shape)
+            .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.5)
+            .scaleEffect(configuration.isPressed ? 0.97 : 1)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+
+extension ButtonStyle where Self == GradientButtonStyle {
+    /// Filled orange→red gradient — primary actions.
+    static var gradient: GradientButtonStyle { .init(filled: true) }
+    /// Gradient-tinted outline — secondary actions.
+    static var gradientOutline: GradientButtonStyle { .init(filled: false) }
 }
 
 // MARK: - Drifting accent gradient (ported from MyD1's ActivityDashboardCard)

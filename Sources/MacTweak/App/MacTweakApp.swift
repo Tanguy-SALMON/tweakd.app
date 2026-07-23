@@ -12,10 +12,13 @@ import SwiftUI
 struct MacTweakApp: App {
     @StateObject private var model = AppModel()
 
+    init() { Log.installCrashHandlers() }
+
     var body: some Scene {
         MenuBarExtra {
             MenuView()
                 .environmentObject(model)
+                .focusEffectDisabled()
         } label: {
             MenuBarLabel()
         }
@@ -25,6 +28,7 @@ struct MacTweakApp: App {
             MainWindowView()
                 .environmentObject(model)
                 .frame(minWidth: 880, minHeight: 620)
+                .focusEffectDisabled()   // the blue focus ring doesn't fit the design
                 .task { model.boot() }
         }
         .windowResizability(.contentSize)

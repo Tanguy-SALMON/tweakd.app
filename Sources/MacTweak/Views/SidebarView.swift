@@ -83,7 +83,7 @@ struct SidebarView: View {
                 Label("Guided Setup", systemImage: "wand.and.stars")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.gradient)
 
             Button {
                 Task { await model.engine.refreshAll(reporting: true) }
@@ -91,7 +91,7 @@ struct SidebarView: View {
                 Label(model.engine.isRefreshing ? "Refreshing…" : "Re-scan", systemImage: "arrow.clockwise")
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
+            .buttonStyle(.gradientOutline)
             .disabled(model.engine.isRefreshing)
         }
         .controlSize(.large)

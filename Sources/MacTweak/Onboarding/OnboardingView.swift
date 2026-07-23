@@ -149,14 +149,14 @@ struct OnboardingView: View {
             }
             Spacer()
             if step > 0 {
-                Button("Back") { step -= 1 }.buttonStyle(.bordered).controlSize(.large)
+                Button("Back") { step -= 1 }.buttonStyle(.gradientOutline).controlSize(.large)
             }
             if step < lastStep {
                 Button("Next") { step += 1 }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.gradient).controlSize(.large)
             } else {
                 Button("Apply Setup") { Task { await model.finishOnboarding(apply: true) } }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.gradient).controlSize(.large)
             }
         }
         .padding(.top, Space.s)

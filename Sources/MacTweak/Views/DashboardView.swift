@@ -67,10 +67,10 @@ struct DashboardView: View {
             Spacer(minLength: Space.s)
             if unlocked {
                 Button("Lock") { Task { await model.engine.lockAdmin() } }
-                    .buttonStyle(.bordered).controlSize(.large)
+                    .buttonStyle(.gradientOutline).controlSize(.large)
             } else {
                 Button("Unlock") { Task { await model.engine.unlockAdmin() } }
-                    .buttonStyle(.borderedProminent).controlSize(.large)
+                    .buttonStyle(.gradient).controlSize(.large)
             }
         }
         .card()
@@ -119,7 +119,7 @@ struct DashboardView: View {
                 } label: {
                     Text("Apply Recommended").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.gradient)
                 .controlSize(.large)
 
                 Button {
@@ -127,7 +127,7 @@ struct DashboardView: View {
                 } label: {
                     Text("Revert All").frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.gradientOutline)
                 .controlSize(.large)
             }
             .padding(.top, Space.xxs)

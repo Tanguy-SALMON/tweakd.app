@@ -98,7 +98,7 @@ struct ScanSheet: View {
             } label: {
                 Text("Done").frame(maxWidth: .infinity)
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.gradient)
             .controlSize(.large)
             .keyboardShortcut(.defaultAction)
         }

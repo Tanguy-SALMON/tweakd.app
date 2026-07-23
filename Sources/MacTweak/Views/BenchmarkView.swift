@@ -43,7 +43,7 @@ struct BenchmarkView: View {
                           systemImage: "play.fill")
                         .frame(maxWidth: .infinity)
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.gradient)
                 .controlSize(.large)
                 .disabled(bench.isRunning)
 
@@ -52,7 +52,7 @@ struct BenchmarkView: View {
                 } label: {
                     Label("Clear", systemImage: "trash")
                 }
-                .buttonStyle(.bordered)
+                .buttonStyle(.gradientOutline)
                 .controlSize(.large)
                 .disabled(bench.isRunning || bench.results.isEmpty)
             }

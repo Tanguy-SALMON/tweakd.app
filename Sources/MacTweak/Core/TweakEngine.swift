@@ -354,9 +354,11 @@ final class TweakEngine: ObservableObject {
     func run(_ action: SystemAction) async {
         busy.insert(action.key)
         defer { busy.remove(action.key) }
+        Log.info("action run: \(action.key)")
         let runner = action.runner
         let cmd = action.command
         let result = await Task.detached { runner(cmd) }.value
+        Log.info("action result: \(action.key) exit=\(result.exitCode)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
     }

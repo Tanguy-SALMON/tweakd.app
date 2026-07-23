@@ -52,7 +52,7 @@ struct ActionsView: View {
             Button("Create") {
                 Task { await model.engine.writeEmergencyRevertScript() }
             }
-            .buttonStyle(.borderedProminent)
+            .buttonStyle(.gradient)
         }
         .card()
     }
@@ -81,7 +81,7 @@ struct ActionsView: View {
                     if action.destructive { confirming = action }
                     else { Task { await model.engine.run(action) } }
                 }
-                .buttonStyle(.borderedProminent)
+                .buttonStyle(.gradient)
             }
         }
         .card()
