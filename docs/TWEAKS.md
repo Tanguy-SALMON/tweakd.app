@@ -58,6 +58,19 @@ Legend: 🔓 no sudo · 🔐 sudo · 🧱 SIP off required · ⚠️ advanced ·
 | Stop Bonjour Advertising | Network | 🔐 | moderate |
 | Enlarge TCP Buffers | Network | 🔐 | ♻️ |
 | Raise Socket Backlog | Network | 🔐 | ♻️ |
+| Enable Application Firewall | Security & Network | 🔐 | safe |
+| Enable Stealth Mode | Security & Network | 🔐 | safe · needs firewall on |
+| Block Auto-Allow Signed Apps | Security & Network | 🔐 | moderate |
+| Use Privacy DNS (Cloudflare) | Security & Network | 🔐 | moderate · plaintext |
+| Disable IPv6 | Security & Network | 🔐 | ⚠️ |
+| Enable TCP Window Scaling | Security & Network | 🔐 | ♻️ |
+| Raise Max File Descriptors | Security & Network | 🔐 | ♻️ |
+| Raise mDNSResponder | Process Priority | 🔐 | ♻️ |
+| Raise Firefox | Process Priority | 🔐 | ♻️ |
+| Raise Google Chrome | Process Priority | 🔐 | ♻️ |
+| Raise Docker | Process Priority | 🔐 | ♻️ |
+| Raise SSH sessions | Process Priority | 🔐 | ♻️ |
+| Lower Media Analysis (yield CPU) | Process Priority | 🔐 | ♻️ |
 | Disable Siri Assistant | AI & Intelligence | 🔓 | moderate |
 | Disable Proactive Intelligence | AI & Intelligence | 🔓 | moderate |
 | Disable Siri Suggestions in Lookup | AI & Intelligence | 🔓 | safe |
@@ -413,6 +426,219 @@ sudo sysctl -w kern.ipc.somaxconn=128
 
 ---
 
+## 🛡️ Security & Network
+
+`Stop Bonjour Advertising`, `Enlarge TCP Buffers` and `Raise Socket Backlog` (above,
+under [Network](#-network)) live here too in the app — see that section for their
+commands.
+
+### Enable Application Firewall — 🔐
+Turns on the built-in Application Firewall so unsolicited incoming connections are
+blocked by default.
+```bash
+# Apply
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate on
+# Revert
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setglobalstate off
+# Check
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate
+```
+
+### Enable Stealth Mode — 🔐 (needs firewall on)
+Makes the Mac ignore ICMP ping and unsolicited probe packets instead of answering them.
+```bash
+# Apply
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode on
+# Revert
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setstealthmode off
+# Check
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode
+```
+
+### Block Auto-Allow Signed Apps — 🔐
+Stops the firewall from automatically trusting Apple-signed and developer-signed
+apps — every app has to be approved individually. **More firewall prompts.**
+```bash
+# Apply
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned off --setallowsignedapp off
+# Revert
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setallowsignedapp on
+# Check
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned
+```
+
+### Use Privacy DNS (Cloudflare) — 🔐 (per network service)
+Points DNS at Cloudflare's 1.1.1.1 / 1.0.0.1 privacy resolver instead of your ISP's
+default. **Honest caveat:** this is still **plaintext DNS** — macOS has no CLI switch
+for encrypted DNS-over-HTTPS/TLS, that requires a configuration profile. The app
+applies this to **every active network service**; the command below targets Wi-Fi —
+repeat with each name from `networksetup -listallnetworkservices` for the rest.
+```bash
+# Apply
+sudo networksetup -setdnsservers Wi-Fi 1.1.1.1 1.0.0.1
+# Revert
+sudo networksetup -setdnsservers Wi-Fi Empty
+# Check
+networksetup -getdnsservers Wi-Fi
+```
+
+### Disable IPv6 — 🔐 ⚠️ (per network service)
+Turns off IPv6 on a network service, shrinking the attack surface to IPv4 only.
+Repeat per active service (Wi-Fi, Ethernet…). **Can break IPv6-only networks.**
+```bash
+# Apply
+sudo networksetup -setv6off Wi-Fi
+# Revert
+sudo networksetup -setv6automatic Wi-Fi
+# Check
+networksetup -getinfo Wi-Fi
+```
+
+### Enable TCP Window Scaling — 🔐 ♻️
+Raises the TCP window-scale factor so high-bandwidth, high-latency links can keep
+more data in flight.
+```bash
+# Apply
+sudo sysctl -w net.inet.tcp.win_scale_factor=8
+# Revert
+sudo sysctl -w net.inet.tcp.win_scale_factor=3
+# Check
+sysctl -n net.inet.tcp.win_scale_factor
+```
+
+### Raise Max File Descriptors — 🔐 ♻️
+Raises the system-wide and per-process open-file limits, for apps and servers that
+hit "too many open files" under load.
+```bash
+# Apply
+sudo sysctl -w kern.maxfiles=524288 kern.maxfilesperproc=262144
+# Revert
+sudo sysctl -w kern.maxfiles=122880 kern.maxfilesperproc=61440
+# Check
+sysctl -n kern.maxfilesperproc
+```
+
+---
+
+## 🎚️ Process Priority
+
+Scheduling priority via `renice` — a **lower** nice value means **higher** CPU
+priority (range −20…19, default 0). All resets on reboot unless you enable
+**Apply at login** (below).
+
+### Raise mDNSResponder — 🔐 ♻️
+```bash
+# Apply
+sudo renice -n -5 -p $(pgrep mDNSResponder)
+# Revert
+sudo renice -n 0 -p $(pgrep mDNSResponder)
+# Check
+ps -o pid,nice,comm -p $(pgrep mDNSResponder)
+```
+
+### Raise Firefox — 🔐 ♻️
+```bash
+# Apply
+sudo renice -n -5 -p $(pgrep -f "Firefox.app")
+# Revert
+sudo renice -n 0 -p $(pgrep -f "Firefox.app")
+# Check
+ps -o pid,nice,comm -p $(pgrep -f "Firefox.app")
+```
+
+### Raise Google Chrome — 🔐 ♻️
+```bash
+# Apply
+sudo renice -n -5 -p $(pgrep -f "Google Chrome")
+# Revert
+sudo renice -n 0 -p $(pgrep -f "Google Chrome")
+# Check
+ps -o pid,nice,comm -p $(pgrep -f "Google Chrome")
+```
+
+### Raise Docker — 🔐 ♻️
+```bash
+# Apply
+sudo renice -n -5 -p $(pgrep -f "com.docker")
+# Revert
+sudo renice -n 0 -p $(pgrep -f "com.docker")
+# Check
+ps -o pid,nice,comm -p $(pgrep -f "com.docker")
+```
+
+### Raise SSH sessions — 🔐 ♻️
+```bash
+# Apply
+sudo renice -n -5 -p $(pgrep -f "sshd")
+# Revert
+sudo renice -n 0 -p $(pgrep -f "sshd")
+# Check
+ps -o pid,nice,comm -p $(pgrep -f "sshd")
+```
+
+### Lower Media Analysis (yield CPU) — 🔐 ♻️
+Drops `mediaanalysisd`'s scheduling priority so it yields the CPU to whatever
+you're actively doing.
+```bash
+# Apply
+sudo renice -n 10 -p $(pgrep -f "mediaanalysisd")
+# Revert
+sudo renice -n 0 -p $(pgrep -f "mediaanalysisd")
+# Check
+ps -o pid,nice,comm -p $(pgrep -f "mediaanalysisd")
+```
+
+### Reset one process — 🔐
+The manual escape hatch for a single PID.
+```bash
+sudo renice -n 0 -p <pid>
+```
+
+### Apply at login (persistence)
+
+Because `renice` resets on reboot, MacTweak's **Apply at login** option writes a
+per-target LaunchAgent that waits 15 seconds after login (so the target app has time
+to launch), then reapplies the same `renice` through a passwordless sudo rule. Below
+is the exact plist the app writes for Firefox — swap the label, path and `pgrep`
+pattern to build one for another target.
+
+`~/Library/LaunchAgents/com.mactweak.priority.firefox.plist`:
+```xml
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.mactweak.priority.firefox</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>sleep 15; /usr/bin/sudo -n /bin/zsh -c 'renice -n -5 -p $(pgrep -f "Firefox.app")' 2>/dev/null; true</string>
+    </array>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>
+```
+Load it:
+```bash
+launchctl load ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist
+```
+Remove it:
+```bash
+launchctl unload ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist; rm ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist
+```
+
+> **Before you raise anything below −5:** the app caps every priority change at
+> `-10` and warns before applying anything more negative than `-5` — an overly
+> negative nice value can starve the UI and other apps of CPU time, making the whole
+> Mac feel worse, not better. **Emergency reset:** run `sudo renice -n 0` on every
+> process you've raised or lowered, then remove any
+> `~/Library/LaunchAgents/com.mactweak.priority.*.plist` LaunchAgents you created.
+
+---
+
 ## 🧠 AI & Intelligence
 
 ### Disable Siri Assistant — 🔓
@@ -473,6 +699,8 @@ pmset -g | grep powernap                        # power
 sysctl -n kern.ipc.somaxconn                    # network
 mdutil -s /                                      # spotlight
 launchctl print-disabled gui/$(id -u) | grep photoanalysisd
+sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate   # security & network
+ps -o pid,nice,comm -p $(pgrep mDNSResponder)                            # process priority
 ```
 MacTweak does exactly this after every change — which is why it only marks a tweak
 *Applied* when the system truly reports the new state.
