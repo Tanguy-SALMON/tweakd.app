@@ -14,23 +14,22 @@ struct SidebarView: View {
             set: { if let p = $0 { model.panel = p } }
         )) {
             Section {
-                row(.dashboard, "Dashboard", "gauge.with.dots.needle.67percent", .blue)
-                row(.favorites, "Favorites", "star.fill", .yellow,
+                row(.dashboard, "Dashboard", "gauge.with.dots.needle.67percent")
+                row(.favorites, "Favorites", "star",
                     badge: model.engine.favorites.isEmpty ? nil : "\(model.engine.favorites.count)")
-                row(.benchmark, "Benchmark", "chart.bar.xaxis", .orange)
-                row(.actions, "Quick Actions", "bolt.badge.automatic", .green)
+                row(.benchmark, "Benchmark", "chart.bar")
+                row(.actions, "Quick Actions", "bolt")
             }
 
             Section("Tweaks") {
                 ForEach(TweakCategory.allCases) { c in
-                    row(.category(c), c.rawValue, c.icon, c.tint,
-                        badge: appliedBadge(c))
+                    row(.category(c), c.rawValue, c.icon, badge: appliedBadge(c))
                 }
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .top) { header }
-        .safeAreaInset(edge: .bottom) { footer }
+        .safeAreaInset(edge: .top, spacing: 0) { header }
+        .safeAreaInset(edge: .bottom, spacing: 0) { footer }
     }
 
     private func appliedBadge(_ c: TweakCategory) -> String? {
@@ -38,44 +37,45 @@ struct SidebarView: View {
         return n == 0 ? nil : "\(n)"
     }
 
-    private func row(_ panel: Panel, _ title: String, _ icon: String, _ tint: Color, badge: String? = nil) -> some View {
+    private func row(_ panel: Panel, _ title: String, _ icon: String, badge: String? = nil) -> some View {
         Label {
             HStack {
                 Text(title)
                 Spacer()
                 if let badge {
                     Text(badge)
-                        .font(.caption2.weight(.bold))
+                        .font(.system(size: 11, weight: .semibold))
+                        .monospacedDigit()
                         .foregroundStyle(.secondary)
-                        .padding(.horizontal, 6).padding(.vertical, 1)
-                        .background(.quaternary, in: Capsule())
+                        .padding(.horizontal, Space.xs).padding(.vertical, 1)
+                        .background(Color.secondary.opacity(0.12), in: Capsule())
                 }
             }
         } icon: {
-            Image(systemName: icon).foregroundStyle(tint)
+            Image(systemName: icon).foregroundStyle(.secondary)
         }
         .tag(panel)
     }
 
     private var header: some View {
-        HStack(spacing: 10) {
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                .fill(Theme.brand)
-                .frame(width: 30, height: 30)
+        HStack(spacing: Space.s) {
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .fill(Theme.accent)
+                .frame(width: 28, height: 28)
                 .overlay(Image(systemName: "slider.horizontal.3")
-                    .font(.system(size: 14, weight: .bold)).foregroundStyle(.white))
+                    .font(.system(size: 13, weight: .bold)).foregroundStyle(.white))
             VStack(alignment: .leading, spacing: 0) {
-                Text("MacTweak").font(.headline)
-                Text("v\(appVersion)").font(.caption2).foregroundStyle(.secondary)
+                Text("MacTweak").font(.system(size: 14, weight: .semibold))
+                Text("v\(appVersion)").font(.system(size: 10)).foregroundStyle(.secondary)
             }
             Spacer()
         }
-        .padding(.horizontal, 14).padding(.vertical, 10)
+        .padding(.horizontal, Space.s).padding(.vertical, Space.s)
         .background(.bar)
     }
 
     private var footer: some View {
-        VStack(spacing: 8) {
+        VStack(spacing: Space.xs) {
             Button {
                 model.wizard = WizardAnswers()
                 model.showOnboarding = true
@@ -84,7 +84,6 @@ struct SidebarView: View {
                     .frame(maxWidth: .infinity)
             }
             .buttonStyle(.borderedProminent)
-            .tint(.purple)
 
             Button {
                 Task { await model.engine.refreshAll() }
@@ -95,7 +94,8 @@ struct SidebarView: View {
             .buttonStyle(.bordered)
             .disabled(model.engine.isRefreshing)
         }
-        .padding(12)
+        .controlSize(.large)
+        .padding(Space.s)
     }
 
     private var appVersion: String {

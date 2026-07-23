@@ -7,6 +7,7 @@
 //
 
 import SwiftUI
+import Combine
 
 enum Panel: Hashable {
     case dashboard
@@ -28,14 +29,26 @@ final class AppModel: ObservableObject {
 
     @AppStorage("didOnboard") private var didOnboard = false
     private var booted = false
+    private var bag = Set<AnyCancellable>()
 
-    init() { boot() }
+    init() {
+        boot()
+        // Nested ObservableObjects don't propagate through the parent on their
+        // own — forward the ones whose changes should refresh AppModel-bound UI.
+        // (metrics tick every second and are observed directly by the metric
+        // views, so they're intentionally not forwarded here.)
+        engine.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        benchmark.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+    }
 
     func boot() {
         guard !booted else { return }
         booted = true
         metrics.start()
-        Task { await engine.refreshAll() }
+        Task {
+            await engine.refreshAdminStatus()
+            await engine.refreshAll()
+        }
         if !didOnboard { showOnboarding = true }
     }
 

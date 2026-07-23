@@ -2,8 +2,6 @@
 //  BenchmarkView.swift
 //  MacTweak
 //
-//  Run a baseline, apply tweaks, run again — see the gain in a chart.
-//
 
 import SwiftUI
 import Charts
@@ -14,7 +12,7 @@ struct BenchmarkView: View {
 
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: Space.m) {
                 header
                 runner
                 if !bench.results.isEmpty {
@@ -22,30 +20,28 @@ struct BenchmarkView: View {
                     breakdown
                 }
             }
-            .padding(24)
-            .frame(maxWidth: 820, alignment: .leading)
+            .padding(Space.l)
+            .frame(maxWidth: 760, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
     }
 
     private var header: some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(Color.orange.gradient)
-                .frame(width: 46, height: 46)
-                .overlay(Image(systemName: "chart.bar.xaxis").font(.title3.weight(.bold)).foregroundStyle(.white))
+        HStack(spacing: Space.s) {
+            GlyphTile(systemName: "chart.bar", size: 42)
             VStack(alignment: .leading, spacing: 2) {
-                Text("Benchmark").font(.system(.title, design: .rounded).weight(.bold))
+                Text("Benchmark").font(.system(size: 26, weight: .bold))
                 Text("Measure CPU, memory and disk before and after your tweaks.")
-                    .foregroundStyle(.secondary)
+                    .font(.system(size: 14)).foregroundStyle(.secondary)
             }
             Spacer()
         }
+        .padding(.bottom, Space.xxs)
     }
 
     private var runner: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(spacing: 12) {
+        VStack(alignment: .leading, spacing: Space.s) {
+            HStack(spacing: Space.s) {
                 Button {
                     let label = bench.nextLabel()
                     Task { await bench.run(label: label) }
@@ -56,7 +52,6 @@ struct BenchmarkView: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .controlSize(.large)
-                .tint(.orange)
                 .disabled(bench.isRunning)
 
                 Button {
@@ -70,77 +65,79 @@ struct BenchmarkView: View {
             }
 
             if bench.isRunning {
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: Space.xs) {
                     ProgressView(value: bench.progress)
-                    Text(bench.currentTask).font(.caption).foregroundStyle(.secondary)
+                    Text(bench.currentTask).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             } else if bench.results.count < 2 {
-                Text("Tip: run a **Baseline**, apply some tweaks, then run **After tweaks** to see the delta.")
-                    .font(.callout).foregroundStyle(.secondary)
+                Text("Run a Baseline, apply some tweaks, then run After tweaks to see the delta.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
             }
         }
-        .card(padding: 18)
+        .card(padding: Space.m)
     }
 
     private var overallChart: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("Overall score").sectionTitle()
+        VStack(alignment: .leading, spacing: Space.s) {
+            Text("Overall Score").sectionTitle()
             Chart(bench.results) { r in
                 BarMark(
                     x: .value("Run", r.label),
-                    y: .value("Score", r.overall)
+                    y: .value("Score", r.overall),
+                    width: .fixed(55)
                 )
-                .foregroundStyle(Theme.brand)
+                .foregroundStyle(Theme.accent)
                 .cornerRadius(6)
                 .annotation(position: .top) {
-                    Text("\(Int(r.overall))").font(.caption2.weight(.bold)).foregroundStyle(.secondary)
+                    Text("\(Int(r.overall))").font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(.secondary)
                 }
             }
-            .frame(height: 220)
+            .chartYAxis {
+                AxisMarks { AxisGridLine().foregroundStyle(Theme.hairline); AxisValueLabel().font(.system(size: 9)) }
+            }
+            .frame(height: 178)
             if let gain = overallGain {
                 Label(gain.text, systemImage: gain.up ? "arrow.up.right" : "arrow.down.right")
-                    .font(.headline)
-                    .foregroundStyle(gain.up ? .green : .red)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(gain.up ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
             }
         }
         .card()
     }
 
     private var breakdown: some View {
-        VStack(alignment: .leading, spacing: 12) {
+        VStack(alignment: .leading, spacing: Space.s) {
             Text("Breakdown").sectionTitle()
-            grid("Single-core", \.singleCore, "Mops/s")
-            Divider().opacity(0.4)
-            grid("Multi-core", \.multiCore, "Mops/s")
-            Divider().opacity(0.4)
-            grid("Memory", \.memoryBandwidth, "MB/s")
-            Divider().opacity(0.4)
-            grid("Disk", \.disk, "MB/s")
+            grid("Single-core", \.singleCore)
+            Divider().overlay(Theme.hairline)
+            grid("Multi-core", \.multiCore)
+            Divider().overlay(Theme.hairline)
+            grid("Memory", \.memoryBandwidth)
+            Divider().overlay(Theme.hairline)
+            grid("Disk", \.disk)
         }
         .card()
     }
 
-    private func grid(_ name: String, _ key: KeyPath<BenchmarkResult, Double>, _ unit: String) -> some View {
+    private func grid(_ name: String, _ key: KeyPath<BenchmarkResult, Double>) -> some View {
         HStack {
-            Text(name).font(.subheadline.weight(.medium)).frame(width: 110, alignment: .leading)
+            Text(name).font(.system(size: 13, weight: .medium)).frame(width: 110, alignment: .leading)
             Spacer()
             ForEach(bench.results) { r in
                 VStack(spacing: 1) {
                     Text(String(format: "%.0f", r[keyPath: key]))
-                        .font(.system(.body, design: .rounded).weight(.semibold))
-                    Text(r.label).font(.caption2).foregroundStyle(.secondary)
+                        .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                    Text(r.label).font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 .frame(minWidth: 74)
             }
             if let d = metricDelta(key) {
-                Pill(text: d.text, color: d.up ? .green : .red, filled: true,
-                     systemImage: d.up ? "arrow.up" : "arrow.down")
-                    .frame(width: 78)
+                Pill(text: d.text, prominent: d.up, systemImage: d.up ? "arrow.up" : "arrow.down")
+                    .frame(width: 74)
             }
         }
     }
-
-    // MARK: - Deltas
 
     private var overallGain: (text: String, up: Bool)? {
         guard let a = bench.baseline, let b = bench.latest, a.id != b.id, a.overall > 0 else { return nil }

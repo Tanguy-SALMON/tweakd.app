@@ -10,13 +10,12 @@ import SwiftUI
 
 struct OnboardingView: View {
     @EnvironmentObject var model: AppModel
-    @Environment(\.colorScheme) private var scheme
     @State private var step = 0
     private let lastStep = 3
 
     var body: some View {
         ZStack {
-            Theme.heroBackground(scheme)
+            Theme.canvas.ignoresSafeArea()
             VStack(spacing: 0) {
                 content
                     .frame(maxHeight: .infinity)
@@ -25,8 +24,9 @@ struct OnboardingView: View {
                     .animation(.spring(duration: 0.4), value: step)
                 controls
             }
-            .padding(28)
+            .padding(Space.l)
         }
+        .tint(Theme.accent)
     }
 
     // MARK: Steps
@@ -41,17 +41,18 @@ struct OnboardingView: View {
     }
 
     private var welcome: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: Space.m) {
             Spacer()
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .fill(Theme.brand)
-                .frame(width: 96, height: 96)
+            RoundedRectangle(cornerRadius: Radius.sheet, style: .continuous)
+                .fill(Theme.accent)
+                .frame(width: 89, height: 89)
                 .overlay(Image(systemName: "wand.and.stars")
-                    .font(.system(size: 42, weight: .bold)).foregroundStyle(.white))
-                .shadow(color: .purple.opacity(0.4), radius: 20, y: 8)
+                    .font(.system(size: 38, weight: .semibold)).foregroundStyle(.white))
+                .shadow(color: Theme.accent.opacity(0.25), radius: 18, y: 8)
             Text("Let's tune your Mac")
-                .font(.system(size: 34, design: .rounded).weight(.bold))
+                .font(.system(size: 30, weight: .bold))
             Text("Answer a few quick questions and MacTweak will build a setup\ntailored to how you work — nothing you rely on gets disabled.")
+                .font(.system(size: 15))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)
             Spacer()
@@ -59,7 +60,7 @@ struct OnboardingView: View {
     }
 
     private var usage: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: Space.s) {
             stepTitle("How do you use your Mac?", "We'll keep these features on if you need them.")
             questionToggle("Apple Intelligence & Siri", "On-device AI, Siri, Lookup suggestions",
                            "sparkles", $model.wizard.usesAI)
@@ -69,34 +70,34 @@ struct OnboardingView: View {
                            "photo.stack", $model.wizard.usesPhotos)
             questionToggle("AirDrop & AirPlay", "Sharing and screen mirroring nearby",
                            "airplayvideo", $model.wizard.usesAirDrop)
-            Divider().padding(.vertical, 2)
+            Divider().overlay(Theme.hairline).padding(.vertical, 2)
             questionToggle("Prioritize privacy", "Also disable telemetry and suggestions",
-                           "hand.raised.fill", $model.wizard.privacyFocused)
+                           "hand.raised", $model.wizard.privacyFocused)
             questionToggle("Snappy interface", "Cut animation and input delays",
-                           "hare.fill", $model.wizard.wantsSnappyUI)
+                           "hare", $model.wizard.wantsSnappyUI)
         }
     }
 
     private var priority: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: Space.m) {
             stepTitle("What matters most?", "This biases the borderline tweaks.")
-            HStack(spacing: 14) {
+            HStack(spacing: Space.s) {
                 ForEach(Priority.allCases) { p in
+                    let selected = model.wizard.priority == p
                     Button {
                         model.wizard.priority = p
                     } label: {
-                        VStack(spacing: 10) {
-                            Image(systemName: p.icon).font(.system(size: 30))
-                            Text(p.rawValue).font(.headline)
+                        VStack(spacing: Space.s) {
+                            Image(systemName: p.icon).font(.system(size: 28, weight: .medium))
+                            Text(p.rawValue).font(.system(size: 15, weight: .semibold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 26)
-                        .background(model.wizard.priority == p ?
-                                    AnyShapeStyle(Theme.brand.opacity(0.9)) : AnyShapeStyle(.ultraThinMaterial),
-                                    in: RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous))
-                        .foregroundStyle(model.wizard.priority == p ? .white : .primary)
-                        .overlay(RoundedRectangle(cornerRadius: Theme.cardCorner, style: .continuous)
-                            .strokeBorder(.white.opacity(0.1)))
+                        .padding(.vertical, Space.l)
+                        .background(selected ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Theme.surface),
+                                    in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                        .foregroundStyle(selected ? AnyShapeStyle(.white) : AnyShapeStyle(.primary))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                            .strokeBorder(selected ? .clear : Theme.hairline))
                     }
                     .buttonStyle(.plain)
                 }
@@ -108,27 +109,28 @@ struct OnboardingView: View {
     private var review: some View {
         let keys = model.wizard.recommendedKeys()
         let picked = model.engine.tweaks.filter { keys.contains($0.key) }
-        return VStack(alignment: .leading, spacing: 14) {
+        return VStack(alignment: .leading, spacing: Space.s) {
             stepTitle("Your tailored setup", "\(picked.count) tweaks selected. You can change any of these later.")
             ScrollView {
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: Space.xs) {
                     ForEach(picked) { t in
-                        HStack(spacing: 10) {
-                            Image(systemName: t.category.icon).foregroundStyle(t.category.tint).frame(width: 22)
-                            Text(t.title).font(.subheadline.weight(.medium))
+                        HStack(spacing: Space.s) {
+                            Image(systemName: t.icon).foregroundStyle(.secondary).frame(width: 22)
+                            Text(t.title).font(.system(size: 13, weight: .medium))
                             Spacer()
-                            Pill(text: t.risk.label, color: t.risk.tint)
+                            Pill(text: t.risk.label)
                         }
-                        .padding(.vertical, 6).padding(.horizontal, 10)
-                        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 10))
+                        .padding(.vertical, Space.xs).padding(.horizontal, Space.s)
+                        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile))
+                        .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Theme.hairline))
                     }
                     if picked.isEmpty {
                         Text("No changes — you're keeping everything as-is. 👍")
-                            .foregroundStyle(.secondary).padding()
+                            .font(.system(size: 13)).foregroundStyle(.secondary).padding()
                     }
                 }
             }
-            .frame(maxHeight: 260)
+            .frame(maxHeight: 267)   // 89 · 3
         }
     }
 
@@ -139,9 +141,9 @@ struct OnboardingView: View {
             Button("Skip") { Task { await model.finishOnboarding(apply: false) } }
                 .buttonStyle(.plain).foregroundStyle(.secondary)
             Spacer()
-            HStack(spacing: 6) {
+            HStack(spacing: Space.xs) {
                 ForEach(0...lastStep, id: \.self) { i in
-                    Circle().fill(i == step ? AnyShapeStyle(Theme.brand) : AnyShapeStyle(Color.secondary.opacity(0.3)))
+                    Circle().fill(i == step ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(Color.secondary.opacity(0.25)))
                         .frame(width: 7, height: 7)
                 }
             }
@@ -151,36 +153,37 @@ struct OnboardingView: View {
             }
             if step < lastStep {
                 Button("Next") { step += 1 }
-                    .buttonStyle(.borderedProminent).controlSize(.large).tint(.purple)
+                    .buttonStyle(.borderedProminent).controlSize(.large)
             } else {
                 Button("Apply Setup") { Task { await model.finishOnboarding(apply: true) } }
-                    .buttonStyle(.borderedProminent).controlSize(.large).tint(.purple)
+                    .buttonStyle(.borderedProminent).controlSize(.large)
             }
         }
-        .padding(.top, 12)
+        .padding(.top, Space.s)
     }
 
     // MARK: Bits
 
     private func stepTitle(_ title: String, _ sub: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text(title).font(.system(.title2, design: .rounded).weight(.bold))
-            Text(sub).foregroundStyle(.secondary)
+            Text(title).font(.system(size: 22, weight: .bold))
+            Text(sub).font(.system(size: 14)).foregroundStyle(.secondary)
         }
     }
 
     private func questionToggle(_ title: String, _ sub: String, _ icon: String, _ binding: Binding<Bool>) -> some View {
         Toggle(isOn: binding) {
-            HStack(spacing: 12) {
-                Image(systemName: icon).font(.title3).frame(width: 26).foregroundStyle(.tint)
+            HStack(spacing: Space.s) {
+                Image(systemName: icon).font(.system(size: 16)).frame(width: 26).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 1) {
-                    Text(title).font(.subheadline.weight(.semibold))
-                    Text(sub).font(.caption).foregroundStyle(.secondary)
+                    Text(title).font(.system(size: 13, weight: .semibold))
+                    Text(sub).font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
         }
         .toggleStyle(.switch)
-        .padding(10)
-        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .padding(Space.s)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Theme.hairline))
     }
 }

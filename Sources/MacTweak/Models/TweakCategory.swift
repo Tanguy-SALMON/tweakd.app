@@ -28,18 +28,6 @@ enum TweakCategory: String, CaseIterable, Identifiable, Sendable {
         }
     }
 
-    var tint: Color {
-        switch self {
-        case .performance: return .blue
-        case .power: return .yellow
-        case .snappiness: return .teal
-        case .privacy: return .indigo
-        case .services: return .purple
-        case .network: return .green
-        case .ai: return .pink
-        }
-    }
-
     var blurb: String {
         switch self {
         case .performance: return "Raw throughput and latency."

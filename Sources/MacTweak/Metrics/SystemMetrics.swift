@@ -47,7 +47,12 @@ final class SystemMetrics: ObservableObject {
     }
 
     func sample() {
-        cpuPercent = readCPU()
+        // Smooth bursty CPU with an exponential moving average so the menu-bar
+        // panel and the main window converge on the same stable figure instead
+        // of catching different instantaneous spikes.
+        let rawCPU = readCPU()
+        cpuPercent = cpuPercent == 0 ? rawCPU : cpuPercent + (rawCPU - cpuPercent) * 0.5
+
         let (used, total) = readMemory()
         memUsedBytes = used
         memUsedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0

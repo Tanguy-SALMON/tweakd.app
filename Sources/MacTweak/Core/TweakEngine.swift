@@ -20,6 +20,8 @@ final class TweakEngine: ObservableObject {
     @Published private(set) var busy: Set<String> = []
     @Published var lastMessage: String?
     @Published private(set) var isRefreshing = false
+    @Published private(set) var adminUnlocked = false
+    @Published private(set) var batchRunning = false
 
     /// Persisted custom order (tweak keys). Missing keys fall back to catalog order.
     @Published var order: [String] {
@@ -108,6 +110,28 @@ final class TweakEngine: ObservableObject {
             ? .applied : .notApplied
     }
 
+    // MARK: - Admin unlock (authenticate once, then passwordless)
+
+    func refreshAdminStatus() async {
+        adminUnlocked = await Task.detached { CommandRunner.hasPasswordlessAdmin() }.value
+    }
+
+    func unlockAdmin() async {
+        let result = await Task.detached { CommandRunner.enablePasswordlessAdmin() }.value
+        if result.userCancelled { lastMessage = "Cancelled."; return }
+        await refreshAdminStatus()
+        lastMessage = adminUnlocked
+            ? "Admin unlocked — tweaks now apply without a password."
+            : "Couldn't unlock admin. \(result.error.isEmpty ? result.output : result.error)"
+    }
+
+    func lockAdmin() async {
+        let result = await Task.detached { CommandRunner.disablePasswordlessAdmin() }.value
+        if result.userCancelled { lastMessage = "Cancelled."; return }
+        await refreshAdminStatus()
+        lastMessage = adminUnlocked ? "Couldn't lock admin." : "Admin locked — your password will be required again."
+    }
+
     // MARK: - Apply / revert
 
     func toggle(_ tweak: Tweak) async {
@@ -145,17 +169,104 @@ final class TweakEngine: ObservableObject {
     }
 
     func applyRecommended() async {
-        for t in tweaks where t.recommended && state(of: t) == .notApplied {
-            await set(t, to: .applied)
+        let recommended = tweaks.filter(\.recommended)
+        let pending = recommended.filter { state(of: $0) == .notApplied }
+        let blocked = recommended.filter { state(of: $0) == .unavailable }
+
+        guard !pending.isEmpty else {
+            let active = recommended.filter { state(of: $0) == .applied }.count
+            lastMessage = blocked.isEmpty
+                ? "You're all set — \(active) recommended tweaks already active."
+                : "\(active) active; \(blocked.count) need SIP off."
+            return
         }
-        lastMessage = "Recommended tune applied."
+
+        batchRunning = true
+        var applied = 0, failed = 0
+        for t in pending {
+            await set(t, to: .applied)
+            if state(of: t) == .applied { applied += 1 } else { failed += 1 }
+        }
+        batchRunning = false
+
+        var msg = "Applied \(applied) tweak\(applied == 1 ? "" : "s")."
+        if failed > 0 { msg += " \(failed) couldn't be applied." }
+        if !blocked.isEmpty { msg += " \(blocked.count) need SIP off." }
+        lastMessage = msg
     }
 
     func revertAll() async {
-        for t in tweaks where state(of: t) == .applied {
+        let applied = tweaks.filter { state(of: $0) == .applied }
+        guard !applied.isEmpty else { lastMessage = "Nothing to revert — everything is stock."; return }
+
+        batchRunning = true
+        var reverted = 0, failed = 0
+        for t in applied {
             await set(t, to: .notApplied)
+            if state(of: t) == .notApplied { reverted += 1 } else { failed += 1 }
         }
-        lastMessage = "All tweaks reverted to stock."
+        batchRunning = false
+
+        var msg = "Reverted \(reverted) tweak\(reverted == 1 ? "" : "s") to stock."
+        if failed > 0 { msg += " \(failed) couldn't be reverted." }
+        lastMessage = msg
+    }
+
+    func apply(preset: Preset) async {
+        let keys = preset.keys()
+        let pending = tweaks.filter { keys.contains($0.key) && state(of: $0) == .notApplied }
+        guard !pending.isEmpty else {
+            lastMessage = "\(preset.name): already active (\(keys.count) tweaks)."
+            return
+        }
+        batchRunning = true
+        var applied = 0, failed = 0
+        for t in pending {
+            await set(t, to: .applied)
+            if state(of: t) == .applied { applied += 1 } else { failed += 1 }
+        }
+        batchRunning = false
+        var msg = "\(preset.name) preset — applied \(applied) tweak\(applied == 1 ? "" : "s")."
+        if failed > 0 { msg += " \(failed) couldn't be applied." }
+        lastMessage = msg
+    }
+
+    // Write a standalone shell script that reverts every tweak — a safety net if
+    // a tweak ever makes the system misbehave and the app won't open.
+    func writeEmergencyRevertScript() async {
+        let path = "\(NSHomeDirectory())/Documents/MacTweak_Revert.sh"
+        let script = Self.buildRevertScript()
+        let ok = await Task.detached { () -> Bool in
+            guard (try? script.write(toFile: path, atomically: true, encoding: .utf8)) != nil else { return false }
+            _ = CommandRunner.user("chmod +x '\(path)'")
+            return true
+        }.value
+        lastMessage = ok ? "Emergency revert script saved to ~/Documents/MacTweak_Revert.sh"
+                         : "Couldn't write the revert script."
+    }
+
+    nonisolated static func buildRevertScript() -> String {
+        var lines = [
+            "#!/bin/bash",
+            "# MacTweak — Emergency Revert. Reverts every tweak to macOS defaults.",
+            "# Run in Terminal:  bash ~/Documents/MacTweak_Revert.sh",
+            "set +e",
+            "echo 'Reverting all MacTweak tweaks…'",
+            "",
+            "# User-level tweaks (no sudo):",
+        ]
+        for t in TweakCatalog.all where t.privilege == .user {
+            lines.append(t.revertCommand)
+        }
+        lines.append("")
+        lines.append("# Admin tweaks (prompt for your password):")
+        for t in TweakCatalog.all where t.privilege == .admin {
+            lines.append("sudo /bin/zsh -c \"\(t.revertCommand)\"")
+        }
+        lines.append("")
+        lines.append("killall Dock Finder 2>/dev/null")
+        lines.append("echo '✅ Done. Some changes may need a reboot.'")
+        return lines.joined(separator: "\n") + "\n"
     }
 
     // Apply a specific set (used by the onboarding wizard).

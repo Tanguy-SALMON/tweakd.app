@@ -27,83 +27,71 @@ struct TweakListView: View {
     }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
+        VStack(alignment: .leading, spacing: 0) {
+            header
+                .padding(.horizontal, Space.l)
+                .padding(.top, Space.l)
+                .padding(.bottom, Space.m)
 
-                if items.isEmpty {
-                    emptyState
-                } else {
-                    // A plain list would fight the ScrollView; render rows directly
-                    // and support drag reordering only within a category.
-                    if let category {
-                        ReorderableTweakList(category: category)
-                    } else {
-                        ForEach(items) { TweakRow(tweak: $0) }
+            if items.isEmpty {
+                emptyState
+                Spacer(minLength: 0)
+            } else {
+                // A real List scrolls natively and sizes rows itself — no height
+                // estimate, so nothing gets clipped.
+                List {
+                    ForEach(items) { tweak in
+                        TweakRow(tweak: tweak)
+                            .listRowInsets(EdgeInsets(top: Space.xxs, leading: Space.l,
+                                                      bottom: Space.xxs, trailing: Space.l))
+                            .listRowSeparator(.hidden)
+                            .listRowBackground(Color.clear)
                     }
+                    .onMove { source, dest in
+                        if let category { model.engine.move(in: category, from: source, to: dest) }
+                    }
+                    Spacer(minLength: Space.m)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .environment(\.defaultMinListRowHeight, 0)
             }
-            .padding(24)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity)
         }
+        .frame(maxWidth: 720, alignment: .leading)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
     }
 
     @ViewBuilder private var header: some View {
         switch section {
         case .favorites:
-            titleBlock(icon: "star.fill", tint: .yellow, title: "Favorites",
+            titleBlock(icon: "star", title: "Favorites",
                        blurb: "Your pinned tweaks, all in one place.")
         case .category(let c):
-            titleBlock(icon: c.icon, tint: c.tint, title: c.rawValue, blurb: c.blurb)
+            titleBlock(icon: c.icon, title: c.rawValue, blurb: c.blurb)
         }
     }
 
-    private func titleBlock(icon: String, tint: Color, title: String, blurb: String) -> some View {
-        HStack(spacing: 14) {
-            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                .fill(tint.gradient)
-                .frame(width: 46, height: 46)
-                .overlay(Image(systemName: icon).font(.title3.weight(.bold)).foregroundStyle(.white))
+    private func titleBlock(icon: String, title: String, blurb: String) -> some View {
+        HStack(spacing: Space.s) {
+            GlyphTile(systemName: icon, size: 42)
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.system(.title, design: .rounded).weight(.bold))
-                Text(blurb).foregroundStyle(.secondary)
+                Text(title).font(.system(size: 26, weight: .bold))
+                Text(blurb).font(.system(size: 14)).foregroundStyle(.secondary)
             }
             Spacer()
         }
     }
 
     private var emptyState: some View {
-        VStack(spacing: 8) {
-            Image(systemName: "star").font(.largeTitle).foregroundStyle(.secondary)
-            Text("No favorites yet").font(.headline)
-            Text("Tap the star on any tweak to pin it here.")
-                .font(.callout).foregroundStyle(.secondary)
+        VStack(spacing: Space.xs) {
+            Image(systemName: "star").font(.system(size: 30)).foregroundStyle(.secondary)
+            Text("No favorites yet").font(.system(size: 15, weight: .semibold))
+            Text("Click the star on any tweak to pin it here.")
+                .font(.system(size: 13)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 60)
-    }
-}
-
-/// Category rows in a real List so `.onMove` drag-reordering works.
-private struct ReorderableTweakList: View {
-    @EnvironmentObject var model: AppModel
-    let category: TweakCategory
-
-    var body: some View {
-        let items = model.engine.tweaks(in: category)
-        List {
-            ForEach(items) { tweak in
-                TweakRow(tweak: tweak)
-                    .listRowInsets(EdgeInsets(top: 6, leading: 0, bottom: 6, trailing: 0))
-                    .listRowSeparator(.hidden)
-                    .listRowBackground(Color.clear)
-            }
-            .onMove { model.engine.move(in: category, from: $0, to: $1) }
-        }
-        .listStyle(.plain)
-        .scrollDisabled(true)
-        .scrollContentBackground(.hidden)
-        .frame(height: CGFloat(items.count) * 104 + 8)
+        .padding(.vertical, Space.xl)
     }
 }

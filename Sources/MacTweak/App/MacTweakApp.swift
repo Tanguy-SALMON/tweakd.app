@@ -17,7 +17,7 @@ struct MacTweakApp: App {
             MenuView()
                 .environmentObject(model)
         } label: {
-            Image(systemName: "slider.horizontal.3")
+            MenuBarLabel()
         }
         .menuBarExtraStyle(.window)
 
@@ -30,5 +30,23 @@ struct MacTweakApp: App {
         .windowResizability(.contentSize)
         .defaultSize(width: 960, height: 680)
         .defaultPosition(.center)
+    }
+}
+
+/// The menu-bar icon. Also reliably opens the main window once at launch —
+/// `Window` scenes don't auto-present for an accessory (menu-bar) app, and
+/// `.defaultLaunchBehavior(.presented)` crashes under LaunchServices here.
+private struct MenuBarLabel: View {
+    @Environment(\.openWindow) private var openWindow
+    @State private var openedAtLaunch = false
+
+    var body: some View {
+        Image(systemName: "slider.horizontal.3")
+            .task {
+                guard !openedAtLaunch else { return }
+                openedAtLaunch = true
+                NSApp.activate(ignoringOtherApps: true)
+                openWindow(id: "main")
+            }
     }
 }

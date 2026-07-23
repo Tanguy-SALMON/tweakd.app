@@ -55,6 +55,20 @@ standard macOS auth dialog and runs as root. No helper tool, no stored password,
 deprecated API. User-level tweaks (`defaults`, `launchctl … gui/$UID`) run without a
 prompt. See `Sources/MacTweak/Core/CommandRunner.swift`.
 
+## Passwordless admin (authenticate once)
+
+By default each admin tweak triggers the native password prompt. Click **Unlock**
+on the Dashboard's *Admin Access* card to authenticate **once** — MacTweak installs
+a sudoers rule and every later admin tweak applies via `sudo -n` with no prompt.
+
+- The rule lives at `/etc/sudoers.d/mactweak` (root-owned, `0440`, validated with
+  `visudo -c` before it's kept).
+- **Lock** removes it. Manual removal: `sudo rm /etc/sudoers.d/mactweak`.
+- **Security note:** the rule grants your user passwordless root (`NOPASSWD: /bin/zsh`),
+  which is what makes the tweaks silent. That's a real convenience-for-safety trade —
+  fine for a personal machine, but any process running as you can then reach root
+  without a password. Lock it when you're done tuning if that matters to you.
+
 ## Adding a tweak
 
 Add one entry to `TweakCatalog.all` in

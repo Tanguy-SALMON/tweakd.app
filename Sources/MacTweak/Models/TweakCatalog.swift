@@ -221,6 +221,17 @@ enum TweakCatalog {
             tags: [.usesAI], recommended: false
         ),
         Tweak(
+            key: "disable-duetexpertd",
+            title: "Disable Proactive Intelligence",
+            summary: "Stops duetexpertd — the on-device daemon behind Siri Suggestions and predicted actions.",
+            category: .ai, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "launchctl disable \(g)/com.apple.duetexpertd; launchctl bootout \(g)/com.apple.duetexpertd 2>/dev/null; true",
+            revertCommand: "launchctl enable \(g)/com.apple.duetexpertd; true",
+            statusCommand: "launchctl print-disabled \(g) 2>/dev/null | grep duetexpertd",
+            appliedWhenOutputContains: "disabled",
+            tags: [.usesAI, .privacyFocused], recommended: false
+        ),
+        Tweak(
             key: "disable-lookup-suggestions",
             title: "Disable Siri Suggestions in Lookup",
             summary: "Stops sending lookup queries for Siri-powered suggestions.",
@@ -323,6 +334,88 @@ enum TweakCatalog {
             appliedWhenOutputContains: "0",
             tags: [.snappyUI], recommended: false
         ),
+
+        // MARK: Snappiness — verified subset from the beta list (PRP_2)
+        Tweak(
+            key: "fast-mission-control",
+            title: "Faster Mission Control",
+            summary: "Removes the Mission Control / App Exposé zoom animation.",
+            category: .snappiness, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "defaults write com.apple.dock expose-animation-duration -float 0 && killall Dock",
+            revertCommand: "defaults delete com.apple.dock expose-animation-duration 2>/dev/null; killall Dock; true",
+            statusCommand: "[ \"$(defaults read com.apple.dock expose-animation-duration 2>/dev/null)\" = \"0\" ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.snappyUI], recommended: false
+        ),
+        Tweak(
+            key: "instant-fullscreen-menubar",
+            title: "Instant Fullscreen Menu Bar",
+            summary: "Removes the delay before the menu bar reveals in fullscreen apps.",
+            category: .snappiness, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "defaults write com.apple.dock fullscreen-delay -float 0 && killall Dock",
+            revertCommand: "defaults delete com.apple.dock fullscreen-delay 2>/dev/null; killall Dock; true",
+            statusCommand: "[ \"$(defaults read com.apple.dock fullscreen-delay 2>/dev/null)\" = \"0\" ] && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.snappyUI], recommended: false
+        ),
+        Tweak(
+            key: "disable-smooth-scroll",
+            title: "Disable Smooth Scrolling",
+            summary: "Step-based scrolling instead of animated. Saves CPU when scrolling heavily.",
+            category: .snappiness, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "defaults write -g NSScrollAnimationEnabled -bool false",
+            revertCommand: "defaults delete -g NSScrollAnimationEnabled 2>/dev/null; true",
+            statusCommand: "defaults read -g NSScrollAnimationEnabled 2>/dev/null",
+            appliedWhenOutputContains: "0",
+            tags: [.snappyUI, .prioritizePerformance], recommended: false
+        ),
+        Tweak(
+            key: "manual-window-tabbing",
+            title: "Manual Window Tabbing",
+            summary: "Stops apps from auto-merging windows into tabs. Trims WindowServer work.",
+            category: .snappiness, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "defaults write -g AppleWindowTabbingMode -string manual",
+            revertCommand: "defaults delete -g AppleWindowTabbingMode 2>/dev/null; true",
+            statusCommand: "defaults read -g AppleWindowTabbingMode 2>/dev/null",
+            appliedWhenOutputContains: "manual",
+            tags: [.snappyUI], recommended: false
+        ),
+    ]
+
+    /// A distinct, hand-picked SF Symbol per tweak so every row reads uniquely.
+    static let iconOverrides: [String: String] = [
+        // Performance
+        "timer-coalescing": "timer",
+        "disable-app-nap": "moon.zzz",
+        "raise-gpu-vram": "memorychip",
+        "disable-lowpri-throttle": "speedometer",
+        "serverperfmode": "server.rack",
+        // Power
+        "lowpowermode-off": "battery.100.bolt",
+        "disable-powernap": "powersleep",
+        "disable-hibernation-image": "bed.double",
+        // Snappiness
+        "fast-window-resize": "arrow.up.left.and.arrow.down.right",
+        "disable-window-anim": "macwindow",
+        "instant-dock": "dock.rectangle",
+        "fast-key-repeat": "keyboard",
+        "fast-mission-control": "square.grid.3x3",
+        "instant-fullscreen-menubar": "menubar.rectangle",
+        "disable-smooth-scroll": "scroll",
+        "manual-window-tabbing": "rectangle.stack",
+        // Privacy
+        "crashreporter-silent": "exclamationmark.bubble",
+        "disable-analyticsd": "antenna.radiowaves.left.and.right",
+        // Background services
+        "disable-mediaanalysisd": "film",
+        "disable-photoanalysisd": "person.crop.rectangle.stack",
+        "disable-spotlight": "magnifyingglass",
+        // Network
+        "mdns-no-advertise": "dot.radiowaves.left.and.right",
+        // AI & Intelligence
+        "disable-siri-daemon": "mic",
+        "disable-lookup-suggestions": "text.magnifyingglass",
+        "disable-duetexpertd": "brain",
     ]
 
     // MARK: - One-shot actions

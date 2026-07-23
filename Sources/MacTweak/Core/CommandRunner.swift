@@ -32,14 +32,62 @@ enum CommandRunner {
         run(executable: "/bin/zsh", arguments: ["-c", command])
     }
 
-    /// Run a command as root through the native authorization prompt.
+    /// Run a command as root. Passwordless once admin is unlocked; otherwise
+    /// falls back to a one-off native authorization prompt.
     static func admin(_ command: String) -> CommandResult {
+        hasPasswordlessAdmin() ? adminNoPrompt(command) : adminPrompt(command)
+    }
+
+    // MARK: - Passwordless admin (one-time unlock)
+
+    static let sudoersPath = "/etc/sudoers.d/mactweak"
+
+    /// True when the sudoers rule is in place, so `sudo -n` needs no password.
+    static func hasPasswordlessAdmin() -> Bool {
+        run(executable: "/usr/bin/sudo", arguments: ["-n", "/bin/zsh", "-c", "true"]).exitCode == 0
+    }
+
+    /// One-time: prompt for the password once and install the sudoers rule so
+    /// every later admin command runs without a prompt.
+    static func enablePasswordlessAdmin() -> CommandResult {
+        let user = NSUserName()
+        let install = """
+        f=\(sudoersPath)
+        /usr/bin/printf '%s\\n' \
+          '# MacTweak — apply admin tweaks without re-entering your password.' \
+          '# Delete this file (or use MacTweak > Lock Admin) to revoke.' \
+          '\(user) ALL=(root) NOPASSWD: /bin/zsh' > "$f"
+        /bin/chmod 0440 "$f"
+        /usr/sbin/chown root:wheel "$f"
+        if ! /usr/sbin/visudo -cf "$f" >/dev/null 2>&1; then /bin/rm -f "$f"; echo INVALID; exit 1; fi
+        echo OK
+        """
+        return adminPrompt(install)
+    }
+
+    /// Remove the sudoers rule — admin commands prompt again afterwards.
+    static func disablePasswordlessAdmin() -> CommandResult {
+        let remove = "/bin/rm -f \(sudoersPath)"
+        return hasPasswordlessAdmin() ? adminNoPrompt(remove) : adminPrompt(remove)
+    }
+
+    // MARK: - Escalation backends
+
+    /// Root via `sudo -n` (no prompt). Requires the sudoers rule.
+    private static func adminNoPrompt(_ command: String) -> CommandResult {
+        let b64 = Data(command.utf8).base64EncodedString()
+        let inner = "/bin/echo \(b64) | /usr/bin/base64 -D | /bin/zsh"
+        return run(executable: "/usr/bin/sudo",
+                   arguments: ["-n", "/bin/zsh", "-c", inner])
+    }
+
+    /// Root via the native authorization dialog (one password prompt).
+    private static func adminPrompt(_ command: String) -> CommandResult {
         let b64 = Data(command.utf8).base64EncodedString()
         // Decoded and piped into zsh entirely inside the privileged shell.
         let inner = "/bin/echo \(b64) | /usr/bin/base64 -D | /bin/zsh"
         let script = "do shell script \"\(inner)\" with administrator privileges"
-        let result = run(executable: "/usr/bin/osascript", arguments: ["-e", script])
-        return result
+        return run(executable: "/usr/bin/osascript", arguments: ["-e", script])
     }
 
     // MARK: - Plumbing

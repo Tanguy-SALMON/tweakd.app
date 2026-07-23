@@ -7,19 +7,19 @@ import SwiftUI
 
 struct MainWindowView: View {
     @EnvironmentObject var model: AppModel
-    @Environment(\.colorScheme) private var scheme
 
     var body: some View {
         NavigationSplitView {
             SidebarView()
-                .navigationSplitViewColumnWidth(min: 210, ideal: 230, max: 280)
+                .navigationSplitViewColumnWidth(min: 200, ideal: 220, max: 260)
         } detail: {
             ZStack {
-                Theme.heroBackground(scheme)
+                Theme.canvas.ignoresSafeArea()
                 detail
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
         }
+        .tint(Theme.accent)
         .sheet(isPresented: $model.showOnboarding) {
             OnboardingView()
                 .environmentObject(model)
@@ -42,12 +42,12 @@ struct MainWindowView: View {
     @ViewBuilder private var toast: some View {
         if let msg = model.engine.lastMessage {
             Text(msg)
-                .font(.callout.weight(.medium))
-                .padding(.horizontal, 16).padding(.vertical, 10)
+                .font(.system(size: 13, weight: .medium))
+                .padding(.horizontal, Space.m).padding(.vertical, Space.s)
                 .background(.regularMaterial, in: Capsule())
-                .overlay(Capsule().strokeBorder(.white.opacity(0.12)))
-                .shadow(radius: 12, y: 4)
-                .padding(.bottom, 18)
+                .overlay(Capsule().strokeBorder(Theme.hairline))
+                .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
+                .padding(.bottom, Space.m)
                 .transition(.move(edge: .bottom).combined(with: .opacity))
                 .task(id: msg) {
                     try? await Task.sleep(for: .seconds(2.6))

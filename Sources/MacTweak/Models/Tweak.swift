@@ -28,13 +28,6 @@ enum Risk: Int, Sendable, Comparable {
         case .advanced: return "Advanced"
         }
     }
-    var tint: Color {
-        switch self {
-        case .safe: return .green
-        case .moderate: return .orange
-        case .advanced: return .red
-        }
-    }
 }
 
 /// Where a tweak currently stands on this machine.
@@ -82,6 +75,10 @@ struct Tweak: Identifiable, Sendable {
     let recommended: Bool
 
     var id: String { key }
+
+    /// Per-tweak SF Symbol, falling back to the category glyph.
+    var icon: String { TweakCatalog.iconOverrides[key] ?? category.icon }
+
     var privilegeRunner: (String) -> CommandResult {
         privilege == .admin ? CommandRunner.admin : CommandRunner.user
     }
