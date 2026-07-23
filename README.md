@@ -66,19 +66,19 @@ Requirements: **macOS 15+** and **Xcode 16+** (uses Swift 6 / Swift Charts).
 
 ```bash
 # compile, bundle into build/MacTweak.app, and launch (default)
-Scripts/build_app.sh
+Scripts/build.sh
 
 # build + bundle without launching
-Scripts/build_app.sh --no-launch
+Scripts/build.sh --no-launch
 
 # debug build
-Scripts/build_app.sh --debug
+Scripts/build.sh --debug
 ```
 
 The script kills any running instance first, compiles the `.icns` from
 `Resources/AppIcon.iconset`, ad-hoc signs with `MacTweak.entitlements`, stamps
 the bundle version with the short git commit, and hides the `.app` extension in
-Finder. Run `Scripts/build_app.sh --help` for all flags.
+Finder. Run `Scripts/build.sh --help` for all flags.
 
 Or open `Package.swift` in Xcode and hit Run (note: running the bare SPM executable
 skips the `Info.plist`, so use the script for the real menu-bar experience).
@@ -145,7 +145,7 @@ sysctls/keys that don't exist rather than shipping dead toggles.
 
 ```bash
 swift Scripts/make_icon.swift Resources/AppIcon.png
-# then rebuild the .icns (see the iconset steps) and run build_app.sh
+# then rebuild the .icns (see the iconset steps) and run build.sh
 ```
 
 ## Layout
@@ -159,5 +159,5 @@ Sources/MacTweak/
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               Components (HeroHeader, RingGauge/StatTile, cpuHistoryMarks)
   Onboarding/ OnboardingView
-Scripts/      build_app.sh, make_icon.swift
+Scripts/      build.sh, make_icon.swift
 ```

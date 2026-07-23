@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# build_app.sh — compile MacTweak and wrap the SPM binary in a proper,
+# build.sh — compile MacTweak and wrap the SPM binary in a proper,
 # menu-bar-only macOS .app bundle (correct Info.plist, AppIcon, entitlements,
 # and the Finder hide-extension flag). Ad-hoc signed, not sandboxed.
 #
@@ -9,11 +9,11 @@
 # machinery MacTweak doesn't have.
 #
 # Usage:
-#   Scripts/build_app.sh               # release build, then auto-launch
-#   Scripts/build_app.sh --debug       # debug build, then auto-launch
-#   Scripts/build_app.sh --no-launch   # release build, do NOT launch
-#   Scripts/build_app.sh run           # alias for the default (build + launch)
-#   Scripts/build_app.sh --help        # show this header
+#   Scripts/build.sh               # release build, then auto-launch
+#   Scripts/build.sh --debug       # debug build, then auto-launch
+#   Scripts/build.sh --no-launch   # release build, do NOT launch
+#   Scripts/build.sh run           # alias for the default (build + launch)
+#   Scripts/build.sh --help        # show this header
 #
 # Flags can combine; order does not matter.
 #

@@ -10,16 +10,16 @@ Requirements: **macOS 15+**, **Xcode 16+** (Swift 6 / Swift Charts).
 
 ```bash
 # compile, bundle into build/MacTweak.app, and launch (default)
-Scripts/build_app.sh
+Scripts/build.sh
 
 # build + bundle without launching
-Scripts/build_app.sh --no-launch
+Scripts/build.sh --no-launch
 
 # debug build
-Scripts/build_app.sh --debug
+Scripts/build.sh --debug
 
 # all flags
-Scripts/build_app.sh --help
+Scripts/build.sh --help
 ```
 
 The script kills any running instance, compiles the `.icns` from

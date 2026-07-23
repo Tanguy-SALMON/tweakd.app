@@ -23,7 +23,7 @@ Sources/MacTweak/
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               ScanSheet, MainWindow, Components (HeroHeader, RingGauge, gauges)
   Onboarding/ OnboardingView
-Scripts/      build_app.sh, make_icon.swift
+Scripts/      build.sh, make_icon.swift
 docs/         index.html, TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md
 ```
 
@@ -185,7 +185,7 @@ excluded): **Balanced · Performance · Snappy UI · Battery · Privacy · AI / 
 
 ## Build
 
-`Scripts/build_app.sh` compiles, bundles into `build/MacTweak.app`, generates the
+`Scripts/build.sh` compiles, bundles into `build/MacTweak.app`, generates the
 `Info.plist` (stamping `CFBundleVersion` with the git commit), builds the `.icns`,
 ad-hoc signs with `MacTweak.entitlements`, and launches. Flags: `--no-launch`,
 `--debug`, `--help`. See [CONTRIBUTING.md](../CONTRIBUTING.md).
