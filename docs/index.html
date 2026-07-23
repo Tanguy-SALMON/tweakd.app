@@ -70,6 +70,47 @@
   .pill { display:inline-block; margin-top: 26px; font-size: 13px; color: var(--text-secondary);
           border: 1px solid var(--hairline); border-radius: 980px; padding: 7px 16px; }
 
+  /* Download / CTA buttons — mirror the app's gradient button style */
+  .cta { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin-top: 32px; }
+  .btn { display: inline-flex; align-items: center; gap: 9px; font-size: 15px; font-weight: 600;
+         padding: 12px 22px; border-radius: 980px; text-decoration: none; cursor: pointer;
+         border: 1px solid transparent; letter-spacing: -0.01em;
+         transition: transform .3s cubic-bezier(.2,.7,.2,1), box-shadow .3s ease, background-color .25s ease; }
+  .btn svg { width: 18px; height: 18px; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .btn svg.apple { width: 17px; height: 17px; fill: currentColor; stroke: none; margin-top: -2px; }
+  .btn .sz { font-size: 12px; font-weight: 500; opacity: .8; }
+  .btn.primary { background: var(--grad); color: #fff; box-shadow: 0 8px 22px rgba(231,0,14,0.28); }
+  .btn.primary svg { stroke: #fff; }
+  .btn.primary:hover { transform: translateY(-2px); box-shadow: 0 13px 28px rgba(231,0,14,0.34); }
+  .btn.ghost { color: var(--accent); background: transparent;
+               border-color: color-mix(in srgb, var(--accent) 42%, transparent); }
+  .btn.ghost svg { stroke: currentColor; }
+  .btn.ghost:hover { transform: translateY(-2px); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+  .btn:active { transform: translateY(0) scale(.98); }
+  .cta-note { font-size: 13px; color: var(--text-secondary); margin-top: 16px; }
+  nav a.dl { color: var(--accent); font-weight: 600; }
+  nav a.dl:hover { color: var(--accent-deep); }
+
+  /* Prominent download banner (before the footer) */
+  .download-banner { position: relative; overflow: hidden; text-align: center; color: #fff;
+    background: var(--grad); border-radius: 28px; padding: 58px 32px;
+    box-shadow: 0 24px 60px rgba(231,0,14,0.30); }
+  .download-banner::before { content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: radial-gradient(62% 80% at 26% 0%, rgba(255,255,255,0.26), transparent 60%); }
+  .download-banner > * { position: relative; }
+  .banner-mark { width: 74px; height: 74px; margin: 0 auto 4px; display: block; }
+  .download-banner h2 { color: #fff; margin-top: 16px; }
+  .download-banner p { color: rgba(255,255,255,0.92); font-size: 18px; max-width: 560px; margin: 14px auto 0; }
+  .download-banner .cta { margin-top: 30px; }
+  .banner-note { font-size: 13px; color: rgba(255,255,255,0.78); margin-top: 18px; }
+  .banner-note code { background: rgba(255,255,255,0.18); border: none; color: #fff; }
+  .btn.on-grad { background: #fff; color: var(--accent-deep); box-shadow: 0 8px 22px rgba(0,0,0,0.18); }
+  .btn.on-grad svg { stroke: var(--accent-deep); }
+  .btn.on-grad:hover { transform: translateY(-2px); box-shadow: 0 13px 28px rgba(0,0,0,0.24); }
+  .btn.on-grad-ghost { background: transparent; border-color: rgba(255,255,255,0.55); color: #fff; }
+  .btn.on-grad-ghost svg { stroke: #fff; }
+  .btn.on-grad-ghost:hover { transform: translateY(-2px); background: rgba(255,255,255,0.14); }
+
   h2 { font-size: 40px; font-weight: 600; letter-spacing: -0.02em; }
   h2.center { text-align: center; }
   .lead { font-size: 19px; color: var(--text-secondary); margin: 14px 0 0; max-width: 680px; }
@@ -106,6 +147,14 @@
   .th h3 { font-size: 20px; font-weight: 600; letter-spacing: -0.01em; }
   .tweak .desc { font-size: 15.5px; color: var(--text-secondary); margin: 6px 0 4px; max-width: 760px; }
 
+  /* "Gain" chips — what the tweak improves, at a glance */
+  .gains { display: flex; flex-wrap: wrap; gap: 7px; margin: 10px 0 2px; }
+  .gain { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600;
+          color: var(--text-secondary); background: var(--bg-elevated);
+          border: 1px solid var(--hairline); padding: 4px 11px 4px 9px; border-radius: 980px; }
+  .gain svg { width: 13px; height: 13px; fill: none; stroke: var(--accent); stroke-width: 2;
+              stroke-linecap: round; stroke-linejoin: round; }
+
   /* Badges */
   .badge { font-size: 11px; font-weight: 600; letter-spacing: 0.02em; padding: 3px 9px; border-radius: 980px;
            text-transform: uppercase; line-height: 1.4; }
@@ -137,6 +186,14 @@
   .callout { background: var(--bg-elevated); border-radius: 16px; padding: 22px 24px; margin-top: 28px;
              font-size: 15.5px; color: var(--text-secondary); }
   .callout b { color: var(--text); }
+  .callout.accent { position: relative; padding-left: 34px; border-radius: 18px;
+                    background: color-mix(in srgb, var(--accent) 5%, var(--bg-elevated));
+                    border: 1px solid color-mix(in srgb, var(--accent) 13%, transparent); }
+  /* Inset, rounded gradient accent bar — floats inside the card (Apple-style),
+     rather than a hard border that squares off past the rounded corners. */
+  .callout.accent::before { content: ""; position: absolute; left: 14px; top: 18px; bottom: 18px;
+    width: 4px; border-radius: 980px; background: var(--grad); }
+  .callout p + p { margin-top: 10px; }
   .callout code, .inline-code { font-family: "SF Mono", ui-monospace, Menlo, monospace; font-size: 13px;
              background: var(--bg-code); border: 1px solid var(--hairline); border-radius: 6px; padding: 1px 6px; color: var(--text); }
 
@@ -183,7 +240,9 @@
     * { transition-duration: 1ms !important; }
     nav .brand:hover .navmark, .mark:hover, nav a:hover, .chip:hover, .card:hover,
     .card:hover .ic svg, .cmd button:hover, .cmd button:active,
-    .cat-head:hover .dot, .tweak:hover .badge { transform: none; }
+    .cat-head:hover .dot, .tweak:hover .badge,
+    .btn.primary:hover, .btn.ghost:hover, .btn:active,
+    .btn.on-grad:hover, .btn.on-grad-ghost:hover { transform: none; }
   }
 
   @media (max-width: 734px) {
@@ -197,6 +256,10 @@
     .spec div { border-top: none; border-bottom: 1px solid var(--hairline); }
     .cmd code { padding-right: 0; padding-top: 4px; }
     .cmd button { position: static; margin-bottom: 8px; }
+    .download-banner { padding: 42px 20px; border-radius: 22px; }
+    .download-banner p { font-size: 16px; }
+    .btn { width: 100%; justify-content: center; }
+    footer { padding: 36px 0 48px; font-size: 11.5px; }
   }
 </style>
 </head>
@@ -213,6 +276,7 @@
   <a href="#network" class="hide-sm">Network</a>
   <a href="#actions">Actions</a>
   <a href="#safety">Safety</a>
+  <a href="#get" class="dl">Download</a>
 </div></nav>
 
 <header class="hero"><div class="wrap">
@@ -220,6 +284,10 @@
   <h1>MacTweak</h1>
   <p class="tagline">Tune macOS. Or do it entirely by hand.</p>
   <p class="sub">A premium menu-bar app that toggles reversible system optimizations — live CPU/RAM, guided setup, one-tap presets. Prefer the Terminal? This page lists <b>every tweak and the exact command</b> to apply and revert it yourself. No app required.</p>
+  <div class="cta">
+    <a class="btn primary" href="#get"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download for macOS <span class="sz">v0.4.0</span></a>
+    <a class="btn ghost" href="#manual"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Do it in Terminal</a>
+  </div>
   <span class="pill">macOS 15+ · Menu bar · Reversible · 35 tweaks + 6 actions</span>
 </div></header>
 
@@ -240,7 +308,12 @@
 <section id="manual"><div class="wrap">
   <p class="eyebrow">Do it by hand</p>
   <h2>Every tweak is just a command.</h2>
-  <p class="lead">You don't need the app. Open <b>Terminal</b> (Applications → Utilities), paste the <b>Apply</b> line, press Return. Changed your mind? Paste the <b>Revert</b> line. That's the whole trick — MacTweak runs exactly these.</p>
+  <p class="lead">Should you prefer not to install the application, every optimization it performs remains fully available to you. Open <b>Terminal</b> (Applications → Utilities), paste the <b>Apply</b> command, and press Return; to undo a change, run its <b>Revert</b> command. MacTweak simply automates these very same commands on your behalf.</p>
+
+  <div class="callout accent">
+    <p><b>What the app actually does.</b> MacTweak is essentially an <b>automation layer</b> over the commands on this page. Each toggle just runs the matching <b>Apply</b> or <b>Revert</b> command for you, then re-reads the system to confirm it really changed — nothing is hidden, and nothing is done that you can't type yourself.</p>
+    <p>The app adds a few conveniences on top — live CPU/RAM gauges, a guided-setup wizard, one-tap presets, one-click <b>Revert All</b>, and a Core Audio watchdog — but the <b>essential feature, applying and reverting every optimization, is 100% doable straight from the command line</b>, right here. The app just saves you the copy-pasting.</p>
+  </div>
 
   <div class="callout">
     <p><b>Three things to know before you paste:</b></p>
@@ -269,6 +342,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Timer Coalescing</h3><span class="badge sudo">sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops the kernel from batching timers. Lower latency, slightly more wakeups.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo sysctl -w kern.timer.coalescing_enabled=0</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo sysctl -w kern.timer.coalescing_enabled=1</code><button>Copy</button></div>
   </div>
@@ -276,6 +350,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable App Nap</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Keeps background apps running at full speed instead of being throttled.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g NSAppSleepDisabled -bool YES</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g NSAppSleepDisabled</code><button>Copy</button></div>
   </div>
@@ -283,6 +358,7 @@
   <div class="tweak">
     <div class="th"><h3>Raise GPU Memory Limit</h3><span class="badge sudo">sudo</span><span class="badge adv">advanced</span><span class="badge note">resets on reboot</span></div>
     <p class="desc">Lets the GPU use up to ~75% of RAM — great for local ML / heavy graphics. The math reads your total RAM and sets three-quarters of it.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo sysctl -w iogpu.wired_limit_mb=$(( $(sysctl -n hw.memsize)/1024/1024*3/4 ))</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo sysctl -w iogpu.wired_limit_mb=0</code><button>Copy</button></div>
   </div>
@@ -290,6 +366,7 @@
   <div class="tweak">
     <div class="th"><h3>Unthrottle Background I/O</h3><span class="badge sudo">sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops the kernel from throttling low-priority disk work, so background tasks finish faster.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo sysctl -w debug.lowpri_throttle_enabled=0</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo sysctl -w debug.lowpri_throttle_enabled=1</code><button>Copy</button></div>
   </div>
@@ -297,6 +374,7 @@
   <div class="tweak">
     <div class="th"><h3>Server Performance Mode</h3><span class="badge sudo">sudo</span><span class="badge sip">SIP off</span><span class="badge adv">advanced</span><span class="badge note">needs reboot</span></div>
     <p class="desc">Biases the scheduler and memory for sustained throughput. Preserves your other boot-args. Takes effect after a reboot.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo nvram boot-args="serverperfmode=1 $(nvram boot-args 2>/dev/null | cut -f2-)"</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo nvram -d boot-args</code><button>Copy</button></div>
   </div>
@@ -310,6 +388,7 @@
   <div class="tweak">
     <div class="th"><h3>Keep Low Power Mode Off</h3><span class="badge sudo">sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Guarantees Low Power Mode stays disabled on battery and adapter.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>Faster</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo pmset -a lowpowermode 0</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo pmset -a lowpowermode 1</code><button>Copy</button></div>
   </div>
@@ -317,6 +396,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Power Nap</h3><span class="badge sudo">sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Stops background wake-ups for mail, backups and updates while asleep.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z"/><path d="M2 21c0-3 1.85-5.36 5.08-6"/></svg>Better battery</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo pmset -a powernap 0</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo pmset -a powernap 1</code><button>Copy</button></div>
   </div>
@@ -324,6 +404,7 @@
   <div class="tweak">
     <div class="th"><h3>Skip Hibernation Image</h3><span class="badge sudo">sudo</span><span class="badge adv">advanced</span></div>
     <p class="desc">Frees RAM-sized disk space and speeds sleep. Trade-off: you lose safe-sleep if the battery fully dies.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg>Frees disk</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo pmset -a hibernatemode 0</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo pmset -a hibernatemode 3</code><button>Copy</button></div>
   </div>
@@ -337,6 +418,7 @@
   <div class="tweak">
     <div class="th"><h3>Instant Window Resizing</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Removes the animation when windows resize.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g NSWindowResizeTime -float 0.001</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g NSWindowResizeTime</code><button>Copy</button></div>
   </div>
@@ -344,6 +426,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Window Animations</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Turns off the open/close zoom on windows and dialogs.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g NSAutomaticWindowAnimationsEnabled -bool false</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g NSAutomaticWindowAnimationsEnabled</code><button>Copy</button></div>
   </div>
@@ -351,6 +434,7 @@
   <div class="tweak">
     <div class="th"><h3>Instant Dock Auto-Hide</h3><span class="badge user">no sudo</span><span class="badge note">restarts Dock</span></div>
     <p class="desc">Removes the delay before the Dock slides in and out.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.dock autohide-delay -float 0 &amp;&amp; defaults write com.apple.dock autohide-time-modifier -float 0.15 &amp;&amp; killall Dock</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.dock autohide-delay; defaults delete com.apple.dock autohide-time-modifier; killall Dock</code><button>Copy</button></div>
   </div>
@@ -358,6 +442,7 @@
   <div class="tweak">
     <div class="th"><h3>Turbo Key Repeat</h3><span class="badge user">no sudo</span><span class="badge note">log out to apply</span></div>
     <p class="desc">Fastest key repeat and shortest delay. Log out and back in to fully apply.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g KeyRepeat -int 2 &amp;&amp; defaults write -g InitialKeyRepeat -int 15</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g KeyRepeat; defaults delete -g InitialKeyRepeat</code><button>Copy</button></div>
   </div>
@@ -365,6 +450,7 @@
   <div class="tweak">
     <div class="th"><h3>Faster Mission Control</h3><span class="badge user">no sudo</span><span class="badge note">restarts Dock</span></div>
     <p class="desc">Removes the Mission Control / App Exposé zoom animation.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.dock expose-animation-duration -float 0 &amp;&amp; killall Dock</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.dock expose-animation-duration; killall Dock</code><button>Copy</button></div>
   </div>
@@ -372,6 +458,7 @@
   <div class="tweak">
     <div class="th"><h3>Instant Fullscreen Menu Bar</h3><span class="badge user">no sudo</span><span class="badge note">restarts Dock</span></div>
     <p class="desc">Removes the delay before the menu bar reveals in fullscreen apps.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.dock fullscreen-delay -float 0 &amp;&amp; killall Dock</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.dock fullscreen-delay; killall Dock</code><button>Copy</button></div>
   </div>
@@ -379,6 +466,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Smooth Scrolling</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Step-based scrolling instead of animated. Saves CPU when scrolling heavily.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g NSScrollAnimationEnabled -bool false</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g NSScrollAnimationEnabled</code><button>Copy</button></div>
   </div>
@@ -386,6 +474,7 @@
   <div class="tweak">
     <div class="th"><h3>Manual Window Tabbing</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops apps from auto-merging windows into tabs. Trims WindowServer work.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write -g AppleWindowTabbingMode -string manual</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete -g AppleWindowTabbingMode</code><button>Copy</button></div>
   </div>
@@ -393,6 +482,7 @@
   <div class="tweak">
     <div class="th"><h3>Reduce Transparency</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Cuts WindowServer GPU and RAM use by removing translucency and blur.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.universalaccess reduceTransparency -bool true</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.universalaccess reduceTransparency</code><button>Copy</button></div>
   </div>
@@ -400,6 +490,7 @@
   <div class="tweak">
     <div class="th"><h3>Reduce Motion</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Replaces Spaces / app-switch animations with quick fades. Snappier, less GPU work.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.universalaccess reduceMotion -bool true</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.universalaccess reduceMotion</code><button>Copy</button></div>
   </div>
@@ -407,6 +498,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Finder Animations</h3><span class="badge user">no sudo</span><span class="badge note">restarts Finder</span></div>
     <p class="desc">Removes Finder's open/copy/resize animations.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.finder DisableAllAnimations -bool true &amp;&amp; killall Finder</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.finder DisableAllAnimations; killall Finder</code><button>Copy</button></div>
   </div>
@@ -414,6 +506,7 @@
   <div class="tweak">
     <div class="th"><h3>Fast Minimize Effect</h3><span class="badge user">no sudo</span><span class="badge note">restarts Dock</span></div>
     <p class="desc">Uses the lightweight Scale effect instead of the Genie animation.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.dock mineffect -string scale &amp;&amp; killall Dock</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.dock mineffect; killall Dock</code><button>Copy</button></div>
   </div>
@@ -421,6 +514,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable App Launch Bounce</h3><span class="badge user">no sudo</span><span class="badge note">restarts Dock</span></div>
     <p class="desc">Stops the Dock icon from bouncing while apps open.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m12 14 4-4"/><path d="M3.34 19a10 10 0 1 1 17.32 0"/></svg>Snappier UI</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.dock launchanim -bool false &amp;&amp; killall Dock</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.dock launchanim; killall Dock</code><button>Copy</button></div>
   </div>
@@ -434,6 +528,7 @@
   <div class="tweak">
     <div class="th"><h3>Silence Crash Reporter</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Stops the "application quit unexpectedly" dialogs.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.CrashReporter DialogType none</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.CrashReporter DialogType</code><button>Copy</button></div>
   </div>
@@ -441,6 +536,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Personalized Ads</h3><span class="badge user">no sudo</span><span class="badge note">safe · SIP on OK</span></div>
     <p class="desc">Stops Apple Advertising from using your data to target ads.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool false</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool true</code><button>Copy</button></div>
   </div>
@@ -448,6 +544,7 @@
   <div class="tweak">
     <div class="th"><h3>Disable Diagnostics &amp; Analytics</h3><span class="badge sudo">sudo</span><span class="badge sip">SIP off</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops the <span class="inline-code">analyticsd</span> telemetry daemon. Only possible with SIP disabled.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo launchctl disable system/com.apple.analyticsd &amp;&amp; sudo launchctl bootout system/com.apple.analyticsd</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo launchctl enable system/com.apple.analyticsd</code><button>Copy</button></div>
   </div>
@@ -455,6 +552,7 @@
   <div class="tweak">
     <div class="th"><h3>Harden Chromium &amp; Chrome Telemetry</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Sets managed-policy flags across Chromium / Chrome / Brave / Edge to stop usage stats, crash reports, URL data collection, search-keystroke and spell-check phone-home. Core Safe Browsing stays on; browsers will show a "managed by your organization" note. Takes effect on browser restart.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do
   defaults write "$d" MetricsReportingEnabled -bool false
   defaults write "$d" UrlKeyedAnonymizedDataCollectionEnabled -bool false
@@ -472,6 +570,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Firefox Telemetry</h3><span class="badge user">no sudo</span><span class="badge note">moderate · replaces user.js</span></div>
     <p class="desc">Writes a managed <span class="inline-code">user.js</span> into every Firefox profile to turn off telemetry, health-report upload, Shield studies, ping-centre and new-tab data collection. Survives Firefox updates. <b>Replaces any existing user.js</b> in each profile. Takes effect on Firefox restart.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   [ -d "$p" ] || continue
   printf '%s\n' \
@@ -502,6 +601,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Media Analysis</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops background scanning of photos/videos for objects and scenes (<span class="inline-code">mediaanalysisd</span>).</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>launchctl disable gui/$(id -u)/com.apple.mediaanalysisd &amp;&amp; launchctl bootout gui/$(id -u)/com.apple.mediaanalysisd</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>launchctl enable gui/$(id -u)/com.apple.mediaanalysisd</code><button>Copy</button></div>
   </div>
@@ -509,6 +609,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Photo Analysis</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops face recognition and Memories generation in Photos (<span class="inline-code">photoanalysisd</span>).</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>launchctl disable gui/$(id -u)/com.apple.photoanalysisd &amp;&amp; launchctl bootout gui/$(id -u)/com.apple.photoanalysisd</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>launchctl enable gui/$(id -u)/com.apple.photoanalysisd</code><button>Copy</button></div>
   </div>
@@ -516,6 +617,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Spotlight Indexing</h3><span class="badge sudo">sudo</span><span class="badge adv">advanced</span></div>
     <p class="desc">Turns off filesystem indexing on all volumes. Search still opens apps; it won't find file contents.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo mdutil -a -i off</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo mdutil -a -i on</code><button>Copy</button></div>
   </div>
@@ -529,6 +631,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Stop Bonjour Advertising</h3><span class="badge sudo">sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops broadcasting services over Bonjour. AirDrop keeps working over AWDL.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool true &amp;&amp; sudo killall -HUP mDNSResponder</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo defaults delete /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements &amp;&amp; sudo killall -HUP mDNSResponder</code><button>Copy</button></div>
   </div>
@@ -536,6 +639,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Enlarge TCP Buffers</h3><span class="badge sudo">sudo</span><span class="badge note">moderate · resets on reboot</span></div>
     <p class="desc">Raises max TCP send/receive buffers to 16 MB for higher throughput on busy local servers.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>More throughput</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo sysctl -w net.inet.tcp.autorcvbufmax=16777216 net.inet.tcp.autosndbufmax=16777216</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo sysctl -w net.inet.tcp.autorcvbufmax=4194304 net.inet.tcp.autosndbufmax=4194304</code><button>Copy</button></div>
   </div>
@@ -543,6 +647,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Raise Socket Backlog</h3><span class="badge sudo">sudo</span><span class="badge note">moderate · resets on reboot</span></div>
     <p class="desc">Raises the max pending-connection queue (<span class="inline-code">somaxconn</span>) from 128 to 1024 so servers accept bursts of connections.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>More throughput</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo sysctl -w kern.ipc.somaxconn=1024</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo sysctl -w kern.ipc.somaxconn=128</code><button>Copy</button></div>
   </div>
@@ -556,6 +661,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Siri Assistant</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Boots out the Siri assistant agent (<span class="inline-code">assistantd</span>) and hides its menu bar item.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.Siri StatusMenuVisible -bool false &amp;&amp; launchctl disable gui/$(id -u)/com.apple.assistantd &amp;&amp; launchctl bootout gui/$(id -u)/com.apple.assistantd</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/com.apple.assistantd</code><button>Copy</button></div>
   </div>
@@ -563,6 +669,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Proactive Intelligence</h3><span class="badge user">no sudo</span><span class="badge note">moderate</span></div>
     <p class="desc">Stops <span class="inline-code">duetexpertd</span> — the on-device daemon behind Siri Suggestions and predicted actions.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M12.8 19.6A2 2 0 1 0 14 16H2"/><path d="M17.5 8a2.5 2.5 0 1 1 2 4H2"/><path d="M9.8 4.4A2 2 0 1 1 11 8H2"/></svg>Frees resources</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>launchctl disable gui/$(id -u)/com.apple.duetexpertd &amp;&amp; launchctl bootout gui/$(id -u)/com.apple.duetexpertd</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>launchctl enable gui/$(id -u)/com.apple.duetexpertd</code><button>Copy</button></div>
   </div>
@@ -570,6 +677,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Disable Siri Suggestions in Lookup</h3><span class="badge user">no sudo</span><span class="badge note">safe</span></div>
     <p class="desc">Stops sending lookup queries for Siri-powered suggestions.</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg>More private</span></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.lookup.shared LookupSuggestionsDisabled -bool true</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.lookup.shared LookupSuggestionsDisabled</code><button>Copy</button></div>
   </div>
@@ -583,6 +691,7 @@ done</code><button>Copy</button></div>
   <div class="tweak">
     <div class="th"><h3>Purge Inactive Memory</h3><span class="badge sudo">sudo</span></div>
     <p class="desc">Forces the memory manager to free inactive pages right now (the Dashboard's <b>Clear RAM</b> button).</p>
+    <div class="gains"><span class="gain"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>Frees RAM</span></div>
     <div class="cmd apply"><span class="lbl">Run</span><code>sudo purge</code><button>Copy</button></div>
   </div>
 
@@ -642,10 +751,23 @@ done</code><button>Copy</button></div>
   </div>
 </div></section>
 
-<footer>
+<section id="get"><div class="wrap">
+  <div class="download-banner">
+    <svg class="banner-mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="23.4" fill="rgba(255,255,255,0.18)"/><g stroke="#fff" stroke-width="6.5" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="none" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>
+    <h2>Get MacTweak.</h2>
+    <p>A lightweight menu-bar app for macOS 15+. Everything on this page, one click away — or keep it all manual.</p>
+    <div class="cta">
+      <a class="btn on-grad" href="#"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download <span class="sz">v0.4.0 · .dmg</span></a>
+      <a class="btn on-grad-ghost" href="#"><svg viewBox="0 0 24 24"><path d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.4 5.4 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"/><path d="M9 18c-4.51 2-5-2-7-2"/></svg>View source</a>
+    </div>
+    <p class="banner-note">Example buttons — point these at your release <code>.dmg</code> and repo. Requires macOS 15+ · Apple silicon &amp; Intel.</p>
+  </div>
+</div></section>
+
+<footer><div class="wrap">
   MacTweak · Every tweak verified against macOS output formats. Use at your own discretion — all changes are reversible.<br>
   © 2026 Tanguy Salmon · Designed for macOS.
-</footer>
+</div></footer>
 
 <script>
   // Click-to-copy for every command block. Copies the raw command text.
