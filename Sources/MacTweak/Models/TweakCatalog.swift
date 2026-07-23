@@ -159,6 +159,39 @@ enum TweakCatalog {
             appliedWhenOutputContains: "disabled",
             tags: [.privacyFocused], recommended: false
         ),
+        Tweak(
+            key: "disable-personalized-ads",
+            title: "Disable Personalized Ads",
+            summary: "Stops Apple Advertising from using your data to target ads. Works with SIP on.",
+            category: .privacy, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool false",
+            revertCommand: "defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool true",
+            statusCommand: "defaults read com.apple.AdLib allowApplePersonalizedAdvertising 2>/dev/null",
+            appliedWhenOutputContains: "0",
+            tags: [.privacyFocused], recommended: true
+        ),
+        Tweak(
+            key: "chromium-telemetry-off",
+            title: "Harden Chromium & Chrome Telemetry",
+            summary: "Sets managed-policy flags across Chromium/Chrome/Brave/Edge to stop usage stats, crash reports, URL data collection, search-keystroke and spell-check phone-home. Core Safe Browsing stays on; browsers show a 'managed' note. Takes effect on browser restart.",
+            category: .privacy, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do defaults write \"$d\" MetricsReportingEnabled -bool false; defaults write \"$d\" UrlKeyedAnonymizedDataCollectionEnabled -bool false; defaults write \"$d\" SafeBrowsingExtendedReportingEnabled -bool false; defaults write \"$d\" SearchSuggestEnabled -bool false; defaults write \"$d\" SpellCheckServiceEnabled -bool false; done; true",
+            revertCommand: "for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do for k in MetricsReportingEnabled UrlKeyedAnonymizedDataCollectionEnabled SafeBrowsingExtendedReportingEnabled SearchSuggestEnabled SpellCheckServiceEnabled; do defaults delete \"$d\" \"$k\" 2>/dev/null; done; done; true",
+            statusCommand: "defaults read org.chromium.Chromium MetricsReportingEnabled 2>/dev/null; defaults read com.google.Chrome MetricsReportingEnabled 2>/dev/null; defaults read com.brave.Browser MetricsReportingEnabled 2>/dev/null",
+            appliedWhenOutputContains: "0",
+            tags: [.privacyFocused], recommended: false
+        ),
+        Tweak(
+            key: "firefox-telemetry-off",
+            title: "Disable Firefox Telemetry",
+            summary: "Writes a managed user.js into every Firefox profile to turn off telemetry, health-report upload, Shield studies, ping-centre and new-tab data collection. No admin, survives updates, and replaces any existing user.js. Takes effect on Firefox restart.",
+            category: .privacy, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "for p in \"$HOME/Library/Application Support/Firefox/Profiles/\"*/; do [ -d \"$p\" ] || continue; /usr/bin/printf '%s\\n' '// MacTweak privacy — Firefox telemetry off' 'user_pref(\"toolkit.telemetry.enabled\", false);' 'user_pref(\"toolkit.telemetry.unified\", false);' 'user_pref(\"toolkit.telemetry.archive.enabled\", false);' 'user_pref(\"datareporting.healthreport.uploadEnabled\", false);' 'user_pref(\"datareporting.policy.dataSubmissionEnabled\", false);' 'user_pref(\"app.shield.optoutstudies.enabled\", false);' 'user_pref(\"browser.ping-centre.telemetry\", false);' 'user_pref(\"browser.newtabpage.activity-stream.feeds.telemetry\", false);' 'user_pref(\"browser.newtabpage.activity-stream.telemetry\", false);' 'user_pref(\"browser.discovery.enabled\", false);' > \"$p/user.js\"; done; true",
+            revertCommand: "for p in \"$HOME/Library/Application Support/Firefox/Profiles/\"*/; do f=\"$p/user.js\"; if [ -f \"$f\" ] && /usr/bin/grep -q 'MacTweak privacy' \"$f\"; then /bin/rm -f \"$f\"; fi; done; true",
+            statusCommand: "/bin/cat \"$HOME/Library/Application Support/Firefox/Profiles/\"*/user.js 2>/dev/null | /usr/bin/grep 'MacTweak privacy'",
+            appliedWhenOutputContains: "MacTweak privacy",
+            tags: [.privacyFocused], recommended: false
+        ),
 
         // MARK: Background Services (user agents — no SIP needed)
         Tweak(
@@ -435,6 +468,9 @@ enum TweakCatalog {
         // Privacy
         "crashreporter-silent": "exclamationmark.bubble",
         "disable-analyticsd": "antenna.radiowaves.left.and.right",
+        "disable-personalized-ads": "hand.raised",
+        "chromium-telemetry-off": "globe.badge.chevron.backward",
+        "firefox-telemetry-off": "flame",
         // Background services
         "disable-mediaanalysisd": "film",
         "disable-photoanalysisd": "person.crop.rectangle.stack",
