@@ -22,6 +22,7 @@ final class AppModel: ObservableObject {
     let engine = TweakEngine()
     let metrics = SystemMetrics()
     let benchmark = BenchmarkEngine()
+    let audioWatchdog = CoreAudioWatchdog()
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
@@ -44,7 +45,8 @@ final class AppModel: ObservableObject {
     func boot() {
         guard !booted else { return }
         booted = true
-        metrics.start()
+        // Metrics sampling is ref-counted by the views that show it (retain/
+        // release) so it never runs while no gauge is on screen.
         // Warm the lazy `csrutil status` / sysctl probes off-main so the first
         // Dashboard render doesn't block on them.
         Task.detached { _ = SystemInfo.sipEnabled; _ = SystemInfo.chip }
@@ -52,6 +54,7 @@ final class AppModel: ObservableObject {
             await engine.refreshAdminStatus()
             await engine.refreshAll()
         }
+        audioWatchdog.configure(engine: engine)
         if !didOnboard { showOnboarding = true }
     }
 

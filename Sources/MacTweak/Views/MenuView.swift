@@ -132,7 +132,10 @@ private struct MenuMetrics: View {
             }
             cpuChart
         }
-        .animation(.easeOut(duration: 0.35), value: metrics.cpuPercent)
+        // Sample only while the popover is actually open; no per-second implicit
+        // animation (it would re-composite the chart continuously).
+        .onAppear { metrics.retain() }
+        .onDisappear { metrics.release() }
     }
 
     private var xDomain: ClosedRange<Int> {

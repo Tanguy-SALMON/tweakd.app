@@ -18,6 +18,15 @@ struct MainWindowView: View {
                 detail
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
             }
+            // Scan modal lives on the detail anchor so it doesn't collide with
+            // the onboarding sheet attached to the outer view.
+            .sheet(isPresented: Binding(
+                get: { model.engine.scanProgress != nil || model.engine.scanSummary != nil },
+                set: { if !$0 { model.engine.scanSummary = nil } }
+            )) {
+                ScanSheet().environmentObject(model)
+                    .interactiveDismissDisabled(model.engine.scanProgress != nil)
+            }
         }
         .tint(Theme.accent)
         .sheet(isPresented: $model.showOnboarding) {

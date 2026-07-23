@@ -10,6 +10,30 @@
 import SwiftUI
 import Combine
 
+/// Live progress of a reporting rescan (drives the scan modal's bar).
+struct ScanProgress: Equatable {
+    var done: Int
+    var total: Int
+    var current: String            // title of the last-checked tweak
+    var fraction: Double { total == 0 ? 0 : Double(done) / Double(total) }
+}
+
+/// One tweak whose real state changed between the previous scan and this one.
+struct ScanChange: Identifiable, Equatable {
+    let id: String                 // tweak key
+    let title: String
+    let from: TweakState
+    let to: TweakState
+}
+
+/// Result shown when a reporting rescan finishes — the confirmation the scan ran.
+struct ScanSummary: Equatable {
+    var checked: Int
+    var applied: Int
+    var unavailable: Int
+    var changes: [ScanChange]
+}
+
 @MainActor
 final class TweakEngine: ObservableObject {
 
@@ -22,6 +46,11 @@ final class TweakEngine: ObservableObject {
     @Published private(set) var isRefreshing = false
     @Published private(set) var adminUnlocked = false
     @Published private(set) var batchRunning = false
+
+    /// Non-nil while a reporting rescan is running; drives the scan modal's bar.
+    @Published private(set) var scanProgress: ScanProgress?
+    /// Set when a reporting rescan finishes; cleared when the user dismisses the modal.
+    @Published var scanSummary: ScanSummary?
 
     /// Persisted custom order (tweak keys). Missing keys fall back to catalog order.
     @Published var order: [String] {
@@ -97,18 +126,50 @@ final class TweakEngine: ObservableObject {
 
     // MARK: - Probing
 
-    func refreshAll() async {
+    /// Re-probe every tweak. When `reporting` is true it publishes live progress
+    /// and a completion summary (with a diff of what changed) for the scan modal;
+    /// the silent form is used for the boot scan and menu quick refreshes.
+    func refreshAll(reporting: Bool = false) async {
         isRefreshing = true
         defer { isRefreshing = false }
         let snapshot = tweaks
-        // Probe concurrently — each is an independent read-only shell spawn.
-        let probed = await withTaskGroup(of: (String, TweakState).self) { group in
+        let previous = state
+        let total = snapshot.count
+        let titleByKey = Dictionary(uniqueKeysWithValues: snapshot.map { ($0.key, $0.title) })
+        if reporting { scanProgress = ScanProgress(done: 0, total: total, current: "") }
+
+        // Probe concurrently — each is an independent read-only shell spawn. The
+        // bar fills as real probes complete, so progress is honest, not faked.
+        let probed = await withTaskGroup(of: (String, TweakState).self) { group -> [String: TweakState] in
             for t in snapshot { group.addTask { (t.key, Self.probe(t)) } }
             var result: [String: TweakState] = [:]
-            for await (key, st) in group { result[key] = st }
+            for await (key, st) in group {
+                result[key] = st
+                if reporting {
+                    scanProgress = ScanProgress(done: result.count, total: total,
+                                                current: titleByKey[key] ?? "")
+                }
+            }
             return result
         }
         state = probed
+
+        if reporting {
+            let changes: [ScanChange] = snapshot.compactMap { t in
+                let old = previous[t.key] ?? .unknown
+                let new = probed[t.key] ?? .unknown
+                // Ignore first-run transitions out of .unknown — not real drift.
+                guard old != new, old != .unknown else { return nil }
+                return ScanChange(id: t.key, title: t.title, from: old, to: new)
+            }
+            scanSummary = ScanSummary(
+                checked: total,
+                applied: probed.values.filter { $0 == .applied }.count,
+                unavailable: probed.values.filter { $0 == .unavailable }.count,
+                changes: changes
+            )
+            scanProgress = nil
+        }
     }
 
     func refresh(_ tweak: Tweak) async {
@@ -283,6 +344,12 @@ final class TweakEngine: ObservableObject {
     }
 
     // MARK: - Actions
+
+    /// Free inactive memory now (the "purge-memory" quick action), surfaced as a
+    /// button on the Dashboard's Memory ring.
+    func clearRAM() async {
+        if let a = actions.first(where: { $0.key == "purge-memory" }) { await run(a) }
+    }
 
     func run(_ action: SystemAction) async {
         busy.insert(action.key)

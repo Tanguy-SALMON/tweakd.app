@@ -14,7 +14,9 @@ struct DashboardView: View {
             VStack(alignment: .leading, spacing: Space.l) {
                 hero
 
-                LiveMetrics(metrics: model.metrics)
+                LiveMetrics(metrics: model.metrics,
+                            clearing: model.engine.busy.contains("purge-memory"),
+                            onClearRAM: { Task { await model.engine.clearRAM() } })
 
                 HStack(spacing: Space.m) {
                     StatTile(title: "Tweaks Applied", value: "\(model.engine.appliedCount)",
@@ -25,6 +27,8 @@ struct DashboardView: View {
                 }
 
                 adminCard
+                AudioWatchdogCard(watchdog: model.audioWatchdog,
+                                  adminUnlocked: model.engine.adminUnlocked)
                 presetsCard
                 quickTune
             }
@@ -133,20 +137,60 @@ struct DashboardView: View {
     }
 }
 
+/// Opt-in card for the Core Audio watchdog. Observes the watchdog directly so
+/// its ~15s status updates don't churn the whole dashboard.
+private struct AudioWatchdogCard: View {
+    @ObservedObject var watchdog: CoreAudioWatchdog
+    let adminUnlocked: Bool
+
+    var body: some View {
+        HStack(spacing: Space.s) {
+            GlyphTile(systemName: "waveform.badge.exclamationmark", size: 38,
+                      prominent: watchdog.enabled)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("Core Audio Watchdog").font(.system(size: 15, weight: .semibold))
+                Text(statusLine)
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.s)
+            Toggle("", isOn: $watchdog.enabled).labelsHidden()
+        }
+        .card()
+    }
+
+    private var statusLine: String {
+        if !watchdog.enabled {
+            return "Auto-restarts coreaudiod if a stuck audio stream pegs it above \(Int(watchdog.thresholdPercent))% — so you don't have to kill it by hand."
+        }
+        if let last = watchdog.lastAction { return last }
+        if !adminUnlocked {
+            return "Watching… unlock Admin Access above so it can restart silently, without a password prompt."
+        }
+        return "Watching coreaudiod (now \(Int(watchdog.lastCPU))%). Restarts it automatically if it stays hot."
+    }
+}
+
 /// Observes `SystemMetrics` directly so the gauges + chart refresh every second
 /// (a nested ObservableObject read through AppModel would never trigger this).
 private struct LiveMetrics: View {
     @ObservedObject var metrics: SystemMetrics
+    var clearing: Bool = false
+    var onClearRAM: () -> Void = {}
 
     var body: some View {
         HStack(spacing: Space.m) {
             RingGauge(value: metrics.cpuPercent, label: "CPU",
                       detail: "\(SystemInfo.coreCount) cores")
             RingGauge(value: metrics.memUsedPercent, label: "Memory",
-                      detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))")
+                      detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
+                      action: .init(title: "Clear", systemImage: "wind",
+                                    busy: clearing, run: onClearRAM))
             chart
         }
-        .frame(height: 178)
+        .frame(height: 200)
+        .onAppear { metrics.retain() }
+        .onDisappear { metrics.release() }
     }
 
     private var chart: some View {
@@ -161,7 +205,9 @@ private struct LiveMetrics: View {
                     AxisValueLabel().font(.system(size: 9)).foregroundStyle(.secondary)
                 }
             }
-            .animation(.easeOut(duration: 0.5), value: metrics.history.count)
+            // No implicit animation here: history.count changes every second,
+            // so an animated relayout of the 90-point chart would run 30fps
+            // continuously. The chart still redraws each tick — just not animated.
         }
         .frame(maxWidth: .infinity)
         .card()

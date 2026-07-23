@@ -1,9 +1,9 @@
 # MacTweak
 
 A premium, **Apple-like menu-bar tweak tool for macOS** — think GNOME Tweaks, but
-native SwiftUI with an apple.com-grey, single-accent design. Toggle reversible system
-optimizations, watch live CPU/RAM, benchmark the gain, and run a guided setup that
-tailors everything to how *you* use your Mac.
+native SwiftUI on an apple.com-grey canvas with a single warm **orange→red accent
+gradient**. Toggle reversible system optimizations, watch live CPU/RAM, benchmark the
+gain, and run a guided setup that tailors everything to how *you* use your Mac.
 
 > Personal build. **Not sandboxed** and locally (ad-hoc) signed, because it drives
 > `pmset`, `mdutil`, `launchctl`, and `defaults` and escalates through the native
@@ -14,8 +14,13 @@ tailors everything to how *you* use your Mac.
 ## Features
 
 - **Dashboard** — live CPU & memory ring gauges (read straight from the Mach kernel,
-  no shelling out; CPU smoothed so the menu and window stay consistent), a rolling
-  90-second chart, and system facts.
+  no shelling out; CPU smoothed so the menu and window stay consistent; sampling is
+  ref-counted so it costs nothing when no gauge is on screen), a rolling 90-second chart,
+  a **Clear RAM** button on the memory ring (purges inactive pages), system facts, and a
+  **Core Audio Watchdog** that auto-restarts a runaway `coreaudiod` when a stuck audio
+  stream (e.g. a virtual-audio HAL driver) pegs it.
+- **Re-scan** — a progress modal that re-probes every tweak against the live system, then
+  confirms with a summary of what's applied and **what changed since the last scan**.
 - **32 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
   Services, Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
   unthrottle background I/O, server performance mode), RAM/GPU responsiveness (reduce
@@ -47,12 +52,20 @@ tailors everything to how *you* use your Mac.
 Requirements: **macOS 15+** and **Xcode 16+** (uses Swift 6 / Swift Charts).
 
 ```bash
-# compile, bundle into build/MacTweak.app, and launch
-Scripts/build_app.sh run
-
-# just build the .app
+# compile, bundle into build/MacTweak.app, and launch (default)
 Scripts/build_app.sh
+
+# build + bundle without launching
+Scripts/build_app.sh --no-launch
+
+# debug build
+Scripts/build_app.sh --debug
 ```
+
+The script kills any running instance first, compiles the `.icns` from
+`Resources/AppIcon.iconset`, ad-hoc signs with `MacTweak.entitlements`, stamps
+the bundle version with the short git commit, and hides the `.app` extension in
+Finder. Run `Scripts/build_app.sh --help` for all flags.
 
 Or open `Package.swift` in Xcode and hit Run (note: running the bare SPM executable
 skips the `Info.plist`, so use the script for the real menu-bar experience).

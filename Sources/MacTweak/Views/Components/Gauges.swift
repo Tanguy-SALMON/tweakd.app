@@ -15,7 +15,7 @@ struct HeroHeader: View {
     let blurb: String
     var body: some View {
         HStack(spacing: Space.s) {
-            GlyphTile(systemName: icon, size: 42)
+            GlyphTile(systemName: icon, size: 42, prominent: true)
             VStack(alignment: .leading, spacing: 2) {
                 Text(title).font(.system(size: 26, weight: .bold))
                 Text(blurb).font(.system(size: 14)).foregroundStyle(.secondary)
@@ -44,6 +44,15 @@ struct RingGauge: View {
     let value: Double        // 0...100
     let label: String
     let detail: String
+    var action: Action? = nil
+
+    /// Optional button rendered under the gauge (e.g. "Clear" on the RAM ring).
+    struct Action {
+        let title: String
+        let systemImage: String
+        var busy: Bool = false
+        let run: () -> Void
+    }
 
     private var clamped: Double { min(max(value, 0), 100) }
 
@@ -54,9 +63,10 @@ struct RingGauge: View {
                     .stroke(Color.secondary.opacity(0.15), lineWidth: 8)
                 Circle()
                     .trim(from: 0, to: clamped / 100)
-                    .stroke(Theme.accent, style: StrokeStyle(lineWidth: 8, lineCap: .round))
+                    .stroke(Theme.accentGradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
                     .rotationEffect(.degrees(-90))
-                    .animation(.easeOut(duration: 0.6), value: clamped)
+                    // Value already EMA-smoothed and updates once/sec; animating a
+                    // gradient arc every tick was continuous compositing for nothing.
                 VStack(spacing: 0) {
                     Text("\(Int(clamped.rounded()))")
                         .font(.system(size: 34, weight: .semibold))
@@ -70,10 +80,30 @@ struct RingGauge: View {
             VStack(spacing: 2) {
                 Text(label).font(.system(size: 14, weight: .semibold))
                 Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
             }
+
+            if let action { actionButton(action) }
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, maxHeight: .infinity)   // equal height across the row
         .card()
+    }
+
+    @ViewBuilder private func actionButton(_ a: Action) -> some View {
+        Button(action: a.run) {
+            Group {
+                if a.busy {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Label(a.title, systemImage: a.systemImage).font(.system(size: 12, weight: .medium))
+                }
+            }
+            .frame(maxWidth: .infinity)
+        }
+        .buttonStyle(.bordered)
+        .controlSize(.small)
+        .disabled(a.busy)
+        .padding(.top, Space.xxs)
     }
 }
 

@@ -49,8 +49,23 @@ enum Radius {
 }
 
 enum Theme {
-    /// The single accent. Apple's website blue, adapted for dark mode.
-    static let accent = Color.dynamic(Color(hex: 0x0071E3), Color(hex: 0x2997FF))
+    /// The single accent — MyD1 brand orange (#FF6900), nudged brighter in dark mode.
+    static let accent = Color.dynamic(Color(hex: 0xFF6900), Color(hex: 0xFF7A1A))
+
+    /// Deep end of the juicy gradient — vibrant red the orange melts into.
+    static let accentDeep = Color.dynamic(Color(hex: 0xE5261F), Color(hex: 0xFF3B30))
+
+    /// The juicy MyD1 gradient: a 135° wash of bright-orange → vibrant orange →
+    /// vibrant red (mirrors the .acct-avatar avatar gradient). Used on hero tiles,
+    /// the ring gauge, and gradient cards.
+    static let accentGradient = LinearGradient(
+        stops: [
+            .init(color: Color(hex: 0xFF9A4D), location: 0.0),   // bright wash
+            .init(color: accent,               location: 0.52),  // vibrant orange
+            .init(color: accentDeep,           location: 1.0),   // vibrant red
+        ],
+        startPoint: .topLeading, endPoint: .bottomTrailing
+    )
 
     /// Page background — the exact apple.com grey.
     static let canvas = Color.dynamic(Color(hex: 0xF5F5F7), Color(hex: 0x1D1D1F))
@@ -123,14 +138,64 @@ struct GlyphTile: View {
     let systemName: String
     var size: CGFloat = 34
     var active: Bool = false
+    /// Prominent tiles fill with the vibrant orange gradient and a white glyph —
+    /// used for section heroes so the brand accent leads every page.
+    var prominent: Bool = false
+
+    private var fill: AnyShapeStyle {
+        if prominent { return AnyShapeStyle(Theme.accentGradient) }
+        if active { return AnyShapeStyle(Theme.accent.opacity(0.14)) }
+        return AnyShapeStyle(Color.secondary.opacity(0.10))
+    }
+    private var glyph: AnyShapeStyle {
+        if prominent { return AnyShapeStyle(.white) }
+        return AnyShapeStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+    }
+
     var body: some View {
         RoundedRectangle(cornerRadius: Radius.tile, style: .continuous)
-            .fill(active ? AnyShapeStyle(Theme.accent.opacity(0.14)) : AnyShapeStyle(Color.secondary.opacity(0.10)))
+            .fill(fill)
+            .overlay {
+                // Radial white glint (top-left) — the sheen that makes the
+                // orange→red gradient read as "juicy", straight from MyD1.
+                if prominent {
+                    RadialGradient(colors: [.white.opacity(0.5), .clear],
+                                   center: UnitPoint(x: 0.24, y: 0.22),
+                                   startRadius: 0, endRadius: size * 0.9)
+                        .allowsHitTesting(false)
+                }
+            }
             .frame(width: size, height: size)
             .overlay(
                 Image(systemName: systemName)
-                    .font(.system(size: size * 0.44, weight: .medium))
-                    .foregroundStyle(active ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                    .font(.system(size: size * 0.44, weight: .semibold))
+                    .foregroundStyle(glyph)
+                    .shadow(color: prominent ? .black.opacity(0.15) : .clear, radius: 1, y: 1)
             )
+            .shadow(color: prominent ? Theme.accentDeep.opacity(0.38) : .clear, radius: 9, x: 0, y: 3)
+    }
+}
+
+// MARK: - Drifting accent gradient (ported from MyD1's ActivityDashboardCard)
+
+/// A slow, premium accent gradient that drifts ±10° over a 16-second cycle.
+/// Use as a hero background; reads the single Theme.accent so it's always orange.
+struct DriftingAccentGradient: View {
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
+            let t = context.date.timeIntervalSinceReferenceDate
+            let angle = Angle.degrees(160 + sin(t / 8.0) * 10)   // 16s period
+            LinearGradient(
+                stops: [
+                    .init(color: Color(hex: 0xFF9A4D), location: 0.0),
+                    .init(color: Theme.accent,         location: 0.5),
+                    .init(color: Theme.accentDeep,     location: 1.0),
+                ],
+                startPoint: unit(angle), endPoint: unit(angle + .degrees(180))
+            )
+        }
+    }
+    private func unit(_ a: Angle) -> UnitPoint {
+        UnitPoint(x: 0.5 + 0.5 * cos(a.radians), y: 0.5 + 0.5 * sin(a.radians))
     }
 }

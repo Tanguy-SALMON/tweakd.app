@@ -31,8 +31,26 @@ final class SystemMetrics: ObservableObject {
     private var timer: Timer?
     private var prevTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
 
-    func start() {
+    /// How many on-screen views currently need live metrics. Sampling only runs
+    /// while this is > 0, so a backgrounded/closed window costs nothing — the
+    /// gauges were the app's whole CPU footprint when left running.
+    private var subscribers = 0
+
+    /// Call from `.onAppear` of any view that displays metrics.
+    func retain() {
+        subscribers += 1
+        start()
+    }
+
+    /// Call from `.onDisappear` of the matching view.
+    func release() {
+        subscribers = max(0, subscribers - 1)
+        if subscribers == 0 { stop() }
+    }
+
+    private func start() {
         guard timer == nil else { return }
+        prevTicks = nil            // first tick after a gap re-establishes a clean delta
         sample()
         let t = Timer(timeInterval: 1.0, repeats: true) { [weak self] _ in
             Task { @MainActor in self?.sample() }
@@ -41,7 +59,7 @@ final class SystemMetrics: ObservableObject {
         timer = t
     }
 
-    func stop() {
+    private func stop() {
         timer?.invalidate()
         timer = nil
     }

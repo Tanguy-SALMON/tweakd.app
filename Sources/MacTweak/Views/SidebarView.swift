@@ -86,7 +86,7 @@ struct SidebarView: View {
             .buttonStyle(.borderedProminent)
 
             Button {
-                Task { await model.engine.refreshAll() }
+                Task { await model.engine.refreshAll(reporting: true) }
             } label: {
                 Label(model.engine.isRefreshing ? "Refreshing…" : "Re-scan", systemImage: "arrow.clockwise")
                     .frame(maxWidth: .infinity)
