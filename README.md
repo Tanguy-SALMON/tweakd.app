@@ -1,8 +1,9 @@
 # MacTweak
 
-A cute, premium **menu-bar tweak tool for macOS** — think GNOME Tweaks, but native
-SwiftUI. Toggle reversible system optimizations, watch live CPU/RAM, benchmark the
-gain, and run a guided setup that tailors everything to how *you* use your Mac.
+A premium, **Apple-like menu-bar tweak tool for macOS** — think GNOME Tweaks, but
+native SwiftUI with an apple.com-grey, single-accent design. Toggle reversible system
+optimizations, watch live CPU/RAM, benchmark the gain, and run a guided setup that
+tailors everything to how *you* use your Mac.
 
 > Personal build. **Not sandboxed** and locally (ad-hoc) signed, because it drives
 > `pmset`, `mdutil`, `launchctl`, and `defaults` and escalates through the native
@@ -13,20 +14,28 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 ## Features
 
 - **Dashboard** — live CPU & memory ring gauges (read straight from the Mach kernel,
-  no shelling out), a rolling 90-second chart, and system facts.
-- **25 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
-  Services, Network, AI & Intelligence) — including CPU/GPU speed (raise GPU memory
-  limit, unthrottle background I/O, server performance mode), RAM/GPU responsiveness
-  (reduce transparency & motion), and Finder/Dock snappiness. Every tweak is
-  **reversible**, shows a risk
-  badge, its live applied/stock state, and whether it needs admin or SIP-off.
+  no shelling out; CPU smoothed so the menu and window stay consistent), a rolling
+  90-second chart, and system facts.
+- **30 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
+  Services, Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
+  unthrottle background I/O, server performance mode), RAM/GPU responsiveness (reduce
+  transparency & motion), Finder/Dock snappiness (faster Mission Control, instant dock,
+  no smooth-scroll, manual tabbing), and AI/bloat daemons (media/photo analysis, Siri,
+  proactive intelligence/`duetexpertd`). Each has its **own SF Symbol icon**, is
+  **reversible**, and shows a risk badge, live applied/stock state, and whether it needs
+  admin or SIP-off. Advanced-risk tweaks confirm before enabling.
+- **Presets** — one-tap bundles (Balanced · Performance · Snappy UI · Battery · Privacy)
+  that only include real, available tweaks (SIP-blocked and advanced ones are excluded).
 - **Guided Setup** — a short wizard that asks how you use your Mac (AI, Spotlight,
   Photos, AirDrop, priority…) and builds a tailored set that never disables things
   you rely on.
 - **Benchmark** — single-core, multi-core, memory-bandwidth and disk micro-benchmarks.
   Run a *Baseline*, apply tweaks, run *After tweaks*, and see the delta in a chart.
 - **Quick Actions** — one-shot maintenance: purge inactive memory, flush DNS, restart
-  Dock/Finder, purge bloat daemons, rebuild Spotlight.
+  Dock/Finder, purge bloat daemons, rebuild Spotlight, and **generate an emergency
+  revert script** (`~/Documents/MacTweak_Revert.sh`) that undoes everything from Terminal.
+- **Menu-bar panel** — live CPU/MEM tiles + a labelled sparkline (shows % used), quick
+  toggles for your favorites, and Apply Recommended with an inline result message.
 - **Favorites & reordering** — pin tweaks (★) for the menu-bar panel, drag to reorder
   within a category. Order and favorites persist.
 
@@ -50,10 +59,13 @@ and via the menu-bar panel's *Open MacTweak*.
 
 ## How privileges work
 
-Admin tweaks run through `osascript … with administrator privileges`, which shows the
-standard macOS auth dialog and runs as root. No helper tool, no stored password, no
-deprecated API. User-level tweaks (`defaults`, `launchctl … gui/$UID`) run without a
-prompt. See `Sources/MacTweak/Core/CommandRunner.swift`.
+User-level tweaks (`defaults`, `launchctl … gui/$UID`) run without a prompt. Admin
+tweaks run root either through `osascript … with administrator privileges` (native auth
+dialog — no helper tool, no stored password, no deprecated API) or, once you've unlocked
+passwordless admin (below), silently via `sudo -n`. The engine re-probes the real state
+after every change, so a tweak is only shown *Applied* if the system actually changed —
+it never trusts an exit code. See `Sources/MacTweak/Core/CommandRunner.swift` and
+`TweakEngine.swift`.
 
 ## Passwordless admin (authenticate once)
 
@@ -88,8 +100,10 @@ Tweak(
 )
 ```
 
-The engine re-probes the real `statusCommand` after every apply/revert, so a tweak is
-only shown as *Applied* if the system actually changed — it never trusts an exit code.
+Give it a distinct icon with a one-line entry in `TweakCatalog.iconOverrides`
+(`"my-tweak": "sparkles"`); it falls back to the category glyph if omitted. All
+commands are verified against real macOS output — the app rejects tweaks that reference
+sysctls/keys that don't exist rather than shipping dead toggles.
 
 ## Safety
 
@@ -109,11 +123,12 @@ swift Scripts/make_icon.swift Resources/AppIcon.png
 
 ```
 Sources/MacTweak/
-  App/        MacTweakApp, AppModel (+ wizard logic), Theme
-  Core/       CommandRunner, SystemInfo, TweakEngine
-  Models/     Tweak, TweakCategory, TweakCatalog
-  Metrics/    SystemMetrics (Mach sampling), Benchmark
-  Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu, Components
+  App/        MacTweakApp, AppModel (+ wizard logic), Theme (design system)
+  Core/       CommandRunner (user/admin/passwordless), SystemInfo, TweakEngine
+  Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
+  Metrics/    SystemMetrics (Mach sampling, EMA-smoothed CPU), Benchmark
+  Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
+              Components (HeroHeader, RingGauge/StatTile, cpuHistoryMarks)
   Onboarding/ OnboardingView
 Scripts/      build_app.sh, make_icon.swift
 ```
