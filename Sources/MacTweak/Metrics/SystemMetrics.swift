@@ -31,6 +31,17 @@ final class SystemMetrics: ObservableObject {
     private var timer: Timer?
     private var prevTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
 
+    /// `mach_host_self()` returns a send right that must be released or it leaks a
+    /// port user-reference on every call. Grab it once for the process lifetime.
+    private static let hostPort = mach_host_self()
+
+    /// Page size is constant for the process — read it once, not every sample.
+    private static let pageSize: UInt64 = {
+        var s: vm_size_t = 0
+        host_page_size(hostPort, &s)
+        return UInt64(s)
+    }()
+
     /// How many on-screen views currently need live metrics. Sampling only runs
     /// while this is > 0, so a backgrounded/closed window costs nothing — the
     /// gauges were the app's whole CPU footprint when left running.
@@ -87,7 +98,7 @@ final class SystemMetrics: ObservableObject {
         var count = mach_msg_type_number_t(MemoryLayout<host_cpu_load_info>.stride / MemoryLayout<integer_t>.stride)
         let result = withUnsafeMutablePointer(to: &info) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO, $0, &count)
+                host_statistics(Self.hostPort, HOST_CPU_LOAD_INFO, $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return cpuPercent }
@@ -114,14 +125,12 @@ final class SystemMetrics: ObservableObject {
         var count = mach_msg_type_number_t(MemoryLayout<vm_statistics64_data_t>.stride / MemoryLayout<integer_t>.stride)
         let result = withUnsafeMutablePointer(to: &stats) {
             $0.withMemoryRebound(to: integer_t.self, capacity: Int(count)) {
-                host_statistics64(mach_host_self(), HOST_VM_INFO64, $0, &count)
+                host_statistics64(Self.hostPort, HOST_VM_INFO64, $0, &count)
             }
         }
         guard result == KERN_SUCCESS else { return (memUsedBytes, memTotalBytes) }
 
-        var pageSize: vm_size_t = 0
-        host_page_size(mach_host_self(), &pageSize)
-        let ps = UInt64(pageSize)
+        let ps = Self.pageSize
 
         // Activity-Monitor-ish "used": active + wired + compressed.
         let used = (UInt64(stats.active_count)

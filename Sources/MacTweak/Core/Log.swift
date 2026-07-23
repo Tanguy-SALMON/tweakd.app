@@ -50,28 +50,37 @@ enum Log {
     private static func timestamp() -> String {
         var tv = timeval(); gettimeofday(&tv, nil)
         var t = tv.tv_sec; var tmv = tm(); localtime_r(&t, &tmv)
+        // Every `%d` arg must be a 32-bit CInt to match the varargs ABI — the tm_*
+        // fields already are; the microseconds must be narrowed explicitly.
         return String(format: "%04d-%02d-%02d %02d:%02d:%02d.%03d",
                       tmv.tm_year + 1900, tmv.tm_mon + 1, tmv.tm_mday,
-                      tmv.tm_hour, tmv.tm_min, tmv.tm_sec, Int(tv.tv_usec) / 1000)
+                      tmv.tm_hour, tmv.tm_min, tmv.tm_sec, Int32(tv.tv_usec / 1000))
     }
+
+    /// Preformatted crash line, built once at install so the signal handler does
+    /// nothing but a bare `write(2)` — no malloc, no String, no lazy init (all of
+    /// which are async-signal-unsafe). The signal number is recovered from the OS
+    /// crash report produced by the re-raise below, so we don't format it here.
+    private static let crashLine = Array("\n*** MacTweak: fatal signal — aborting (see crash report) ***\n".utf8)
 
     /// Install once at launch: log the session banner + crash catchers.
     static func installCrashHandlers() {
+        // Force the lazy `fd` (and its log-directory creation) open NOW, on the
+        // calling thread — so the async-signal-safe handler below can never trip
+        // `swift_once`/`FileManager` from inside a crash.
+        _ = fd
+        _ = crashLine
         info("——— MacTweak launched (v\(Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?")) pid \(getpid()) ———")
 
+        // Obj-C exceptions aren't delivered in signal context, so String/allocation is safe here.
         NSSetUncaughtExceptionHandler { exc in
             Log.emit("CRASH", "uncaught \(exc.name.rawValue): \(exc.reason ?? "")")
             Log.emit("CRASH", exc.callStackSymbols.joined(separator: " | "))
         }
         for sig in [SIGILL, SIGABRT, SIGSEGV, SIGBUS, SIGTRAP, SIGFPE] {
             signal(sig) { s in
-                // Async-signal-safe: bare write of a fixed message + the number.
-                var msg = "\n*** fatal signal "
-                msg.withUTF8 { _ = write(Log.fd, $0.baseAddress, $0.count) }
-                var n = s, digits = [UInt8]()
-                repeat { digits.append(UInt8(48 + n % 10)); n /= 10 } while n > 0
-                digits.reverse(); digits.append(0x0A)
-                digits.withUnsafeBytes { _ = write(Log.fd, $0.baseAddress, $0.count) }
+                // Async-signal-safe: only a bare write of the preallocated line.
+                Log.crashLine.withUnsafeBytes { _ = write(Log.fd, $0.baseAddress, $0.count) }
                 signal(s, SIG_DFL); raise(s)
             }
         }

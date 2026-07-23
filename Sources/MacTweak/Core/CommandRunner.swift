@@ -93,7 +93,12 @@ enum CommandRunner {
     /// Root via the native authorization dialog (one password prompt).
     private static func adminPrompt(_ command: String) -> CommandResult {
         let script = "do shell script \"\(zshPipeline(command))\" with administrator privileges"
-        return run(executable: "/usr/bin/osascript", arguments: ["-e", script])
+        let result = run(executable: "/usr/bin/osascript", arguments: ["-e", script])
+        // The auth dialog steals focus; for a menu-bar (accessory) app the window
+        // drops behind everything and looks like a crash. Centralised here — the
+        // ONE place the dialog is shown — so no call site can forget to recover.
+        TweakEngine.reactivate()
+        return result
     }
 
     // MARK: - Plumbing
@@ -122,8 +127,14 @@ enum CommandRunner {
             return CommandResult(output: "", error: "launch failed: \(error.localizedDescription)", exitCode: -1)
         }
 
+        // Drain both pipes concurrently. Reading stdout to EOF *before* touching
+        // stderr deadlocks any command that fills the 64 KB stderr pipe buffer
+        // before closing stdout (it blocks on write() while we block on read()).
+        var errData = Data()
+        let errDrain = DispatchQueue(label: "com.tanguy.MacTweak.cmd.stderr")
+        errDrain.async { errData = err.fileHandleForReading.readDataToEndOfFile() }
         let outData = out.fileHandleForReading.readDataToEndOfFile()
-        let errData = err.fileHandleForReading.readDataToEndOfFile()
+        errDrain.sync {}          // barrier: stderr fully read
         done.wait()
 
         return CommandResult(

@@ -54,7 +54,9 @@ struct RingGauge: View {
         let run: () -> Void
     }
 
-    private var clamped: Double { min(max(value, 0), 100) }
+    // Guard NaN before it reaches `.trim` — Core Animation logs and blanks the
+    // arc on a non-finite value (min/max propagate NaN rather than reject it).
+    private var clamped: Double { value.isFinite ? min(max(value, 0), 100) : 0 }
 
     var body: some View {
         VStack(spacing: Space.s) {

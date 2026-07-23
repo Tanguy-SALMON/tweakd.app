@@ -132,10 +132,10 @@ struct Pill: View {
     }
 }
 
-/// A square that holds a glyph. Every tile now fills with the juicy orange→red
+/// A square that holds a glyph. Every tile fills with the juicy orange→red
 /// gradient and a white glyph — the brand accent leads *every* icon in the app.
-/// `active`/`prominent` are kept for call-site compatibility; `prominent` (heroes)
-/// simply reads a touch bolder via a stronger shadow.
+/// `active`/`prominent` are accepted for call-site compatibility but no longer
+/// change the look (the "everything gradient" design is deliberate and uniform).
 struct GlyphTile: View {
     let systemName: String
     var size: CGFloat = 34
@@ -213,28 +213,4 @@ extension ButtonStyle where Self == GradientButtonStyle {
     static var gradient: GradientButtonStyle { .init(filled: true) }
     /// Gradient-tinted outline — secondary actions.
     static var gradientOutline: GradientButtonStyle { .init(filled: false) }
-}
-
-// MARK: - Drifting accent gradient (ported from MyD1's ActivityDashboardCard)
-
-/// A slow, premium accent gradient that drifts ±10° over a 16-second cycle.
-/// Use as a hero background; reads the single Theme.accent so it's always orange.
-struct DriftingAccentGradient: View {
-    var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
-            let angle = Angle.degrees(160 + sin(t / 8.0) * 10)   // 16s period
-            LinearGradient(
-                stops: [
-                    .init(color: Color(hex: 0xFF9A4D), location: 0.0),
-                    .init(color: Theme.accent,         location: 0.5),
-                    .init(color: Theme.accentDeep,     location: 1.0),
-                ],
-                startPoint: unit(angle), endPoint: unit(angle + .degrees(180))
-            )
-        }
-    }
-    private func unit(_ a: Angle) -> UnitPoint {
-        UnitPoint(x: 0.5 + 0.5 * cos(a.radians), y: 0.5 + 0.5 * sin(a.radians))
-    }
 }

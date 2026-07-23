@@ -131,8 +131,8 @@ enum TweakCatalog {
             category: .snappiness, privilege: .user, risk: .safe, sipRequired: false,
             applyCommand: "defaults write -g KeyRepeat -int 2 && defaults write -g InitialKeyRepeat -int 15",
             revertCommand: "defaults delete -g KeyRepeat 2>/dev/null; defaults delete -g InitialKeyRepeat 2>/dev/null; true",
-            statusCommand: "defaults read -g KeyRepeat 2>/dev/null",
-            appliedWhenOutputContains: "2",
+            statusCommand: "test \"$(defaults read -g KeyRepeat 2>/dev/null)\" = 2 && echo APPLIED",
+            appliedWhenOutputContains: "APPLIED",
             tags: [.snappyUI], recommended: false
         ),
 
@@ -177,7 +177,7 @@ enum TweakCatalog {
             category: .privacy, privilege: .user, risk: .safe, sipRequired: false,
             applyCommand: "for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do defaults write \"$d\" MetricsReportingEnabled -bool false; defaults write \"$d\" UrlKeyedAnonymizedDataCollectionEnabled -bool false; defaults write \"$d\" SafeBrowsingExtendedReportingEnabled -bool false; defaults write \"$d\" SearchSuggestEnabled -bool false; defaults write \"$d\" SpellCheckServiceEnabled -bool false; done; true",
             revertCommand: "for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do for k in MetricsReportingEnabled UrlKeyedAnonymizedDataCollectionEnabled SafeBrowsingExtendedReportingEnabled SearchSuggestEnabled SpellCheckServiceEnabled; do defaults delete \"$d\" \"$k\" 2>/dev/null; done; done; true",
-            statusCommand: "defaults read org.chromium.Chromium MetricsReportingEnabled 2>/dev/null; defaults read com.google.Chrome MetricsReportingEnabled 2>/dev/null; defaults read com.brave.Browser MetricsReportingEnabled 2>/dev/null",
+            statusCommand: "for d in org.chromium.Chromium com.google.Chrome com.brave.Browser com.microsoft.Edge; do defaults read \"$d\" MetricsReportingEnabled 2>/dev/null; done",
             appliedWhenOutputContains: "0",
             tags: [.privacyFocused], recommended: false
         ),

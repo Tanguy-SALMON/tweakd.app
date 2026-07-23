@@ -194,7 +194,6 @@ final class TweakEngine: ObservableObject {
     func unlockAdmin() async {
         Log.info("unlockAdmin start")
         let result = await Task.detached { CommandRunner.enablePasswordlessAdmin() }.value
-        Self.reactivate()   // the auth dialog steals focus; pull our window back to front
         Log.info("unlockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         await refreshAdminStatus()
@@ -206,7 +205,6 @@ final class TweakEngine: ObservableObject {
     func lockAdmin() async {
         Log.info("lockAdmin start")
         let result = await Task.detached { CommandRunner.disablePasswordlessAdmin() }.value
-        Self.reactivate()
         Log.info("lockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         await refreshAdminStatus()
@@ -216,9 +214,13 @@ final class TweakEngine: ObservableObject {
     /// After the macOS auth dialog closes, macOS hands focus back to whatever was
     /// frontmost before — for a menu-bar (accessory) app that means our window
     /// drops behind everything and looks like a crash. Grab focus back and raise it.
-    static func reactivate() {
-        NSApp.activate(ignoringOtherApps: true)
-        NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
+    /// Called from `CommandRunner.adminPrompt` (a background thread), so it hops to
+    /// the main thread itself — every osascript prompt recovers, no call site can forget.
+    nonisolated static func reactivate() {
+        DispatchQueue.main.async {
+            NSApp.activate(ignoringOtherApps: true)
+            NSApp.windows.first { $0.identifier?.rawValue == "main" }?.makeKeyAndOrderFront(nil)
+        }
     }
 
     // MARK: - Apply / revert
@@ -342,7 +344,11 @@ final class TweakEngine: ObservableObject {
         lines.append("")
         lines.append("# Admin tweaks (prompt for your password):")
         for t in TweakCatalog.all where t.privilege == .admin {
-            lines.append("sudo /bin/zsh -c \"\(t.revertCommand)\"")
+            // Single-quote the command so embedded double-quotes and $(...) reach
+            // root's zsh intact instead of being mangled — or run as the user —
+            // by the outer shell. POSIX single-quote escaping: ' -> '\''.
+            let quoted = t.revertCommand.replacingOccurrences(of: "'", with: "'\\''")
+            lines.append("sudo /bin/zsh -c '\(quoted)'")
         }
         lines.append("")
         lines.append("killall Dock Finder 2>/dev/null")
@@ -372,7 +378,6 @@ final class TweakEngine: ObservableObject {
         let runner = action.runner
         let cmd = action.command
         let result = await Task.detached { runner(cmd) }.value
-        if action.privilege == .admin { Self.reactivate() }   // don't let the auth dialog leave us behind
         Log.info("action result: \(action.key) exit=\(result.exitCode)")
         if result.userCancelled { lastMessage = "Cancelled."; return }
         lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
