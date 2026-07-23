@@ -301,6 +301,15 @@ final class TweakEngine: ObservableObject {
         lastMessage = msg
     }
 
+    /// Apply a preset by its id — the menu-bar quick actions use this.
+    func applyPreset(id: String) async {
+        guard let p = Presets.all.first(where: { $0.id == id }) else {
+            lastMessage = "That preset isn't available."
+            return
+        }
+        await apply(preset: p)
+    }
+
     func apply(preset: Preset) async {
         let keys = preset.keys()
         let pending = tweaks.filter { keys.contains($0.key) && state(of: $0) == .notApplied }
@@ -350,6 +359,9 @@ final class TweakEngine: ObservableObject {
             let quoted = t.revertCommand.replacingOccurrences(of: "'", with: "'\\''")
             lines.append("sudo /bin/zsh -c '\(quoted)'")
         }
+        lines.append("")
+        // Reset any renice priorities and remove MacTweak's priority LaunchAgents.
+        lines.append(contentsOf: PriorityManager.revertScriptLines())
         lines.append("")
         lines.append("killall Dock Finder 2>/dev/null")
         lines.append("echo '✅ Done. Some changes may need a reboot.'")

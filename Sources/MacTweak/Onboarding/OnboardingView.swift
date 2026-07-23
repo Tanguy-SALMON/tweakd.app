@@ -62,19 +62,31 @@ struct OnboardingView: View {
     private var usage: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             stepTitle("How do you use your Mac?", "We'll keep these features on if you need them.")
-            questionToggle("Apple Intelligence & Siri", "On-device AI, Siri, Lookup suggestions",
-                           "sparkles", $model.wizard.usesAI)
-            questionToggle("Spotlight search", "Searching files and content with ⌘Space",
-                           "magnifyingglass", $model.wizard.usesSpotlight)
-            questionToggle("Photos memories & faces", "Face recognition and auto Memories",
-                           "photo.stack", $model.wizard.usesPhotos)
-            questionToggle("AirDrop & AirPlay", "Sharing and screen mirroring nearby",
-                           "airplayvideo", $model.wizard.usesAirDrop)
-            Divider().overlay(Theme.hairline).padding(.vertical, 2)
-            questionToggle("Prioritize privacy", "Also disable telemetry and suggestions",
-                           "hand.raised", $model.wizard.privacyFocused)
-            questionToggle("Snappy interface", "Cut animation and input delays",
-                           "hare", $model.wizard.wantsSnappyUI)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.s) {
+                    questionToggle("Apple Intelligence & Siri", "On-device AI, Siri, Lookup suggestions",
+                                   "sparkles", $model.wizard.usesAI)
+                    questionToggle("Spotlight search", "Searching files and content with ⌘Space",
+                                   "magnifyingglass", $model.wizard.usesSpotlight)
+                    questionToggle("Photos memories & faces", "Face recognition and auto Memories",
+                                   "photo.stack", $model.wizard.usesPhotos)
+                    questionToggle("AirDrop & AirPlay", "Sharing and screen mirroring nearby",
+                                   "airplayvideo", $model.wizard.usesAirDrop)
+                    Divider().overlay(Theme.hairline).padding(.vertical, 2)
+                    questionToggle("Prioritize privacy", "Also disable telemetry and suggestions",
+                                   "hand.raised", $model.wizard.privacyFocused)
+                    questionToggle("Snappy interface", "Cut animation and input delays",
+                                   "hare", $model.wizard.wantsSnappyUI)
+                    Divider().overlay(Theme.hairline).padding(.vertical, 2)
+                    questionToggle("Run network services", "Web servers, SSH, or containers",
+                                   "server.rack", $model.wizard.runsNetworkServices)
+                    questionToggle("Prioritize security", "Firewall, stealth mode, and privacy DNS",
+                                   "lock.shield", $model.wizard.hardenSecurity)
+                    questionToggle("Need low latency", "Gaming or remote desktop",
+                                   "gauge.with.dots.needle.67percent", $model.wizard.needsLowLatency)
+                }
+                .padding(.bottom, Space.xs)
+            }
         }
     }
 
