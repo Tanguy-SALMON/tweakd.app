@@ -27,13 +27,14 @@ let radius = CGFloat(S) * 0.2237
 let squircle = NSBezierPath(roundedRect: full, xRadius: radius, yRadius: radius)
 squircle.addClip()
 
-// Brand gradient, diagonal.
+// Brand gradient — the app-wide orange→red, vertical top→bottom.
+// Matches Theme.accent (#F54900, oklch 64.6% .222 41.116) → Theme.accentDeep
+// (#E7000E, oklch 57.7% .245 27.325), i.e. the exact gradient used on the website.
 let grad = NSGradient(colors: [
-    NSColor(red: 0.36, green: 0.44, blue: 1.00, alpha: 1),
-    NSColor(red: 0.62, green: 0.35, blue: 0.98, alpha: 1),
-    NSColor(red: 0.95, green: 0.42, blue: 0.72, alpha: 1),
+    NSColor(red: 0.9608, green: 0.2863, blue: 0.0000, alpha: 1),  // #F54900 (top)
+    NSColor(red: 0.9059, green: 0.0000, blue: 0.0549, alpha: 1),  // #E7000E (bottom)
 ])!
-grad.draw(in: full, angle: -45)
+grad.draw(in: full, angle: -90)   // -90° = top → bottom
 
 // Soft top highlight for a glossy, premium feel.
 let gloss = NSGradient(colors: [NSColor(white: 1, alpha: 0.22), NSColor(white: 1, alpha: 0)])!
