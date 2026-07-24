@@ -95,6 +95,10 @@ struct SearchResultsView: View {
                 .buttonStyle(.plain).clickCursor()
                 .selectionRing(rowID == selectedID)
                 .id(rowID)
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(page.title), \(page.subtitle)")
+                .accessibilityAddTraits(rowID == selectedID ? [.isButton, .isSelected] : .isButton)
+                .accessibilityHint("Opens this page")
             }
         }
     }
@@ -123,15 +127,18 @@ struct SearchResultsView: View {
                         Text(action.summary).font(.system(size: 12)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .accessibilityElement(children: .combine)
                     Spacer(minLength: Space.xs)
                     Button(action.destructive ? "Run…" : "Run") {
                         Task { await model.engine.run(action) }
                     }
                     .buttonStyle(.gradient).controlSize(.small)
+                    .accessibilityLabel("Run \(action.title)")
                 }
                 .card(padding: Space.s)
                 .selectionRing(rowID == selectedID)
                 .id(rowID)
+                .accessibilityAddTraits(rowID == selectedID ? .isSelected : [])
             }
         }
     }
@@ -153,6 +160,7 @@ struct SearchResultsView: View {
 
 private struct SelectionRing: ViewModifier {
     let selected: Bool
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func body(content: Content) -> some View {
         content
             .overlay {
@@ -162,7 +170,7 @@ private struct SelectionRing: ViewModifier {
                         .allowsHitTesting(false)
                 }
             }
-            .animation(.easeOut(duration: 0.12), value: selected)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: selected)
     }
 }
 

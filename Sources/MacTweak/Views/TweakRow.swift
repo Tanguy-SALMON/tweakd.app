@@ -40,6 +40,10 @@ struct TweakRow: View {
                 }
                 .padding(.top, 1)
             }
+            // Collapse title + summary + state + risk into one spoken element so
+            // VoiceOver reads the row as a unit, not a dozen fragments.
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(accessibilityDescription)
 
             Spacer(minLength: Space.xs)
 
@@ -52,6 +56,8 @@ struct TweakRow: View {
                         .foregroundStyle(isFavorite ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel(isFavorite ? "Remove \(tweak.title) from favorites"
+                                               : "Add \(tweak.title) to favorites")
 
                 toggle
             }
@@ -66,6 +72,21 @@ struct TweakRow: View {
         } message: {
             Text("This is an advanced tweak. It can affect stability, battery, or need a reboot to fully revert. Continue only if you understand the risk.")
         }
+    }
+
+    private var stateWord: String {
+        switch state {
+        case .applied:      return "Applied"
+        case .notApplied:   return "Off"
+        case .unavailable:  return "Unavailable — requires SIP disabled"
+        case .unknown:      return "Status unknown"
+        }
+    }
+
+    private var accessibilityDescription: String {
+        var parts = [tweak.title, tweak.summary, "Status: \(stateWord)", "Risk: \(tweak.risk.label)"]
+        if tweak.privilege == .admin { parts.append("Requires administrator") }
+        return parts.joined(separator: ". ")
     }
 
     @ViewBuilder private var stateBadge: some View {
@@ -88,6 +109,8 @@ struct TweakRow: View {
             }
             .buttonStyle(.plain)
             .help("Requires System Integrity Protection to be disabled — click for how.")
+            .accessibilityLabel("\(tweak.title) is unavailable")
+            .accessibilityHint("Requires System Integrity Protection to be disabled")
         } else {
             Toggle("", isOn: Binding(
                 get: { isOn },
@@ -101,6 +124,9 @@ struct TweakRow: View {
             ))
             .labelsHidden()
             .toggleStyle(.switch)
+            .accessibilityLabel(tweak.title)
+            .accessibilityHint(isOn ? "Reverts this tweak to the macOS default"
+                                    : "Applies this tweak")
         }
     }
 }

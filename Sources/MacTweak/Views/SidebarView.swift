@@ -7,6 +7,7 @@ import SwiftUI
 
 struct SidebarView: View {
     @EnvironmentObject var model: AppModel
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         // Custom rows (not List's built-in `selection:`) so the selected row wears
@@ -64,7 +65,11 @@ struct SidebarView: View {
             SearchField()
         }
         .padding(.horizontal, Space.s).padding(.top, Space.s).padding(.bottom, Space.xs)
-        .background(.bar)
+        .background {
+            // Solid fill instead of the translucent bar when the user asks to
+            // reduce transparency.
+            if reduceTransparency { Theme.canvas } else { Rectangle().fill(.bar) }
+        }
     }
 
     private var footer: some View {
@@ -117,6 +122,8 @@ private struct SearchField: View {
                 .onKeyPress(.upArrow)   { model.moveSearchSelection(-1); return .handled }
                 .onKeyPress(.return)    { model.activateSelectedSearchResult(); return .handled }
                 .onKeyPress(.escape)    { model.clearSearch(); focused = false; return .handled }
+                .accessibilityLabel("Search features")
+                .accessibilityHint("Up and down arrows browse results, return opens the highlighted one, escape clears")
             if !model.searchQuery.isEmpty {
                 Button { model.clearSearch() } label: {
                     Image(systemName: "xmark.circle.fill")
@@ -171,6 +178,7 @@ private struct SidebarRow: View {
     let action: () -> Void
 
     @State private var hovering = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
         Button(action: action) {
@@ -210,7 +218,11 @@ private struct SidebarRow: View {
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
         .clickCursor()
-        .animation(.easeOut(duration: 0.16), value: selected)
-        .animation(.easeOut(duration: 0.12), value: hovering)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.16), value: selected)
+        .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: hovering)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(badge.map { "\(title), \($0)" } ?? title)
+        .accessibilityAddTraits(selected ? [.isButton, .isSelected] : .isButton)
+        .accessibilityHint("Opens the \(title) page")
     }
 }

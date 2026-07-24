@@ -22,6 +22,8 @@ struct HeroHeader: View {
             }
             Spacer()
         }
+        .accessibilityElement(children: .combine)
+        .accessibilityAddTraits(.isHeader)
     }
 }
 
@@ -78,12 +80,17 @@ struct RingGauge: View {
                 }
             }
             .frame(width: 89, height: 89)   // Fibonacci
+            // One spoken element: "CPU, 8 cores: 27 percent".
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("\(label), \(detail)")
+            .accessibilityValue("\(Int(clamped.rounded())) percent")
 
             VStack(spacing: 2) {
                 Text(label).font(.system(size: 14, weight: .semibold))
                 Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            .accessibilityHidden(true)   // already conveyed by the gauge element above
 
             if let action { actionButton(action) }
         }
@@ -129,6 +136,9 @@ struct StatTile: View {
             Spacer()
         }
         .card(padding: Space.s)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(title)
+        .accessibilityValue(value)
     }
 }
 

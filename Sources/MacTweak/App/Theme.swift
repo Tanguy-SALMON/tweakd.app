@@ -173,6 +173,9 @@ struct GlyphTile: View {
                     .foregroundStyle(.white)
                     .shadow(color: .black.opacity(0.15), radius: 1, y: 1)
             )
+            // Purely decorative — the meaning is carried by the row's text, so
+            // VoiceOver shouldn't stop on the glyph.
+            .accessibilityHidden(true)
     }
 }
 
@@ -186,6 +189,7 @@ struct GradientButtonStyle: ButtonStyle {
     var filled: Bool = true
     @Environment(\.controlSize) private var controlSize
     @Environment(\.isEnabled) private var isEnabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     private var scale: CGFloat {
         switch controlSize {
@@ -212,8 +216,8 @@ struct GradientButtonStyle: ButtonStyle {
             }
             .clipShape(shape)
             .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.5)
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .scaleEffect(reduceMotion ? 1 : (configuration.isPressed ? 0.97 : 1))
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
             .onHover { inside in
                 guard isEnabled else { return }
                 if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }

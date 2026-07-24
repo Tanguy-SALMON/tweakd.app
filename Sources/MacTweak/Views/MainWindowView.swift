@@ -7,6 +7,8 @@ import SwiftUI
 
 struct MainWindowView: View {
     @EnvironmentObject var model: AppModel
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
 
     var body: some View {
         NavigationSplitView {
@@ -35,7 +37,7 @@ struct MainWindowView: View {
                 .frame(width: 620, height: 560)
         }
         .overlay(alignment: .bottom) { toast }
-        .animation(.spring(duration: 0.35), value: model.engine.lastMessage)
+        .animation(reduceMotion ? nil : .spring(duration: 0.35), value: model.engine.lastMessage)
         .background {
             // Hidden global shortcuts — ⌘L (and ⌘K) focus the sidebar search
             // field from anywhere in the window (no modal; results render inline).
@@ -78,11 +80,18 @@ struct MainWindowView: View {
             Text(msg)
                 .font(.system(size: 13, weight: .medium))
                 .padding(.horizontal, Space.m).padding(.vertical, Space.s)
-                .background(.regularMaterial, in: Capsule())
+                .background {
+                    if reduceTransparency { Capsule().fill(Theme.surface) }
+                    else { Capsule().fill(.regularMaterial) }
+                }
                 .overlay(Capsule().strokeBorder(Theme.hairline))
                 .shadow(color: .black.opacity(0.12), radius: 12, y: 4)
                 .padding(.bottom, Space.m)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
+                // A status announcement so VoiceOver reads it when it appears.
+                .accessibilityElement()
+                .accessibilityLabel(msg)
+                .accessibilityAddTraits(.updatesFrequently)
+                .transition(reduceMotion ? .opacity : .move(edge: .bottom).combined(with: .opacity))
                 .task(id: msg) {
                     try? await Task.sleep(for: .seconds(2.6))
                     model.engine.lastMessage = nil
