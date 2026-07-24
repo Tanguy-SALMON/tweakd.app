@@ -55,16 +55,6 @@ struct MenuView: View {
 
             Divider().overlay(Theme.hairline)
 
-            menuButton("Quick Security", "lock.shield") {
-                Task { await model.engine.applyPreset(id: "hardened") }
-            }
-            menuButton("Low-Latency Network", "bolt.horizontal") {
-                Task { await model.engine.applyPreset(id: "lowlatency") }
-            }
-            menuButton("Reset Priorities", "arrow.uturn.backward") {
-                Task { await model.priority.resetAll() }
-            }
-
             menuButton("Quit", "power") { NSApp.terminate(nil) }
 
             if let msg = model.engine.lastMessage {
