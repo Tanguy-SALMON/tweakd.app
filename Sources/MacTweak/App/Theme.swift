@@ -88,6 +88,10 @@ struct Card: ViewModifier {
         content
             .padding(padding)
             .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+            // Clip first: content (e.g. a Chart mark drawn just past its domain,
+            // which SwiftUI Charts does not clip on its own) must never bleed
+            // past the card's rounded bounds into whatever sits beside it.
+            .clipShape(RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
                     .strokeBorder(Theme.hairline, lineWidth: 1)

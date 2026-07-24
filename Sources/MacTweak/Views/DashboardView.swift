@@ -213,6 +213,12 @@ private struct LiveMetrics: View {
                     AxisValueLabel().font(.system(size: 9)).foregroundStyle(.secondary)
                 }
             }
+            // Swift Charts doesn't clip marks to the plot area on its own — a
+            // point that's briefly just outside the rolling 90s domain (normal
+            // as the window advances every tick) would otherwise draw a line
+            // straight across whatever sits beside this card.
+            .chartPlotStyle { $0.clipped() }
+            .clipped()
             // No implicit animation here: history.count changes every second,
             // so an animated relayout of the 90-point chart would run 30fps
             // continuously. The chart still redraws each tick — just not animated.

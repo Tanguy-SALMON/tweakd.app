@@ -180,6 +180,8 @@ private struct MenuMetrics: View {
                     }
                 }
             }
+            .chartPlotStyle { $0.clipped() }
+            .clipped()
             .frame(height: 42)
         }
     }
