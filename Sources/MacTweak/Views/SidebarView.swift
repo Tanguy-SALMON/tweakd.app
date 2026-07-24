@@ -20,6 +20,7 @@ struct SidebarView: View {
                 row(.actions, "Quick Actions", "bolt")
                 row(.processPriority, "Process Priority", "cpu",
                     badge: model.priority.managedCount == 0 ? nil : "\(model.priority.managedCount)")
+                row(.diskCleanup, "Disk Cleanup", "internaldrive")
             }
 
             Section("Tweaks") {

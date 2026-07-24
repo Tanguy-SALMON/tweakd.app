@@ -59,6 +59,7 @@ struct MainWindowView: View {
         case .benchmark: BenchmarkView()
         case .actions:   ActionsView()
         case .processPriority: ProcessPriorityView()
+        case .diskCleanup: DiskCleanupView()
         case .category(let c): TweakListView(section: .category(c))
         }
     }

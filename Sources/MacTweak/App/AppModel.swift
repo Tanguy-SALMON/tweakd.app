@@ -15,6 +15,7 @@ enum Panel: Hashable {
     case benchmark
     case actions
     case processPriority
+    case diskCleanup
     case category(TweakCategory)
 }
 
@@ -25,6 +26,7 @@ final class AppModel: ObservableObject {
     let benchmark = BenchmarkEngine()
     let audioWatchdog = CoreAudioWatchdog()
     let priority = PriorityManager()
+    let diskCleanup = DiskCleanupManager()
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
@@ -44,6 +46,7 @@ final class AppModel: ObservableObject {
         engine.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         benchmark.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         priority.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        diskCleanup.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
     }
 
     func boot() {

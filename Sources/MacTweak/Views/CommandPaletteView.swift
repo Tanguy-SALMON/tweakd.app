@@ -73,6 +73,8 @@ struct CommandPaletteView: View {
                    subtitle: "One-tap system actions"),
             .panel(.processPriority, title: "Process Priority", icon: "cpu",
                    subtitle: "Renice network & UI processes"),
+            .panel(.diskCleanup, title: "Disk Cleanup", icon: "internaldrive",
+                   subtitle: "Reclaim space from caches, Xcode, Docker"),
         ]
         return panels
             + TweakCatalog.all.map { SearchHit.tweak($0) }
@@ -80,7 +82,7 @@ struct CommandPaletteView: View {
             + Presets.all.map { SearchHit.preset($0) }
     }()
 
-    private static let defaultHits: [SearchHit] = Array(allHits.prefix(5))
+    private static let defaultHits: [SearchHit] = Array(allHits.prefix(6))
 
     private var results: [SearchHit] {
         let q = query.trimmingCharacters(in: .whitespacesAndNewlines)
