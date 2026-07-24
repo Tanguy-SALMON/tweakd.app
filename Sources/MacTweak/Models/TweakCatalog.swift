@@ -151,12 +151,12 @@ enum TweakCatalog {
         Tweak(
             key: "disable-analyticsd",
             title: "Disable Diagnostics & Analytics",
-            summary: "Stops the analyticsd telemetry daemon. Requires SIP to be disabled.",
-            category: .privacy, privilege: .admin, risk: .moderate, sipRequired: true,
-            applyCommand: "launchctl disable system/com.apple.analyticsd; launchctl bootout system/com.apple.analyticsd 2>/dev/null; true",
-            revertCommand: "launchctl enable system/com.apple.analyticsd",
-            statusCommand: "launchctl print-disabled system 2>/dev/null | grep analyticsd",
-            appliedWhenOutputContains: "disabled",
+            summary: "Turns off \"Share Mac Analytics\" and \"Share With App Developers\" — the same switch as System Settings › Privacy & Security › Analytics & Improvements.",
+            category: .privacy, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit -bool false; defaults write /Library/Preferences/com.apple.SubmitDiagInfo ThirdPartyDataSubmit -bool false",
+            revertCommand: "defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit -bool true; defaults write /Library/Preferences/com.apple.SubmitDiagInfo ThirdPartyDataSubmit -bool true",
+            statusCommand: "defaults read /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit 2>/dev/null",
+            appliedWhenOutputContains: "0",
             tags: [.privacyFocused], recommended: false
         ),
         Tweak(

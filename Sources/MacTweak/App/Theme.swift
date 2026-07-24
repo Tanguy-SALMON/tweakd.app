@@ -100,6 +100,15 @@ struct Card: ViewModifier {
 extension View {
     func card(padding: CGFloat = Space.m) -> some View { modifier(Card(padding: padding)) }
 
+    /// Pointing-hand cursor on hover — SwiftUI's `Button` keeps the plain arrow
+    /// on macOS (only `Link` switches automatically), so every custom clickable
+    /// row/button needs this to read as clickable.
+    func clickCursor() -> some View {
+        onHover { inside in
+            if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+        }
+    }
+
     /// A restrained section heading — SF Pro, tight, secondary.
     func sectionTitle() -> some View {
         self.font(.system(size: 15, weight: .semibold))
@@ -201,6 +210,10 @@ struct GradientButtonStyle: ButtonStyle {
             .opacity(isEnabled ? (configuration.isPressed ? 0.85 : 1) : 0.5)
             .scaleEffect(configuration.isPressed ? 0.97 : 1)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
+            .onHover { inside in
+                guard isEnabled else { return }
+                if inside { NSCursor.pointingHand.push() } else { NSCursor.pop() }
+            }
     }
 }
 

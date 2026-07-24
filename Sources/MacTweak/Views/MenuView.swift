@@ -52,6 +52,7 @@ struct MenuView: View {
             .buttonStyle(.plain)
             .font(.system(size: 13))
             .disabled(model.engine.batchRunning)
+            .clickCursor()
 
             Divider().overlay(Theme.hairline)
 
@@ -116,6 +117,7 @@ struct MenuView: View {
         }
         .buttonStyle(.plain)
         .font(.system(size: 13))
+        .clickCursor()
     }
 }
 

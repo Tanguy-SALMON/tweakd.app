@@ -244,6 +244,7 @@ struct CommandPaletteView: View {
                 .fill(selected ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Color.clear))
         }
         .contentShape(Rectangle())
+        .clickCursor()
         .animation(.easeOut(duration: 0.1), value: selected)
     }
 

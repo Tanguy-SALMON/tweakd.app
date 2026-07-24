@@ -133,6 +133,7 @@ private struct SearchTriggerBar: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
+        .clickCursor()
         .scaleEffect(hovering ? 1.015 : 1)
         .animation(.easeOut(duration: 0.12), value: hovering)
     }
@@ -187,6 +188,7 @@ private struct SidebarRow: View {
         }
         .buttonStyle(.plain)
         .onHover { hovering = $0 }
+        .clickCursor()
         .animation(.easeOut(duration: 0.16), value: selected)
         .animation(.easeOut(duration: 0.12), value: hovering)
     }
