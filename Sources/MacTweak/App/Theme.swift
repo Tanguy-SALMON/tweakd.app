@@ -165,9 +165,10 @@ struct GlyphTile: View {
 
 // MARK: - Gradient button style (the juicy accent on every action)
 
-/// The app-wide button look: the orange→red gradient on a capsule, white label,
-/// a top glint and an accent shadow. `filled: false` gives the secondary variant
-/// — a gradient-tinted outline for less-prominent actions (Back, Lock, Cancel).
+/// The app-wide button look: the same plain orange→red gradient fill used to
+/// mark the selected sidebar row, on a capsule with a white label. `filled: false`
+/// gives the secondary variant — a gradient-tinted outline for less-prominent
+/// actions (Back, Lock, Cancel).
 struct GradientButtonStyle: ButtonStyle {
     var filled: Bool = true
     @Environment(\.controlSize) private var controlSize
@@ -191,11 +192,6 @@ struct GradientButtonStyle: ButtonStyle {
             .background {
                 if filled {
                     shape.fill(Theme.accentGradient)
-                        .overlay(
-                            RadialGradient(colors: [.white.opacity(0.35), .clear],
-                                           center: UnitPoint(x: 0.3, y: 0.05),
-                                           startRadius: 0, endRadius: 70 * scale)
-                                .clipShape(shape).allowsHitTesting(false))
                 } else {
                     shape.fill(Theme.accent.opacity(0.10))
                         .overlay(shape.strokeBorder(Theme.accentGradient, lineWidth: 1.5))
