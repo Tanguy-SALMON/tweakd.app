@@ -47,6 +47,11 @@ final class TweakEngine: ObservableObject {
     @Published private(set) var adminUnlocked = false
     @Published private(set) var batchRunning = false
 
+    /// Fired after a single tweak's state is (re)established via `set()`. Lets
+    /// the app keep Swift-side companion state in sync (e.g. the ad-block
+    /// auto-updater LaunchAgent) without the data-driven catalog knowing about it.
+    var onStateChange: ((Tweak) -> Void)?
+
     /// Non-nil while a reporting rescan is running; drives the scan modal's bar.
     @Published private(set) var scanProgress: ScanProgress?
     /// Set when a reporting rescan finishes; cleared when the user dismisses the modal.
@@ -257,6 +262,7 @@ final class TweakEngine: ObservableObject {
         } else {
             lastMessage = "\(tweak.title) \(target == .applied ? "applied" : "reverted")."
         }
+        onStateChange?(tweak)
     }
 
     /// Apply/revert a batch, owning the busy flag and success/failure tally.

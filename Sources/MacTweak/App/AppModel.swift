@@ -27,6 +27,7 @@ final class AppModel: ObservableObject {
     let audioWatchdog = CoreAudioWatchdog()
     let priority = PriorityManager()
     let diskCleanup = DiskCleanupManager()
+    let adBlock = AdBlockManager()
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
@@ -47,6 +48,13 @@ final class AppModel: ObservableObject {
         benchmark.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         priority.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         diskCleanup.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+
+        // Keep the ad-block weekly auto-updater LaunchAgent in step with the
+        // "Block Ads & Trackers" tweak whenever it's toggled.
+        engine.onStateChange = { [weak self] tweak in
+            guard let self, tweak.key == "hosts-adblock" else { return }
+            self.adBlock.reconcile(adBlockApplied: self.engine.state(of: tweak) == .applied)
+        }
     }
 
     func boot() {
@@ -60,6 +68,12 @@ final class AppModel: ObservableObject {
         Task {
             await engine.refreshAdminStatus()
             await engine.refreshAll()
+            // Reconcile the weekly ad-block updater with the tweak's real state
+            // once probes have run (installs the agent if the block is active
+            // but the agent went missing; removes a stale agent otherwise).
+            if let t = engine.tweaks.first(where: { $0.key == "hosts-adblock" }) {
+                adBlock.reconcile(adBlockApplied: engine.state(of: t) == .applied)
+            }
         }
         audioWatchdog.configure(engine: engine)
         if !didOnboard { showOnboarding = true }

@@ -312,11 +312,11 @@ enum TweakCatalog {
         Tweak(
             key: "hosts-adblock",
             title: "Block Ads & Trackers (hosts file)",
-            summary: "Downloads the curated StevenBlack ad/tracker/malware domain list and routes those domains to 0.0.0.0 in /etc/hosts, so ads never load — system-wide, across every browser and app. Speeds up pages by skipping ad requests. Your existing /etc/hosts entries are preserved; only a clearly-marked MacTweak block is added or removed. Needs a network connection to apply.",
+            summary: "Downloads the curated StevenBlack ad/tracker/malware domain list and routes those domains to 0.0.0.0 in /etc/hosts, so ads never load — system-wide, across every browser and app. Speeds up pages by skipping ad requests. The list auto-refreshes weekly in the background. Your existing /etc/hosts entries are preserved; only a clearly-marked MacTweak block is added or removed. Needs a network connection to apply.",
             category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
-            applyCommand: "L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o \"$L\" && [ -s \"$L\" ]; then sed '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts > \"$T\"; echo '# MacTweak-adblock-start' >> \"$T\"; grep '^0\\.0\\.0\\.0 ' \"$L\" >> \"$T\"; echo '# MacTweak-adblock-end' >> \"$T\"; cat \"$T\" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f \"$L\" \"$T\"; true",
-            revertCommand: "sed -i '' '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; true",
-            statusCommand: "grep -q '# MacTweak-adblock-start' /etc/hosts && echo ON || echo OFF",
+            applyCommand: AdBlock.rebuildCommand,
+            revertCommand: "sed -i '' '/\(AdBlock.markerStart)/,/\(AdBlock.markerEnd)/d' /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; true",
+            statusCommand: "grep -q '\(AdBlock.markerStart)' /etc/hosts && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
             tags: [.security, .privacyFocused], recommended: false
         ),
@@ -631,6 +631,13 @@ enum TweakCatalog {
             summary: "Clears resolver cache and reloads mDNSResponder.",
             icon: "arrow.triangle.2.circlepath", privilege: .admin,
             command: "dscacheutil -flushcache; killall -HUP mDNSResponder", destructive: false
+        ),
+        SystemAction(
+            key: "update-adblock",
+            title: "Update Ad-Block List",
+            summary: "Re-downloads the latest StevenBlack ad/tracker list and rebuilds the block. Only refreshes if \"Block Ads & Trackers\" is already on (it also auto-updates weekly).",
+            icon: "arrow.down.doc", privilege: .admin,
+            command: AdBlock.refreshIfActiveCommand, destructive: false
         ),
         SystemAction(
             key: "restart-ui",
