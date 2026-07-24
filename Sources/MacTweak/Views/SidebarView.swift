@@ -50,7 +50,7 @@ struct SidebarView: View {
         VStack(spacing: Space.s) {
             HStack(spacing: Space.s) {
                 RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .fill(Theme.accent)
+                    .fill(Theme.accentGradient)
                     .frame(width: 28, height: 28)
                     .overlay(Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(.white))

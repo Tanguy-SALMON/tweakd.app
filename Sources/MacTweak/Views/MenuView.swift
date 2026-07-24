@@ -91,7 +91,7 @@ struct MenuView: View {
     private var header: some View {
         HStack(spacing: Space.xs) {
             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                .fill(Theme.accent).frame(width: 22, height: 22)
+                .fill(Theme.accentGradient).frame(width: 22, height: 22)
                 .overlay(Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11, weight: .bold)).foregroundStyle(.white))
             Text("MacTweak").font(.system(size: 14, weight: .semibold))
