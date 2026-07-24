@@ -19,6 +19,31 @@ enum Panel: Hashable {
     case category(TweakCategory)
 }
 
+/// A navigable page surfaced in search results (the non-tweak destinations).
+struct SearchPage: Identifiable, Hashable {
+    let panel: Panel
+    let title: String
+    let subtitle: String
+    let icon: String
+    var id: String { title }
+}
+
+/// One row in the flat, ranked search result list — used both to render the
+/// results and to drive keyboard (↑/↓/⏎) navigation over them.
+enum SearchResultRow: Identifiable {
+    case page(SearchPage)
+    case tweak(Tweak)
+    case action(SystemAction)
+
+    var id: String {
+        switch self {
+        case .page(let p):   return "page:\(p.id)"
+        case .tweak(let t):  return "tweak:\(t.key)"
+        case .action(let a): return "action:\(a.key)"
+        }
+    }
+}
+
 @MainActor
 final class AppModel: ObservableObject {
     let engine = TweakEngine()
@@ -34,10 +59,16 @@ final class AppModel: ObservableObject {
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
-    /// Live search text. When non-empty, the main window shows filtered results
-    /// inline (instead of the current panel) — no modal.
+    /// Live search text. Kept even when a tab is clicked, so re-focusing the
+    /// search field resumes the same query.
     @Published var searchQuery = ""
-    /// Bumped to ask the sidebar search field to grab focus (⌘K).
+    /// Whether the search view is currently taking over the detail area. Set true
+    /// when the field gains focus / the user types; set false when a tab is
+    /// clicked (which cancels back to the panel without losing the query text).
+    @Published var searchActive = false
+    /// Highlighted result index for ↑/↓ keyboard navigation.
+    @Published var searchSelection = 0
+    /// Bumped to ask the sidebar search field to grab focus (⌘L).
     @Published var focusSearchToken = 0
     @Published var wizard = WizardAnswers()
 
@@ -92,6 +123,81 @@ final class AppModel: ObservableObject {
         }
         didOnboard = true
         showOnboarding = false
+    }
+
+    // MARK: - Search
+
+    /// The non-tweak destinations search can jump to.
+    static let searchPages: [SearchPage] = [
+        .init(panel: .dashboard, title: "Dashboard", subtitle: "Overview, live CPU / memory / network", icon: "gauge.with.dots.needle.67percent"),
+        .init(panel: .favorites, title: "Favorites", subtitle: "Your pinned tweaks", icon: "star"),
+        .init(panel: .benchmark, title: "Benchmark", subtitle: "CPU & disk speed tests", icon: "chart.bar"),
+        .init(panel: .actions, title: "Quick Actions", subtitle: "One-tap system actions", icon: "bolt"),
+        .init(panel: .processPriority, title: "Process Priority", subtitle: "Renice network & UI processes", icon: "cpu"),
+        .init(panel: .diskCleanup, title: "Disk Cleanup", subtitle: "Reclaim space from caches, Xcode, Docker", icon: "internaldrive"),
+    ]
+
+    /// True while search results are taking over the detail area (active + a
+    /// non-blank query). Drives both the detail switch and sidebar de-selection.
+    var isSearching: Bool {
+        searchActive && !searchQuery.trimmingCharacters(in: .whitespaces).isEmpty
+    }
+
+    /// The flat, relevance-ranked result list (pages, then tweaks, then actions),
+    /// each group ordered by the semantic engine. Empty unless actively searching.
+    var searchResults: [SearchResultRow] {
+        guard isSearching else { return [] }
+        let q = searchQuery
+
+        let pageByID = Dictionary(uniqueKeysWithValues: Self.searchPages.map { ("page:\($0.id)", $0) })
+        let pageItems = Self.searchPages.map { SearchableItem(id: "page:\($0.id)", title: $0.title, body: $0.subtitle) }
+        let pages = search.rank(q, items: pageItems).compactMap { pageByID[$0] }.map(SearchResultRow.page)
+
+        let tweakByID = Dictionary(uniqueKeysWithValues: engine.tweaks.map { ("tweak:\($0.key)", $0) })
+        let tweakItems = engine.tweaks.map { t in
+            SearchableItem(id: "tweak:\(t.key)", title: t.title,
+                body: "\(t.summary) \(t.category.rawValue) "
+                    + t.tags.map(\.rawValue).joined(separator: " ") + " "
+                    + t.gains.map(\.label).joined(separator: " ") + " \(t.key)")
+        }
+        let tweaks = search.rank(q, items: tweakItems).compactMap { tweakByID[$0] }.map(SearchResultRow.tweak)
+
+        let actionByID = Dictionary(uniqueKeysWithValues: engine.actions.map { ("action:\($0.key)", $0) })
+        let actionItems = engine.actions.map { SearchableItem(id: "action:\($0.key)", title: $0.title, body: "\($0.summary) \($0.key)") }
+        let actions = search.rank(q, items: actionItems).compactMap { actionByID[$0] }.map(SearchResultRow.action)
+
+        return pages + tweaks + actions
+    }
+
+    /// Navigate to a panel (sidebar click) — cancels the search overlay but keeps
+    /// the query text so re-focusing the field resumes it.
+    func showPanel(_ p: Panel) {
+        panel = p
+        searchActive = false
+    }
+
+    func clearSearch() {
+        searchQuery = ""
+        searchSelection = 0
+        searchActive = false
+    }
+
+    /// Move the ↑/↓ selection, clamped to the current result count.
+    func moveSearchSelection(_ delta: Int) {
+        let count = searchResults.count
+        guard count > 0 else { searchSelection = 0; return }
+        searchSelection = min(max(searchSelection + delta, 0), count - 1)
+    }
+
+    /// Activate the highlighted result: navigate for pages/tweaks, run for actions.
+    func activateSelectedSearchResult() {
+        let results = searchResults
+        guard results.indices.contains(searchSelection) else { return }
+        switch results[searchSelection] {
+        case .page(let p):   showPanel(p.panel)
+        case .tweak(let t):  showPanel(.category(t.category))
+        case .action(let a): Task { await engine.run(a) }
+        }
     }
 }
 

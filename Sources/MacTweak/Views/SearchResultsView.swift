@@ -3,10 +3,11 @@
 //  MacTweak
 //
 //  Inline, live search results — rendered right in the main window (no modal)
-//  whenever the sidebar search field has text. Matching tweaks appear as their
+//  while the sidebar search field is active. Matching tweaks appear as their
 //  real rows, with working toggles/stars, exactly like a category tab but
 //  filtered across every category at once. Pages and Quick Actions that match
-//  show as quick jumps.
+//  show as quick jumps. The ↑/↓-highlighted row (driven from the search field)
+//  is ringed and scrolled into view; ⏎ activates it.
 //
 
 import SwiftUI
@@ -14,59 +15,37 @@ import SwiftUI
 struct SearchResultsView: View {
     @EnvironmentObject var model: AppModel
 
-    // Semantic ranking (stemming, prefix, typo & trigram tolerance) via the
-    // shared engine — each corpus is scored and ordered by relevance. Ids are
-    // namespaced so the engine's per-item cache never collides across corpora.
-
-    private var tweakHits: [Tweak] {
-        let byID = Dictionary(uniqueKeysWithValues: model.engine.tweaks.map { ("tweak:\($0.key)", $0) })
-        let items = model.engine.tweaks.map { t in
-            SearchableItem(
-                id: "tweak:\(t.key)",
-                title: t.title,
-                body: "\(t.summary) \(t.category.rawValue) "
-                    + t.tags.map(\.rawValue).joined(separator: " ") + " "
-                    + t.gains.map(\.label).joined(separator: " ") + " \(t.key)")
-        }
-        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
-    }
-
-    private var actionHits: [SystemAction] {
-        let byID = Dictionary(uniqueKeysWithValues: model.engine.actions.map { ("action:\($0.key)", $0) })
-        let items = model.engine.actions.map {
-            SearchableItem(id: "action:\($0.key)", title: $0.title, body: "\($0.summary) \($0.key)")
-        }
-        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
-    }
-
-    private var pageHits: [PageTarget] {
-        let byID = Dictionary(uniqueKeysWithValues: Self.pages.map { ("page:\($0.id)", $0) })
-        let items = Self.pages.map {
-            SearchableItem(id: "page:\($0.id)", title: $0.title, body: $0.subtitle)
-        }
-        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
-    }
-
     var body: some View {
-        // Compute each corpus once per render (query is tokenised once).
-        let pages = pageHits
-        let tweaks = tweakHits
-        let actions = actionHits
-        return ScrollView {
-            VStack(alignment: .leading, spacing: Space.m) {
-                header(total: pages.count + tweaks.count + actions.count)
+        let results = model.searchResults
+        let selectedID = results.indices.contains(model.searchSelection)
+            ? results[model.searchSelection].id : nil
 
-                if pages.isEmpty && tweaks.isEmpty && actions.isEmpty {
-                    emptyState
-                } else {
-                    if !pages.isEmpty { pagesSection(pages) }
-                    if !tweaks.isEmpty { tweaksSection(tweaks) }
-                    if !actions.isEmpty { actionsSection(actions) }
+        let pages: [SearchPage]      = results.compactMap { if case .page(let p) = $0 { return p } else { return nil } }
+        let tweaks: [Tweak]          = results.compactMap { if case .tweak(let t) = $0 { return t } else { return nil } }
+        let actions: [SystemAction]  = results.compactMap { if case .action(let a) = $0 { return a } else { return nil } }
+
+        return ScrollViewReader { proxy in
+            ScrollView {
+                VStack(alignment: .leading, spacing: Space.m) {
+                    header(total: results.count)
+
+                    if results.isEmpty {
+                        emptyState
+                    } else {
+                        if !pages.isEmpty { pagesSection(pages, selectedID: selectedID) }
+                        if !tweaks.isEmpty { tweaksSection(tweaks, selectedID: selectedID) }
+                        if !actions.isEmpty { actionsSection(actions, selectedID: selectedID) }
+                    }
                 }
+                .padding(Space.l)
+                .frame(maxWidth: 760, alignment: .leading)
+                .frame(maxWidth: .infinity)
             }
-            .padding(Space.l)
-            .frame(maxWidth: 760, alignment: .leading)
-            .frame(maxWidth: .infinity)
+            .onChange(of: model.searchSelection) { _, newSel in
+                let current = model.searchResults
+                guard current.indices.contains(newSel) else { return }
+                withAnimation(.easeOut(duration: 0.14)) { proxy.scrollTo(current[newSel].id, anchor: .center) }
+            }
         }
     }
 
@@ -77,14 +56,14 @@ struct SearchResultsView: View {
             HStack(spacing: Space.xs) {
                 Text("Search").font(.system(size: 34, weight: .bold))
                 Spacer()
-                Button { model.searchQuery = "" } label: {
+                Button { model.clearSearch() } label: {
                     Label("Clear", systemImage: "xmark")
                         .font(.system(size: 12, weight: .medium))
                 }
                 .buttonStyle(.gradientOutline).controlSize(.small)
             }
             Text(total == 0 ? "No matches for “\(model.searchQuery)”"
-                            : "\(total) result\(total == 1 ? "" : "s") for “\(model.searchQuery)”")
+                            : "\(total) result\(total == 1 ? "" : "s") for “\(model.searchQuery)” · ↑↓ to browse, ⏎ to open")
                 .font(.system(size: 15)).foregroundStyle(.secondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,13 +71,13 @@ struct SearchResultsView: View {
 
     // MARK: - Sections
 
-    private func pagesSection(_ pageHits: [PageTarget]) -> some View {
+    private func pagesSection(_ pages: [SearchPage], selectedID: String?) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Pages").sectionTitle()
-            ForEach(pageHits) { page in
+            ForEach(pages) { page in
+                let rowID = "page:\(page.id)"
                 Button {
-                    model.panel = page.panel
-                    model.searchQuery = ""
+                    model.showPanel(page.panel)
                 } label: {
                     HStack(spacing: Space.s) {
                         GlyphTile(systemName: page.icon, size: 32)
@@ -114,21 +93,29 @@ struct SearchResultsView: View {
                     .card(padding: Space.s)
                 }
                 .buttonStyle(.plain).clickCursor()
+                .selectionRing(rowID == selectedID)
+                .id(rowID)
             }
         }
     }
 
-    private func tweaksSection(_ tweakHits: [Tweak]) -> some View {
+    private func tweaksSection(_ tweaks: [Tweak], selectedID: String?) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Tweaks").sectionTitle()
-            ForEach(tweakHits) { TweakRow(tweak: $0) }
+            ForEach(tweaks) { tweak in
+                let rowID = "tweak:\(tweak.key)"
+                TweakRow(tweak: tweak)
+                    .selectionRing(rowID == selectedID)
+                    .id(rowID)
+            }
         }
     }
 
-    private func actionsSection(_ actionHits: [SystemAction]) -> some View {
+    private func actionsSection(_ actions: [SystemAction], selectedID: String?) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Quick Actions").sectionTitle()
-            ForEach(actionHits) { action in
+            ForEach(actions) { action in
+                let rowID = "action:\(action.key)"
                 HStack(spacing: Space.s) {
                     GlyphTile(systemName: action.icon, size: 32)
                     VStack(alignment: .leading, spacing: 1) {
@@ -143,6 +130,8 @@ struct SearchResultsView: View {
                     .buttonStyle(.gradient).controlSize(.small)
                 }
                 .card(padding: Space.s)
+                .selectionRing(rowID == selectedID)
+                .id(rowID)
             }
         }
     }
@@ -158,23 +147,26 @@ struct SearchResultsView: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, Space.xl)
     }
+}
 
-    // MARK: - Page index
+// MARK: - Selection ring
 
-    struct PageTarget: Identifiable {
-        let panel: Panel
-        let title: String
-        let subtitle: String
-        let icon: String
-        var id: String { title }
+private struct SelectionRing: ViewModifier {
+    let selected: Bool
+    func body(content: Content) -> some View {
+        content
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                        .strokeBorder(Theme.accentGradient, lineWidth: 2)
+                        .allowsHitTesting(false)
+                }
+            }
+            .animation(.easeOut(duration: 0.12), value: selected)
     }
+}
 
-    static let pages: [PageTarget] = [
-        .init(panel: .dashboard, title: "Dashboard", subtitle: "Overview, live CPU / memory / network", icon: "gauge.with.dots.needle.67percent"),
-        .init(panel: .favorites, title: "Favorites", subtitle: "Your pinned tweaks", icon: "star"),
-        .init(panel: .benchmark, title: "Benchmark", subtitle: "CPU & disk speed tests", icon: "chart.bar"),
-        .init(panel: .actions, title: "Quick Actions", subtitle: "One-tap system actions", icon: "bolt"),
-        .init(panel: .processPriority, title: "Process Priority", subtitle: "Renice network & UI processes", icon: "cpu"),
-        .init(panel: .diskCleanup, title: "Disk Cleanup", subtitle: "Reclaim space from caches, Xcode, Docker", icon: "internaldrive"),
-    ]
+private extension View {
+    /// Ring the row when it's the ↑/↓-highlighted result.
+    func selectionRing(_ selected: Bool) -> some View { modifier(SelectionRing(selected: selected)) }
 }

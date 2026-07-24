@@ -41,7 +41,7 @@ struct SidebarView: View {
 
     private func row(_ panel: Panel, _ title: String, _ icon: String, badge: String? = nil) -> some View {
         SidebarRow(title: title, icon: icon, badge: badge,
-                   selected: model.panel == panel) { model.panel = panel }
+                   selected: model.panel == panel && !model.isSearching) { model.showPanel(panel) }
             .listRowInsets(EdgeInsets(top: 1, leading: Space.xs, bottom: 1, trailing: Space.xs))
             .listRowSeparator(.hidden)
             .listRowBackground(Color.clear)
@@ -61,7 +61,7 @@ struct SidebarView: View {
                 }
                 Spacer()
             }
-            SearchField(text: $model.searchQuery, focusToken: model.focusSearchToken)
+            SearchField()
         }
         .padding(.horizontal, Space.s).padding(.top, Space.s).padding(.bottom, Space.xs)
         .background(.bar)
@@ -97,10 +97,11 @@ struct SidebarView: View {
 }
 
 /// A live search field. Typing filters the whole app inline (the main window
-/// swaps to results) — no modal. ⌘K focuses it via `focusToken`; Escape clears.
+/// swaps to results) — no modal. ⌘L (or ⌘K) focuses it; ↑/↓ browse the results
+/// and ⏎ activates the highlighted one; Escape clears. Focusing the field
+/// re-activates a query that a tab click had paused.
 private struct SearchField: View {
-    @Binding var text: String
-    let focusToken: Int
+    @EnvironmentObject var model: AppModel
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -108,20 +109,23 @@ private struct SearchField: View {
             Image(systemName: "magnifyingglass")
                 .font(.system(size: 12, weight: .medium))
                 .foregroundStyle(focused ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
-            TextField("Search features", text: $text)
+            TextField("Search features", text: $model.searchQuery)
                 .textFieldStyle(.plain)
                 .font(.system(size: 12))
                 .focused($focused)
-                .onKeyPress(.escape) { text = ""; focused = false; return .handled }
-            if !text.isEmpty {
-                Button { text = "" } label: {
+                .onKeyPress(.downArrow) { model.moveSearchSelection(1); return .handled }
+                .onKeyPress(.upArrow)   { model.moveSearchSelection(-1); return .handled }
+                .onKeyPress(.return)    { model.activateSelectedSearchResult(); return .handled }
+                .onKeyPress(.escape)    { model.clearSearch(); focused = false; return .handled }
+            if !model.searchQuery.isEmpty {
+                Button { model.clearSearch() } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                 }
                 .buttonStyle(.plain).clickCursor()
                 .transition(.opacity)
             } else {
-                Text("⌘K")
+                Text("⌘L")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 5).padding(.vertical, 1)
@@ -141,8 +145,18 @@ private struct SearchField: View {
                               lineWidth: focused ? 1.5 : 1)
         )
         .animation(.easeOut(duration: 0.12), value: focused)
-        .animation(.easeOut(duration: 0.12), value: text.isEmpty)
-        .onChange(of: focusToken) { _, _ in focused = true }
+        .animation(.easeOut(duration: 0.12), value: model.searchQuery.isEmpty)
+        .onChange(of: model.focusSearchToken) { _, _ in focused = true }
+        // Focusing the field resumes search (even a query a tab click paused).
+        .onChange(of: focused) { _, now in if now { model.searchActive = true } }
+        // A tab click cancels search → blur the field, so clicking back into it
+        // is a real focus transition that resumes the query.
+        .onChange(of: model.searchActive) { _, now in if !now { focused = false } }
+        // Typing resets the ↑/↓ highlight and re-activates search.
+        .onChange(of: model.searchQuery) { _, _ in
+            model.searchSelection = 0
+            if focused { model.searchActive = true }
+        }
     }
 }
 

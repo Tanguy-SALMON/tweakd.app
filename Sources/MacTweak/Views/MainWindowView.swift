@@ -37,19 +37,24 @@ struct MainWindowView: View {
         .overlay(alignment: .bottom) { toast }
         .animation(.spring(duration: 0.35), value: model.engine.lastMessage)
         .background {
-            // Hidden global shortcut — ⌘K focuses the sidebar search field from
-            // anywhere in the main window (no modal; results render inline).
-            Button("") { model.focusSearchToken += 1 }
-                .keyboardShortcut("k", modifiers: .command)
-                .opacity(0)
-                .accessibilityHidden(true)
+            // Hidden global shortcuts — ⌘L (and ⌘K) focus the sidebar search
+            // field from anywhere in the window (no modal; results render inline).
+            Group {
+                Button("") { model.focusSearchToken += 1 }
+                    .keyboardShortcut("l", modifiers: .command)
+                Button("") { model.focusSearchToken += 1 }
+                    .keyboardShortcut("k", modifiers: .command)
+            }
+            .opacity(0)
+            .accessibilityHidden(true)
         }
     }
 
     @ViewBuilder private var detail: some View {
-        // A live query takes over the detail area with inline results — like
-        // switching to a "search" tab — instead of popping a modal.
-        if !model.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+        // An active query takes over the detail area with inline results — like
+        // switching to a "search" tab. Clicking a sidebar tab cancels it (keeps
+        // the query text), and re-focusing the field resumes it.
+        if model.isSearching {
             SearchResultsView()
         } else {
             panelDetail
