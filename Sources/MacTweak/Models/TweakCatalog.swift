@@ -310,6 +310,17 @@ enum TweakCatalog {
             tags: [.security, .privacyFocused], recommended: false
         ),
         Tweak(
+            key: "hosts-adblock",
+            title: "Block Ads & Trackers (hosts file)",
+            summary: "Downloads the curated StevenBlack ad/tracker/malware domain list and routes those domains to 0.0.0.0 in /etc/hosts, so ads never load — system-wide, across every browser and app. Speeds up pages by skipping ad requests. Your existing /etc/hosts entries are preserved; only a clearly-marked MacTweak block is added or removed. Needs a network connection to apply.",
+            category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o \"$L\" && [ -s \"$L\" ]; then sed '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts > \"$T\"; echo '# MacTweak-adblock-start' >> \"$T\"; grep '^0\\.0\\.0\\.0 ' \"$L\" >> \"$T\"; echo '# MacTweak-adblock-end' >> \"$T\"; cat \"$T\" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f \"$L\" \"$T\"; true",
+            revertCommand: "sed -i '' '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; true",
+            statusCommand: "grep -q '# MacTweak-adblock-start' /etc/hosts && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.security, .privacyFocused], recommended: false
+        ),
+        Tweak(
             key: "disable-ipv6",
             title: "Disable IPv6",
             summary: "Turns off IPv6 on all network services. Advanced — can break IPv6-only networks; leave off unless you know you want it.",
@@ -562,6 +573,7 @@ enum TweakCatalog {
         "firewall-stealth": "eye.slash",
         "firewall-block-signed": "hand.raised.slash",
         "dns-privacy": "lock.badge.clock",
+        "hosts-adblock": "hand.raised.slash",
         "disable-ipv6": "6.circle",
         "tcp-window-scaling": "arrow.left.and.right",
         "max-file-descriptors": "doc.on.doc",
@@ -598,6 +610,7 @@ enum TweakCatalog {
         // Security & network hardening
         "firewall-enable": [.secure, .privacy], "firewall-stealth": [.secure, .privacy],
         "firewall-block-signed": [.secure], "dns-privacy": [.privacy, .secure],
+        "hosts-adblock": [.privacy, .faster],
         "disable-ipv6": [.secure], "tcp-window-scaling": [.throughput, .latency],
         "max-file-descriptors": [.throughput],
     ]
