@@ -14,48 +14,54 @@ import SwiftUI
 struct SearchResultsView: View {
     @EnvironmentObject var model: AppModel
 
-    /// Full-text: every whitespace-separated query word must appear somewhere in
-    /// the item's combined text (title + summary + category + tags + gains).
-    private var terms: [String] {
-        model.searchQuery
-            .lowercased()
-            .split(whereSeparator: { $0.isWhitespace })
-            .map(String.init)
-    }
-
-    private func matches(_ haystack: String) -> Bool {
-        let h = haystack.lowercased()
-        return terms.allSatisfy { h.contains($0) }
-    }
+    // Semantic ranking (stemming, prefix, typo & trigram tolerance) via the
+    // shared engine — each corpus is scored and ordered by relevance. Ids are
+    // namespaced so the engine's per-item cache never collides across corpora.
 
     private var tweakHits: [Tweak] {
-        model.engine.tweaks.filter { t in
-            let text = "\(t.title) \(t.summary) \(t.category.rawValue) "
-                + t.tags.map(\.rawValue).joined(separator: " ") + " "
-                + t.gains.map(\.label).joined(separator: " ") + " \(t.key)"
-            return matches(text)
+        let byID = Dictionary(uniqueKeysWithValues: model.engine.tweaks.map { ("tweak:\($0.key)", $0) })
+        let items = model.engine.tweaks.map { t in
+            SearchableItem(
+                id: "tweak:\(t.key)",
+                title: t.title,
+                body: "\(t.summary) \(t.category.rawValue) "
+                    + t.tags.map(\.rawValue).joined(separator: " ") + " "
+                    + t.gains.map(\.label).joined(separator: " ") + " \(t.key)")
         }
+        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
     }
 
     private var actionHits: [SystemAction] {
-        model.engine.actions.filter { matches("\($0.title) \($0.summary) \($0.key)") }
+        let byID = Dictionary(uniqueKeysWithValues: model.engine.actions.map { ("action:\($0.key)", $0) })
+        let items = model.engine.actions.map {
+            SearchableItem(id: "action:\($0.key)", title: $0.title, body: "\($0.summary) \($0.key)")
+        }
+        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
     }
 
     private var pageHits: [PageTarget] {
-        Self.pages.filter { matches("\($0.title) \($0.subtitle)") }
+        let byID = Dictionary(uniqueKeysWithValues: Self.pages.map { ("page:\($0.id)", $0) })
+        let items = Self.pages.map {
+            SearchableItem(id: "page:\($0.id)", title: $0.title, body: $0.subtitle)
+        }
+        return model.search.rank(model.searchQuery, items: items).compactMap { byID[$0] }
     }
 
     var body: some View {
-        ScrollView {
+        // Compute each corpus once per render (query is tokenised once).
+        let pages = pageHits
+        let tweaks = tweakHits
+        let actions = actionHits
+        return ScrollView {
             VStack(alignment: .leading, spacing: Space.m) {
-                header
+                header(total: pages.count + tweaks.count + actions.count)
 
-                if pageHits.isEmpty && tweakHits.isEmpty && actionHits.isEmpty {
+                if pages.isEmpty && tweaks.isEmpty && actions.isEmpty {
                     emptyState
                 } else {
-                    if !pageHits.isEmpty { pagesSection }
-                    if !tweakHits.isEmpty { tweaksSection }
-                    if !actionHits.isEmpty { actionsSection }
+                    if !pages.isEmpty { pagesSection(pages) }
+                    if !tweaks.isEmpty { tweaksSection(tweaks) }
+                    if !actions.isEmpty { actionsSection(actions) }
                 }
             }
             .padding(Space.l)
@@ -66,9 +72,8 @@ struct SearchResultsView: View {
 
     // MARK: - Header
 
-    private var header: some View {
-        let total = pageHits.count + tweakHits.count + actionHits.count
-        return VStack(alignment: .leading, spacing: Space.xxs) {
+    private func header(total: Int) -> some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
             HStack(spacing: Space.xs) {
                 Text("Search").font(.system(size: 34, weight: .bold))
                 Spacer()
@@ -87,7 +92,7 @@ struct SearchResultsView: View {
 
     // MARK: - Sections
 
-    private var pagesSection: some View {
+    private func pagesSection(_ pageHits: [PageTarget]) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Pages").sectionTitle()
             ForEach(pageHits) { page in
@@ -113,14 +118,14 @@ struct SearchResultsView: View {
         }
     }
 
-    private var tweaksSection: some View {
+    private func tweaksSection(_ tweakHits: [Tweak]) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Tweaks").sectionTitle()
             ForEach(tweakHits) { TweakRow(tweak: $0) }
         }
     }
 
-    private var actionsSection: some View {
+    private func actionsSection(_ actionHits: [SystemAction]) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("Quick Actions").sectionTitle()
             ForEach(actionHits) { action in
