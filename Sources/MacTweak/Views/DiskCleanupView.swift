@@ -13,6 +13,7 @@ import SwiftUI
 struct DiskCleanupView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmingItemID: String?
+    @State private var confirmingOrphaned = false
 
     private var cleanup: DiskCleanupManager { model.diskCleanup }
 
@@ -23,6 +24,7 @@ struct DiskCleanupView: View {
                 if cleanup.totalReclaimableBytes > 0 {
                     reclaimableBanner
                 }
+                orphanedCard
                 ForEach(DiskCleanupManager.items) { item in
                     itemCard(item)
                 }
@@ -31,12 +33,16 @@ struct DiskCleanupView: View {
             .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
-        .task { await cleanup.scan() }
+        .task {
+            await cleanup.scan()
+            await cleanup.scanOrphaned()
+        }
         .confirmationDialog(
-            confirmingItem.map { "\($0.actionLabel) \($0.title)?" } ?? "",
+            confirmingItem.map { "\($0.actionLabel) \($0.title)?" }
+                ?? (confirmingOrphaned ? "Remove \(cleanup.orphanedPaths.count) orphaned leftover\(cleanup.orphanedPaths.count == 1 ? "" : "s")?" : ""),
             isPresented: Binding(
-                get: { confirmingItemID != nil },
-                set: { if !$0 { confirmingItemID = nil } }
+                get: { confirmingItemID != nil || confirmingOrphaned },
+                set: { if !$0 { confirmingItemID = nil; confirmingOrphaned = false } }
             )
         ) {
             if let item = confirmingItem {
@@ -44,9 +50,14 @@ struct DiskCleanupView: View {
                     Task { await cleanup.clean(item) }
                 }
                 Button("Cancel", role: .cancel) {}
+            } else if confirmingOrphaned {
+                Button("Remove", role: .destructive) {
+                    Task { await cleanup.cleanOrphaned() }
+                }
+                Button("Cancel", role: .cancel) {}
             }
         } message: {
-            Text(confirmingItem?.blurb ?? "")
+            Text(confirmingItem?.blurb ?? "These belong to apps no longer installed on this Mac. This can't be undone.")
         }
     }
 
@@ -89,6 +100,38 @@ struct DiskCleanupView: View {
     private func formattedGB(_ bytes: Double) -> String {
         let gb = bytes / 1_000_000_000
         return gb >= 1 ? String(format: "%.1f GB", gb) : String(format: "%.0f MB", bytes / 1_000_000)
+    }
+
+    // MARK: - Orphaned leftovers
+
+    private var orphanedCard: some View {
+        let busy = cleanup.busy.contains("orphaned-leftovers") || cleanup.scanningOrphaned
+        let count = cleanup.orphanedPaths.count
+
+        return HStack(spacing: Space.s) {
+            GlyphTile(systemName: "questionmark.folder", size: 38)
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: Space.xs) {
+                    Text("Orphaned App Leftovers").font(.system(size: 15, weight: .semibold))
+                    if !cleanup.scanningOrphaned {
+                        Pill(text: count == 0 ? "None found" : "\(count) found · \(formatBytes(UInt64(max(0, cleanup.orphanedBytes))))")
+                    }
+                }
+                Text("Caches, saved state, and support files for apps you've already deleted — cross-checked against everything still in /Applications.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer(minLength: Space.xs)
+            if busy {
+                ProgressView().controlSize(.small)
+            } else if count > 0 {
+                Button("Remove") { confirmingOrphaned = true }
+                    .buttonStyle(.gradient).controlSize(.small)
+            }
+        }
+        .card()
+        .animation(.easeOut(duration: 0.15), value: busy)
+        .animation(.easeOut(duration: 0.15), value: count)
     }
 
     // MARK: - Item card

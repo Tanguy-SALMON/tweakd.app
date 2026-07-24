@@ -137,6 +137,24 @@ final class DiskCleanupManager: ObservableObject {
             checkCommand: "command -v pip3 || command -v pip"
         ),
         CleanupItem(
+            id: "crash-reports",
+            title: "Crash & Diagnostic Reports",
+            blurb: "~/Library/Logs/DiagnosticReports — crash logs and spin reports macOS keeps after every app crash.",
+            icon: "exclamationmark.triangle", risk: .safe,
+            sizeCommand: "du -sh ~/Library/Logs/DiagnosticReports 2>/dev/null | awk '{print $1}'",
+            clearCommand: "rm -rf ~/Library/Logs/DiagnosticReports/* 2>/dev/null; true",
+            checkCommand: "test -d ~/Library/Logs/DiagnosticReports"
+        ),
+        CleanupItem(
+            id: "quicklook-cache",
+            title: "QuickLook Thumbnail Cache",
+            blurb: "Rebuilds instantly the next time you preview a file — often bloated after browsing large photo/video folders.",
+            icon: "eye", risk: .safe,
+            sizeCommand: "echo '—'",
+            clearCommand: "qlmanage -r cache 2>/dev/null; qlmanage -r 2>/dev/null; true",
+            actionLabel: "Reset"
+        ),
+        CleanupItem(
             id: "mobilesync-backups",
             title: "iOS Device Backups",
             blurb: "Finder/iTunes-style backups can be large and irreplaceable — reveals them instead of deleting.",
@@ -163,6 +181,14 @@ final class DiskCleanupManager: ObservableObject {
     @Published private(set) var busy: Set<String> = []
     @Published private(set) var scanning = false
     @Published var lastMessage: String?
+
+    /// Orphaned per-app leftovers — a Library entry whose owning app is no
+    /// longer installed. Kept separate from `items` since it's a two-phase
+    /// scan (find the paths, then show the total) rather than a fixed shell
+    /// command.
+    @Published private(set) var orphanedPaths: [String] = []
+    @Published private(set) var orphanedBytes: Int64 = 0
+    @Published private(set) var scanningOrphaned = false
 
     /// Off-main: measure every item's size/availability in one batch.
     func scan() async {
@@ -204,14 +230,36 @@ final class DiskCleanupManager: ObservableObject {
             : "\(item.title) failed. \(result.error.isEmpty ? result.output : result.error)"
     }
 
+    /// Off-main: find Library leftovers for apps that are no longer installed.
+    func scanOrphaned() async {
+        scanningOrphaned = true
+        defer { scanningOrphaned = false }
+        let (paths, total) = await Task.detached { OrphanedAppScanner.scan() }.value
+        orphanedPaths = paths
+        orphanedBytes = total
+    }
+
+    /// Delete every leftover the last `scanOrphaned()` found, then re-scan.
+    func cleanOrphaned() async {
+        let id = "orphaned-leftovers"
+        busy.insert(id)
+        defer { busy.remove(id) }
+
+        let paths = orphanedPaths
+        await Task.detached { OrphanedAppScanner.delete(paths: paths) }.value
+        lastMessage = "Removed \(paths.count) orphaned leftover\(paths.count == 1 ? "" : "s")."
+        await scanOrphaned()
+    }
+
     /// Best-effort sum of every parseable ("1.2G", "340M", …) size, for a
     /// friendly "~N GB reclaimable" headline. Count-style rows (simulators)
     /// don't parse as a size and are simply skipped from the total.
     var totalReclaimableBytes: Double {
-        Self.items.reduce(0) { sum, item in
+        let itemsTotal = Self.items.reduce(0.0) { sum, item in
             guard available[item.id] != false, let s = sizes[item.id] else { return sum }
             return sum + (Self.parseSize(s) ?? 0)
         }
+        return itemsTotal + Double(max(0, orphanedBytes))
     }
 
     nonisolated static func parseSize(_ s: String) -> Double? {

@@ -179,18 +179,31 @@ private struct LiveMetrics: View {
     var onClearRAM: () -> Void = {}
 
     var body: some View {
-        HStack(spacing: Space.m) {
-            RingGauge(value: metrics.cpuPercent, label: "CPU",
-                      detail: "\(SystemInfo.coreCount) cores")
-            RingGauge(value: metrics.memUsedPercent, label: "Memory",
-                      detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
-                      action: .init(title: "Clear", systemImage: "wind",
-                                    busy: clearing, run: onClearRAM))
-            chart
+        VStack(spacing: Space.m) {
+            HStack(spacing: Space.m) {
+                RingGauge(value: metrics.cpuPercent, label: "CPU",
+                          detail: "\(SystemInfo.coreCount) cores")
+                RingGauge(value: metrics.memUsedPercent, label: "Memory",
+                          detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
+                          action: .init(title: "Clear", systemImage: "wind",
+                                        busy: clearing, run: onClearRAM))
+                chart
+            }
+            .frame(height: 200)
+
+            HStack(spacing: Space.m) {
+                StatTile(title: "Download", value: formatRate(metrics.netDownKBps), systemImage: "arrow.down.circle")
+                StatTile(title: "Upload", value: formatRate(metrics.netUpKBps), systemImage: "arrow.up.circle")
+            }
+            .animation(.easeOut(duration: 0.2), value: metrics.netDownKBps)
+            .animation(.easeOut(duration: 0.2), value: metrics.netUpKBps)
         }
-        .frame(height: 200)
         .onAppear { metrics.retain() }
         .onDisappear { metrics.release() }
+    }
+
+    private func formatRate(_ kbps: Double) -> String {
+        kbps >= 1024 ? String(format: "%.1f MB/s", kbps / 1024) : String(format: "%.0f KB/s", kbps)
     }
 
     /// A trailing 90-second window anchored on the newest sample, so the chart

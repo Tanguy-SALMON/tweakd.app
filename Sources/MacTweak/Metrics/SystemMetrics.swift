@@ -25,12 +25,18 @@ final class SystemMetrics: ObservableObject {
     @Published private(set) var memUsedPercent: Double = 0
     let memTotalBytes: UInt64 = SystemInfo.physicalMemory
 
+    /// Live network throughput, summed across physical interfaces (en*) so a
+    /// VPN's utun tunnel isn't double-counted with the Wi-Fi/Ethernet it rides on.
+    @Published private(set) var netDownKBps: Double = 0
+    @Published private(set) var netUpKBps: Double = 0
+
     @Published private(set) var history: [MetricPoint] = []
     private var tick = 0
     private let capacity = 90
 
     private var timer: Timer?
     private var prevTicks: (user: UInt64, system: UInt64, idle: UInt64, nice: UInt64)?
+    private var prevNetSample: (time: Date, rx: UInt64, tx: UInt64)?
 
     /// `mach_host_self()` returns a send right that must be released or it leaks a
     /// port user-reference on every call. Grab it once for the process lifetime.
@@ -90,6 +96,17 @@ final class SystemMetrics: ObservableObject {
         history.append(MetricPoint(id: tick, time: Date(), cpu: cpuPercent, mem: memUsedPercent))
         if history.count > capacity { history.removeFirst(history.count - capacity) }
         tick += 1
+
+        let (rx, tx) = readNetworkBytes()
+        let now = Date()
+        if let prev = prevNetSample {
+            let dt = now.timeIntervalSince(prev.time)
+            if dt > 0 {
+                netDownKBps = Double(rx &- prev.rx) / dt / 1024
+                netUpKBps = Double(tx &- prev.tx) / dt / 1024
+            }
+        }
+        prevNetSample = (now, rx, tx)
     }
 
     // MARK: - Mach reads
@@ -138,5 +155,28 @@ final class SystemMetrics: ObservableObject {
                     + UInt64(stats.wire_count)
                     + UInt64(stats.compressor_page_count)) * ps
         return (used, memTotalBytes)
+    }
+
+    /// Total bytes sent/received across physical network interfaces, straight
+    /// from the BSD interface list — no shelling out to `netstat`.
+    private func readNetworkBytes() -> (rx: UInt64, tx: UInt64) {
+        var ifaddrPtr: UnsafeMutablePointer<ifaddrs>?
+        guard getifaddrs(&ifaddrPtr) == 0, let first = ifaddrPtr else { return (0, 0) }
+        defer { freeifaddrs(first) }
+
+        var rx: UInt64 = 0
+        var tx: UInt64 = 0
+        var ptr: UnsafeMutablePointer<ifaddrs>? = first
+        while let cur = ptr {
+            defer { ptr = cur.pointee.ifa_next }
+            let ifa = cur.pointee
+            guard let addr = ifa.ifa_addr, addr.pointee.sa_family == UInt8(AF_LINK) else { continue }
+            guard String(cString: ifa.ifa_name).hasPrefix("en") else { continue }
+            guard let dataPtr = ifa.ifa_data else { continue }
+            let data = dataPtr.withMemoryRebound(to: if_data.self, capacity: 1) { $0.pointee }
+            rx += UInt64(data.ifi_ibytes)
+            tx += UInt64(data.ifi_obytes)
+        }
+        return (rx, tx)
     }
 }
