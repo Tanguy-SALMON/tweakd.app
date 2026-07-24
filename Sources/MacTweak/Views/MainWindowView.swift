@@ -35,17 +35,11 @@ struct MainWindowView: View {
                 .frame(width: 620, height: 560)
         }
         .overlay(alignment: .bottom) { toast }
-        .overlay {
-            if model.showSearch {
-                CommandPaletteView().environmentObject(model)
-            }
-        }
-        .animation(.spring(duration: 0.28, bounce: 0.15), value: model.showSearch)
         .animation(.spring(duration: 0.35), value: model.engine.lastMessage)
         .background {
-            // Hidden global shortcut — ⌘K opens the command palette from anywhere
-            // in the main window, mirroring Spotlight/Raycast's search trigger.
-            Button("") { model.showSearch = true }
+            // Hidden global shortcut — ⌘K focuses the sidebar search field from
+            // anywhere in the main window (no modal; results render inline).
+            Button("") { model.focusSearchToken += 1 }
                 .keyboardShortcut("k", modifiers: .command)
                 .opacity(0)
                 .accessibilityHidden(true)
@@ -53,6 +47,16 @@ struct MainWindowView: View {
     }
 
     @ViewBuilder private var detail: some View {
+        // A live query takes over the detail area with inline results — like
+        // switching to a "search" tab — instead of popping a modal.
+        if !model.searchQuery.trimmingCharacters(in: .whitespaces).isEmpty {
+            SearchResultsView()
+        } else {
+            panelDetail
+        }
+    }
+
+    @ViewBuilder private var panelDetail: some View {
         switch model.panel {
         case .dashboard: DashboardView()
         case .favorites: TweakListView(section: .favorites)

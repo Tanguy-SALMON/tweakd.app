@@ -61,7 +61,7 @@ struct SidebarView: View {
                 }
                 Spacer()
             }
-            SearchTriggerBar { model.showSearch = true }
+            SearchField(text: $model.searchQuery, focusToken: model.focusSearchToken)
         }
         .padding(.horizontal, Space.s).padding(.top, Space.s).padding(.bottom, Space.xs)
         .background(.bar)
@@ -96,47 +96,53 @@ struct SidebarView: View {
     }
 }
 
-/// A search-field-styled button that opens the ⌘K command palette. It isn't a
-/// live text field itself — tapping (or ⌘K) hands off to `CommandPaletteView`,
-/// which owns the actual typing/results — but it reads and behaves like a
-/// real search bar, the same handoff pattern as macOS System Settings.
-private struct SearchTriggerBar: View {
-    let action: () -> Void
-    @State private var hovering = false
+/// A live search field. Typing filters the whole app inline (the main window
+/// swaps to results) — no modal. ⌘K focuses it via `focusToken`; Escape clears.
+private struct SearchField: View {
+    @Binding var text: String
+    let focusToken: Int
+    @FocusState private var focused: Bool
 
     var body: some View {
-        Button(action: action) {
-            HStack(spacing: Space.xs) {
-                Image(systemName: "magnifyingglass")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.secondary)
-                Text("Search")
-                    .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
-                Spacer(minLength: Space.xxs)
+        HStack(spacing: Space.xs) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 12, weight: .medium))
+                .foregroundStyle(focused ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+            TextField("Search features", text: $text)
+                .textFieldStyle(.plain)
+                .font(.system(size: 12))
+                .focused($focused)
+                .onKeyPress(.escape) { text = ""; focused = false; return .handled }
+            if !text.isEmpty {
+                Button { text = "" } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 12)).foregroundStyle(.secondary)
+                }
+                .buttonStyle(.plain).clickCursor()
+                .transition(.opacity)
+            } else {
                 Text("⌘K")
                     .font(.system(size: 10, weight: .semibold))
                     .foregroundStyle(.secondary)
                     .padding(.horizontal, 5).padding(.vertical, 1)
                     .background(Color.secondary.opacity(0.14), in: RoundedRectangle(cornerRadius: 4, style: .continuous))
             }
-            .padding(.horizontal, Space.xs)
-            .frame(height: 26)
-            .frame(maxWidth: .infinity)
-            .background(
-                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .fill(Color.secondary.opacity(hovering ? 0.16 : 0.10))
-            )
-            .overlay(
-                RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
-                    .strokeBorder(Theme.hairline, lineWidth: 1)
-            )
         }
-        .buttonStyle(.plain)
-        .onHover { hovering = $0 }
-        .clickCursor()
-        .scaleEffect(hovering ? 1.015 : 1)
-        .animation(.easeOut(duration: 0.12), value: hovering)
+        .padding(.horizontal, Space.xs)
+        .frame(height: 26)
+        .frame(maxWidth: .infinity)
+        .background(
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .fill(Color.secondary.opacity(0.10))
+        )
+        .overlay(
+            RoundedRectangle(cornerRadius: Radius.control, style: .continuous)
+                .strokeBorder(focused ? AnyShapeStyle(Theme.accentGradient) : AnyShapeStyle(Theme.hairline),
+                              lineWidth: focused ? 1.5 : 1)
+        )
+        .animation(.easeOut(duration: 0.12), value: focused)
+        .animation(.easeOut(duration: 0.12), value: text.isEmpty)
+        .onChange(of: focusToken) { _, _ in focused = true }
     }
 }
 

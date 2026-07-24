@@ -31,7 +31,11 @@ final class AppModel: ObservableObject {
 
     @Published var panel: Panel = .dashboard
     @Published var showOnboarding = false
-    @Published var showSearch = false
+    /// Live search text. When non-empty, the main window shows filtered results
+    /// inline (instead of the current panel) — no modal.
+    @Published var searchQuery = ""
+    /// Bumped to ask the sidebar search field to grab focus (⌘K).
+    @Published var focusSearchToken = 0
     @Published var wizard = WizardAnswers()
 
     @AppStorage("didOnboard") private var didOnboard = false
