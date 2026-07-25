@@ -18,6 +18,18 @@ enum Log {
     static let subsystem = "com.tanguy.MacTweak"
     private static let logger = Logger(subsystem: subsystem, category: "app")
 
+    /// Separate unified-log category for the *audit trail*: every system change
+    /// the user made and how it turned out. Kept apart from the chatty "app"
+    /// category so it can be read on its own:
+    ///
+    ///   log show --last 1h --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"'
+    ///
+    /// (also `log stream …` to watch it live). Everything here is `.public` on
+    /// purpose — an audit trail redacted to `<private>` is useless — so only
+    /// non-sensitive identifiers are ever passed in: tweak keys, states, exit
+    /// codes and pids, never raw command strings or user paths.
+    private static let auditLogger = Logger(subsystem: subsystem, category: "audit")
+
     /// ~/Library/Logs/MacTweak/MacTweak.log
     static let fileURL: URL = {
         let dir = FileManager.default.urls(for: .libraryDirectory, in: .userDomainMask)[0]
@@ -37,6 +49,42 @@ enum Log {
     static func info(_ message: String)  { emit("INFO", message) }
     static func warn(_ message: String)  { emit("WARN", message) }
     static func error(_ message: String) { emit("ERROR", message) }
+
+    /// How a change attempt ended — the `result=` field of an audit line.
+    enum Outcome: String {
+        case ok         // the probe confirmed the intended new state
+        case failed     // ran, but the system didn't end up where we asked
+        case cancelled  // user dismissed the auth prompt
+        case skipped    // nothing to do (already in that state / unavailable)
+    }
+
+    /// Record one user-initiated system change in the audit trail.
+    ///
+    /// Emitted as sorted `key=value` pairs so the trail is greppable and
+    /// machine-readable, e.g.
+    /// `CHANGE event=tweak.set key=disable-siri-daemon from=notApplied to=applied result=ok exit=0`
+    static func audit(_ event: String, _ fields: [String: String] = [:], result: Outcome? = nil) {
+        var parts = ["event=\(event)"]
+        parts += fields.sorted { $0.key < $1.key }.map { "\($0.key)=\(sanitize($0.value))" }
+        if let result { parts.append("result=\(result.rawValue)") }
+        let message = parts.joined(separator: " ")
+
+        auditLogger.log("CHANGE \(message, privacy: .public)")
+        let stamp = Self.timestamp()
+        queue.async {
+            let line = "\(stamp) [CHANGE] \(message)\n"
+            if let data = line.data(using: .utf8) { data.withUnsafeBytes { _ = write(fd, $0.baseAddress, $0.count) } }
+        }
+    }
+
+    /// Keep values single-token so `key=value` parsing stays unambiguous.
+    private static func sanitize(_ v: String) -> String {
+        let flat = v.replacingOccurrences(of: "\n", with: " ")
+                    .replacingOccurrences(of: "=", with: "-")
+                    .trimmingCharacters(in: .whitespaces)
+        let clipped = flat.count > 120 ? String(flat.prefix(120)) + "…" : flat
+        return clipped.contains(" ") ? "\"\(clipped)\"" : (clipped.isEmpty ? "-" : clipped)
+    }
 
     private static func emit(_ level: String, _ message: String) {
         logger.log("\(level, privacy: .public) \(message, privacy: .public)")

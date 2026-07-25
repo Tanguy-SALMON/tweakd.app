@@ -200,20 +200,35 @@ final class TweakEngine: ObservableObject {
         Log.info("unlockAdmin start")
         let result = await Task.detached { CommandRunner.enablePasswordlessAdmin() }.value
         Log.info("unlockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
-        if result.userCancelled { lastMessage = "Cancelled."; return }
+        if result.userCancelled {
+            lastMessage = "Cancelled."
+            Log.audit("admin.unlock", result: .cancelled)
+            return
+        }
         await refreshAdminStatus()
         lastMessage = adminUnlocked
             ? "Admin unlocked — tweaks now apply without a password."
             : "Couldn't unlock admin. \(result.error.isEmpty ? result.output : result.error)"
+        // Security-relevant: this installs a passwordless-sudo rule in /etc/sudoers.d.
+        Log.audit("admin.unlock",
+                  ["sudoers": CommandRunner.sudoersPath, "exit": "\(result.exitCode)"],
+                  result: adminUnlocked ? .ok : .failed)
     }
 
     func lockAdmin() async {
         Log.info("lockAdmin start")
         let result = await Task.detached { CommandRunner.disablePasswordlessAdmin() }.value
         Log.info("lockAdmin done exit=\(result.exitCode) cancelled=\(result.userCancelled)")
-        if result.userCancelled { lastMessage = "Cancelled."; return }
+        if result.userCancelled {
+            lastMessage = "Cancelled."
+            Log.audit("admin.lock", result: .cancelled)
+            return
+        }
         await refreshAdminStatus()
         lastMessage = adminUnlocked ? "Couldn't lock admin." : "Admin locked — your password will be required again."
+        Log.audit("admin.lock",
+                  ["sudoers": CommandRunner.sudoersPath, "exit": "\(result.exitCode)"],
+                  result: adminUnlocked ? .failed : .ok)
     }
 
     /// After the macOS auth dialog closes, macOS hands focus back to whatever was
@@ -237,11 +252,20 @@ final class TweakEngine: ObservableObject {
 
     func set(_ tweak: Tweak, to target: TweakState) async {
         guard target == .applied || target == .notApplied else { return }
-        guard state(of: tweak) != .unavailable else {
+        let before = state(of: tweak)
+        // Common audit fields for every outcome below.
+        let fields = ["key": tweak.key, "from": before.auditName, "to": target.auditName,
+                      "privilege": tweak.privilege == .admin ? "admin" : "user"]
+
+        guard before != .unavailable else {
             lastMessage = "\(tweak.title) isn't available on this Mac (SIP is enabled)."
+            Log.audit("tweak.set", fields.merging(["reason": "unavailable"]) { a, _ in a }, result: .skipped)
             return
         }
-        if state(of: tweak) == target { return }
+        if before == target {
+            Log.audit("tweak.set", fields.merging(["reason": "already-in-state"]) { a, _ in a }, result: .skipped)
+            return
+        }
 
         busy.insert(tweak.key)
         defer { busy.remove(tweak.key) }
@@ -252,15 +276,23 @@ final class TweakEngine: ObservableObject {
 
         if result.userCancelled {
             lastMessage = "Cancelled."
+            Log.audit("tweak.set", fields, result: .cancelled)
             return
         }
         // Trust the probe, not the exit code — re-read the real state.
         await refresh(tweak)
-        if state(of: tweak) != target {
+        let after = state(of: tweak)
+        var audited = fields
+        audited["actual"] = after.auditName
+        audited["exit"] = "\(result.exitCode)"
+        if after != target {
             let detail = result.error.isEmpty ? "System reported no change." : result.error
             lastMessage = "Couldn't \(target == .applied ? "apply" : "revert") \(tweak.title). \(detail)"
+            audited["error"] = detail
+            Log.audit("tweak.set", audited, result: .failed)
         } else {
             lastMessage = "\(tweak.title) \(target == .applied ? "applied" : "reverted")."
+            Log.audit("tweak.set", audited, result: .ok)
         }
         onStateChange?(tweak)
     }
@@ -301,10 +333,13 @@ final class TweakEngine: ObservableObject {
         let applied = tweaks.filter { state(of: $0) == .applied }
         guard !applied.isEmpty else { lastMessage = "Nothing to revert — everything is stock."; return }
 
+        Log.audit("revertAll.begin", ["count": "\(applied.count)"])
         let (reverted, failed) = await runBatch(applied, to: .notApplied)
         var msg = "Reverted \(reverted) tweak\(reverted == 1 ? "" : "s") to stock."
         if failed > 0 { msg += " \(failed) couldn't be reverted." }
         lastMessage = msg
+        Log.audit("revertAll.end", ["reverted": "\(reverted)", "failed": "\(failed)"],
+                  result: failed == 0 ? .ok : .failed)
     }
 
     /// Apply a preset by its id — the menu-bar quick actions use this.
@@ -321,12 +356,16 @@ final class TweakEngine: ObservableObject {
         let pending = tweaks.filter { keys.contains($0.key) && state(of: $0) == .notApplied }
         guard !pending.isEmpty else {
             lastMessage = "\(preset.name): already active (\(keys.count) tweaks)."
+            Log.audit("preset.apply", ["preset": preset.id, "reason": "already-active"], result: .skipped)
             return
         }
+        Log.audit("preset.begin", ["preset": preset.id, "count": "\(pending.count)"])
         let (applied, failed) = await runBatch(pending, to: .applied)
         var msg = "\(preset.name) preset — applied \(applied) tweak\(applied == 1 ? "" : "s")."
         if failed > 0 { msg += " \(failed) couldn't be applied." }
         lastMessage = msg
+        Log.audit("preset.end", ["preset": preset.id, "applied": "\(applied)", "failed": "\(failed)"],
+                  result: failed == 0 ? .ok : .failed)
     }
 
     // Write a standalone shell script that reverts every tweak — a safety net if
@@ -397,7 +436,18 @@ final class TweakEngine: ObservableObject {
         let cmd = action.command
         let result = await Task.detached { runner(cmd) }.value
         Log.info("action result: \(action.key) exit=\(result.exitCode)")
-        if result.userCancelled { lastMessage = "Cancelled."; return }
+        let fields = ["key": action.key,
+                      "privilege": action.privilege == .admin ? "admin" : "user",
+                      "destructive": action.destructive ? "yes" : "no"]
+        if result.userCancelled {
+            lastMessage = "Cancelled."
+            Log.audit("action.run", fields, result: .cancelled)
+            return
+        }
         lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
+        var audited = fields
+        audited["exit"] = "\(result.exitCode)"
+        if !result.ok { audited["error"] = result.error }
+        Log.audit("action.run", audited, result: result.ok ? .ok : .failed)
     }
 }

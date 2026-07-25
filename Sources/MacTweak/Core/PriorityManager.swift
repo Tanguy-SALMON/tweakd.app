@@ -154,14 +154,22 @@ final class PriorityManager: ObservableObject {
         let result = await Task.detached {
             CommandRunner.admin("renice -n \(clamped) -p \(process.id)")
         }.value
-        if result.userCancelled { lastMessage = "Cancelled."; return }
+        if result.userCancelled {
+            lastMessage = "Cancelled."
+            Log.audit("priority.setNice", ["pid": "\(process.id)", "nice": "\(clamped)"], result: .cancelled)
+            return
+        }
 
         await refresh()
+        let fields = ["pid": "\(process.id)", "process": process.name,
+                      "from": "\(process.nice)", "to": "\(clamped)"]
         if let updated = processes.first(where: { $0.id == process.id }), updated.nice == clamped {
             lastMessage = "\(process.name) priority set to \(clamped)."
+            Log.audit("priority.setNice", fields, result: .ok)
         } else {
             let detail = result.error.isEmpty ? result.output : result.error
             lastMessage = "Couldn't change priority for \(process.name). \(detail.isEmpty ? "" : detail)"
+            Log.audit("priority.setNice", fields.merging(["error": detail]) { a, _ in a }, result: .failed)
         }
     }
 
@@ -182,12 +190,20 @@ final class PriorityManager: ObservableObject {
         let result = await Task.detached {
             CommandRunner.admin("renice -n \(nice) -p \(pidArgs)")
         }.value
-        if result.userCancelled { lastMessage = "Cancelled."; return }
+        if result.userCancelled {
+            lastMessage = "Cancelled."
+            Log.audit("priority.applyTarget", ["target": target.id, "nice": "\(nice)"], result: .cancelled)
+            return
+        }
 
         await refresh()
         lastMessage = result.ok
             ? "\(target.label): \(pids.count) process\(pids.count == 1 ? "" : "es") set to nice \(nice)."
             : "Couldn't change priority for \(target.label). \(result.error.isEmpty ? result.output : result.error)"
+        Log.audit("priority.applyTarget",
+                  ["target": target.id, "nice": "\(nice)", "pids": "\(pids.count)",
+                   "exit": "\(result.exitCode)"],
+                  result: result.ok ? .ok : .failed)
     }
 
     /// Reset every managed/known process back to nice 0 and remove all
@@ -205,6 +221,8 @@ final class PriorityManager: ObservableObject {
         recountManaged()
         await refresh()
         lastMessage = result.userCancelled ? "Cancelled." : "All process priorities reset to default."
+        Log.audit("priority.resetAll", ["agentsRemaining": "\(managedCount)"],
+                  result: result.userCancelled ? .cancelled : .ok)
     }
 
     /// Off-main: renice every live pid across every target to 0, then remove
@@ -264,6 +282,10 @@ final class PriorityManager: ObservableObject {
         lastMessage = ok
             ? "\(target.label): apply at login \(enabled ? "enabled" : "disabled")."
             : "Couldn't \(enabled ? "enable" : "disable") apply-at-login for \(target.label)."
+        // Persistence change: installs/removes a LaunchAgent that survives reboot.
+        Log.audit("priority.applyAtLogin",
+                  ["target": target.id, "enabled": enabled ? "yes" : "no", "nice": "\(nice)"],
+                  result: ok ? .ok : .failed)
     }
 
     /// Off-main: write the LaunchAgent plist and (re)load it.

@@ -4,6 +4,20 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Audit trail
+- **Every system change is logged** to macOS's unified log under a dedicated
+  `audit` category (`subsystem == "com.tanguy.MacTweak"`), readable with
+  `log show`/`log stream` or in Console.app, and mirrored to
+  `~/Library/Logs/MacTweak/MacTweak.log` as `[CHANGE]` lines.
+- Covers tweak apply/revert (with before → intended → *actual* state, so
+  `result=ok` means **verified**, not just "exited 0"), presets and revert-all
+  batches, one-shot actions, `renice` changes, apply-at-login LaunchAgents,
+  disk-cleanup deletions, the ad-block weekly updater, and admin unlock/lock.
+- Entries are greppable `key=value` pairs and deliberately public — only
+  non-sensitive identifiers (keys, states, exit codes, pids), never raw commands.
+- Irreversible deletions log each path **before** acting, so the record survives
+  a pass that dies partway through.
+
 ### Added — Security & Process Priority module (PRP_5)
 - **Security & Network** category with seven new tweaks: Enable Application
   Firewall, Enable Stealth Mode, Block Auto-Allow Signed Apps, Use Privacy DNS

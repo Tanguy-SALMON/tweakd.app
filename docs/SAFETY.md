@@ -145,6 +145,48 @@ launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 This is exactly what MacTweak does after every change — which is why it only marks a
 tweak *Applied* when the system truly reports the new state.
 
+## Audit trail — every change is logged
+
+MacTweak records each system change you make to macOS's **unified log** (the same
+journal `Console.app` reads) under a dedicated `audit` category, so you can always
+answer *"what did this app actually change, and did it work?"* — even weeks later,
+and even for changes made by its background agents.
+
+Read the trail:
+```bash
+# everything MacTweak changed in the last hour
+log show --last 1h --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --style compact
+
+# watch changes live as you toggle things
+log stream --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"'
+```
+
+Entries are `key=value` pairs, so they're greppable:
+```
+CHANGE event=tweak.set key=disable-siri-daemon from=notApplied to=applied privilege=admin exit=0 result=ok
+CHANGE event=admin.unlock sudoers=/etc/sudoers.d/mactweak exit=0 result=ok
+CHANGE event=cleanup.clean item=xcode-derived sizeBefore=564M sizeAfter=0B exit=0 result=ok
+CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=ok
+```
+
+- **`result=`** is `ok` (the probe confirmed the new state), `failed` (ran, but the
+  system didn't end up where it was asked — the `error=` field says why),
+  `cancelled` (you dismissed the auth prompt), or `skipped` (nothing to do).
+- `result=ok` means **verified**, not merely "the command exited 0" — MacTweak
+  re-probes the real state and logs `actual=` alongside the intent.
+- **Destructive actions log before they act.** Orphaned-leftover deletions write one
+  `cleanup.orphaned.delete path=…` line per path *before* the delete runs, so the
+  record survives even if the pass dies partway through.
+- Only non-sensitive identifiers are logged — tweak keys, states, exit codes, pids.
+  Never raw command strings or file contents. Entries are deliberately **public**
+  (not `<private>`), because a trail redacted to `<private>` is useless.
+
+The same lines are mirrored to a plain-text file at
+`~/Library/Logs/MacTweak/MacTweak.log`, tagged `[CHANGE]`:
+```bash
+grep CHANGE ~/Library/Logs/MacTweak/MacTweak.log
+```
+
 ## Passwordless admin — the trade-off
 
 **Unlock** on the Dashboard's *Admin Access* card authenticates **once** and installs

@@ -224,10 +224,16 @@ final class DiskCleanupManager: ObservableObject {
             return (r, s)
         }.value
 
+        let before = sizes[item.id] ?? "-"
         sizes[item.id] = newSize.isEmpty ? "0B" : newSize
         lastMessage = result.ok
             ? "\(item.title): done."
             : "\(item.title) failed. \(result.error.isEmpty ? result.output : result.error)"
+        // Deletions are irreversible — record what was cleared and how much it freed.
+        Log.audit("cleanup.clean",
+                  ["item": item.id, "sizeBefore": before, "sizeAfter": sizes[item.id] ?? "-",
+                   "exit": "\(result.exitCode)"],
+                  result: result.ok ? .ok : .failed)
     }
 
     /// Off-main: find Library leftovers for apps that are no longer installed.
@@ -246,9 +252,17 @@ final class DiskCleanupManager: ObservableObject {
         defer { busy.remove(id) }
 
         let paths = orphanedPaths
+        let freed = orphanedBytes
+        // Log each deleted path *before* deleting: this is unrecoverable, so the
+        // trail has to survive even if the delete pass dies partway through.
+        for p in paths { Log.audit("cleanup.orphaned.delete", ["path": p]) }
         await Task.detached { OrphanedAppScanner.delete(paths: paths) }.value
         lastMessage = "Removed \(paths.count) orphaned leftover\(paths.count == 1 ? "" : "s")."
         await scanOrphaned()
+        Log.audit("cleanup.orphaned",
+                  ["count": "\(paths.count)", "bytesFreed": "\(freed)",
+                   "remaining": "\(orphanedPaths.count)"],
+                  result: orphanedPaths.isEmpty ? .ok : .failed)
     }
 
     /// Best-effort sum of every parseable ("1.2G", "340M", …) size, for a

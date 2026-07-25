@@ -36,6 +36,17 @@ enum TweakState: Equatable, Sendable {
     case notApplied     // stock behavior
     case unknown        // couldn't determine
     case unavailable    // can't be applied here (e.g. SIP on, or feature absent)
+
+    /// Stable token for the audit log — spelled out rather than derived from the
+    /// case name so renaming a case can't silently change the log format.
+    var auditName: String {
+        switch self {
+        case .applied:     return "applied"
+        case .notApplied:  return "notApplied"
+        case .unknown:     return "unknown"
+        case .unavailable: return "unavailable"
+        }
+    }
 }
 
 /// Tags drive the onboarding wizard's recommendations.

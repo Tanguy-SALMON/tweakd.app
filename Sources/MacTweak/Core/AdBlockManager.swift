@@ -50,8 +50,13 @@ final class AdBlockManager: ObservableObject {
     /// run time.
     func reconcile(adBlockApplied: Bool) {
         let exists = FileManager.default.fileExists(atPath: plistPath)
-        if adBlockApplied, !exists { install() }
-        else if !adBlockApplied, exists { remove() }
+        if adBlockApplied, !exists {
+            install()
+            Log.audit("adblock.autoUpdate", ["enabled": "yes", "schedule": "weekly-mon-03:00"], result: .ok)
+        } else if !adBlockApplied, exists {
+            remove()
+            Log.audit("adblock.autoUpdate", ["enabled": "no"], result: .ok)
+        }
     }
 
     private func install() {
