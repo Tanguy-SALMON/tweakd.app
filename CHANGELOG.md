@@ -4,6 +4,24 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Cooling-aware tuning guidance (fanless vs. actively cooled)
+- **docs/TWEAKS.md** gains a section explaining that a fan changes *what the
+  bottleneck is*, with a per-tweak table for fanless (Air) vs. actively cooled
+  (Pro / desktop). Four tweaks flip: **Unthrottle Background I/O** (skip on an
+  Air), **Server Performance Mode** (cooled desktops only — never an Air), the
+  **background-daemon disables** (bigger real payoff on an Air, because
+  background heat derates the foreground too), and **Keep Low Power Mode Off**
+  (nuanced for long sustained work on a fanless machine). Process Priority also
+  differs: `renice` can't raise a *thermal* ceiling, so **Yield** beats **Boost**
+  on an Air.
+- **docs/FAQ.md** gains "Should I tune a MacBook Air differently from a Pro?" and
+  "How do I tell whether my CPU is actually being throttled?".
+- **Fixed an inconsistency this exposed:** the wizard auto-recommended
+  *Unthrottle Background I/O* to anyone choosing **Performance**, including on
+  fanless Macs where the docs now (correctly) say to skip it. Added a
+  `needsActiveCooling` tag, applied to that tweak and Server Performance Mode,
+  which the wizard skips on a passively-cooled machine.
+
 ### Added — Thermal & CPU speed check
 - **Thermal card** on the Dashboard answers "am I getting full performance, or am
   I being throttled?" — reading macOS's own thermal-pressure level

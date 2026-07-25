@@ -47,6 +47,34 @@ surfaces that note. It's cosmetic. Revert removes the policy and the banner.
 
 ## Performance & CPU
 
+### Should I tune a MacBook Air differently from a Pro?
+**Yes — four tweaks flip.** A fanless Mac sheds heat by *slowing down*, so its real
+ceiling is thermal budget, and that budget is zero-sum with every background task.
+In short: on an Air **subtract work** (disable background daemons, *Yield* the CPU
+hogs, and leave the kernel's background-I/O brake on); on an actively-cooled Mac
+you can afford to **add** (Unthrottle Background I/O and *Boost* have cooling
+headroom behind them). **Server Performance Mode** belongs on a cooled desktop and
+never on an Air — it costs SIP and a reboot for throughput you can't sustain.
+Full reasoning and the per-tweak table: [TWEAKS.md](TWEAKS.md#fanless-vs-actively-cooled--yes-this-changes-what-you-should-apply).
+
+### How do I tell whether my CPU is actually being throttled?
+The Dashboard's **thermal card**. It reads macOS's own thermal-pressure level
+(`Nominal` → the full clock range is available; `Fair`/`Serious`/`Critical` → macOS
+is derating for heat), and **Check speed** samples real per-cluster frequencies
+against the hardware maximum.
+
+The trap to avoid: **cores sitting well below maximum is normal, not throttling** —
+they clock down whenever nothing is asking for work. Only the pressure level tells
+you the ceiling itself was lowered. From the terminal:
+```bash
+pmset -g therm                                    # Intel-era; says little on Apple Silicon
+sudo powermetrics --samplers thermal -n 1         # "Current pressure level: Nominal"
+sudo powermetrics --samplers cpu_power -n 1 -i 300 | grep "HW active frequency"
+```
+Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which is
+why frequency needs `powermetrics` and root. MacTweak derives each cluster's
+maximum from the frequency-residency histogram in that output.
+
 ### The app itself used a lot of CPU when idle. Is that fixed?
 Yes. The cause was two things: per-second SwiftUI implicit animations on the
 chart/rings (continuous recompositing, ~32% idle) and always-on metric sampling.

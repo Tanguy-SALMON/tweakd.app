@@ -410,7 +410,7 @@ enum TweakCatalog {
             revertCommand: "sysctl -w debug.lowpri_throttle_enabled=1",
             statusCommand: "sysctl -n debug.lowpri_throttle_enabled",
             appliedWhenOutputContains: "0",
-            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload, .needsActiveCooling], recommended: false
         ),
         Tweak(
             key: "serverperfmode",
@@ -422,7 +422,7 @@ enum TweakCatalog {
             revertCommand: "nvram -d boot-args",
             statusCommand: "nvram boot-args 2>/dev/null | grep -q serverperfmode && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
-            tags: [.prioritizePerformance, .serverWorkload], recommended: false
+            tags: [.prioritizePerformance, .serverWorkload, .needsActiveCooling], recommended: false
         ),
 
         // MARK: Responsiveness — WindowServer / Finder / Dock (all safe, reversible)

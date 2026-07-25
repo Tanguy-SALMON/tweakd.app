@@ -62,6 +62,11 @@ enum TweakTag: String, CaseIterable, Sendable {
     case serverWorkload    // throughput/latency tuning for local servers & dev tooling
     case security          // firewall / stealth / network hardening
     case lowLatency        // network-latency tuning (buffers, backlog, priorities)
+    /// Only pays off with a fan behind it. On a passively-cooled Mac the ceiling
+    /// is thermal budget, not scheduling or I/O brakes — letting *more* work run
+    /// concurrently just spends heat the foreground app needed, so the wizard
+    /// won't auto-recommend these on a fanless machine. See docs/TWEAKS.md.
+    case needsActiveCooling
 }
 
 /// The benefit a tweak delivers — shown as a small chip in the UI (and mirrored

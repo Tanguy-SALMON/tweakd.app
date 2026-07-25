@@ -22,6 +22,101 @@ Legend: 🔓 no sudo · 🔐 sudo · 🧱 SIP off required · ⚠️ advanced ·
 
 ---
 
+## Fanless vs. actively cooled — yes, this changes what you should apply
+
+A fan is not a detail. It changes *what the bottleneck is*, and four tweaks below
+should be applied differently because of it.
+
+**Which machine do you have?**
+
+| | Fanless (passively cooled) | Actively cooled (has fans) |
+|---|---|---|
+| Models | MacBook Air (all Apple Silicon), 12″ MacBook | MacBook Pro, Mac mini, Mac Studio, Mac Pro, iMac |
+| Sheds heat by | **slowing the chip down** | spinning fans up |
+| Sustained heavy load | throttles after a few minutes | holds high clocks far longer |
+
+```bash
+sysctl -n hw.model            # e.g. Mac14,2 = MacBook Air (M2, fanless)
+system_profiler SPHardwareDataType | grep "Model Name"   # the plain-English name
+```
+MacTweak detects this for you — the Dashboard's thermal card says *"This Mac is
+fanless"* and reports live thermal pressure, so you can see whether you're
+actually being throttled rather than guessing.
+
+### The mechanism, in one paragraph
+
+On a machine with fans, spare **cooling** is available on demand, so extra work
+mostly costs you watts. On a fanless Mac, the ceiling is **thermal budget**, and
+it is zero-sum: every joule a background daemon burns is a joule unavailable to
+your foreground app, and heat it generates pushes the whole SoC closer to the
+point where macOS lowers the clock ceiling for *everything*. So on an Air the
+winning strategy is **removing competing work**, not unleashing more of it.
+
+### What to change
+
+| Tweak | Fanless (Air) | Actively cooled (Pro / desktop) |
+|---|---|---|
+| **Unthrottle Background I/O** | **Skip it.** | Reasonable. |
+| **Server Performance Mode** | **Never.** | Only on a *desktop* doing real sustained server work. |
+| **Disable Media Analysis / Photo Analysis / Spotlight indexing** | **High value.** | Nice-to-have. |
+| **Keep Low Power Mode Off** | Depends on your workload — see below. | Yes, keep it off. |
+| **Process Priority** | Prefer **Yield** on background hogs. | **Boost** actually helps. |
+
+**Unthrottle Background I/O** (`debug.lowpri_throttle_enabled=0`) removes the
+kernel's brake on low-priority disk work. That brake exists to keep background
+jobs — Spotlight, Time Machine, sync clients — out of your way. On a fanned
+machine, letting them run flat out is mostly free. On an Air you're handing
+background work the same I/O bandwidth *and* thermal budget your foreground app
+needs, which can make the thing you're actually waiting on slower. It's tagged
+"performance", but on a fanless machine it often trades foreground
+responsiveness for background completion time. Decide which you want.
+
+**Server Performance Mode** biases the scheduler and memory for sustained
+throughput, and it costs a reboot **and disabling SIP**. An Air can't sustain the
+throughput it tunes for — you'll hit the thermal ceiling long before the
+scheduler bias matters — so you'd be paying a real security price for a benefit
+you can't collect. This one belongs on a Mac mini / Studio / Pro, not a laptop,
+and least of all a fanless one.
+
+**Background daemon disables** are the tweaks that gain the *most* from being on
+an Air, for a reason that isn't obvious: it isn't only CPU contention. A photo-
+analysis or re-index pass on a fanless machine raises thermal pressure, and once
+pressure rises macOS derates the clock ceiling for your foreground work too. On a
+fanned Pro the fan absorbs that pass and you may never notice it. Same tweak,
+noticeably bigger real-world payoff on the Air.
+
+**Keep Low Power Mode Off** is the one piece of common advice that deserves a
+caveat on a fanless Mac. For bursty, interactive use — editors, browsers, short
+builds — keep it off; you want the full clock range available. But if you're
+doing *long* sustained work on an Air and the thermal card shows pressure
+climbing, Low Power Mode is a legitimate tool rather than a compromise: capping
+peak clocks means less heat, fewer throttle-and-recover swings, **more
+predictable** performance, and a cooler chassis. Peak numbers drop; whether total
+wall-clock time improves depends on the workload, so measure with
+[Benchmark](../README.md) rather than assuming either way.
+
+**Process Priority** cuts differently too. `renice` moves work around the
+*scheduler*; it cannot raise a *thermal* ceiling. So on an Air, **Boost** (negative
+nice) on a foreground app buys much less than you'd hope — the limit isn't
+scheduling — while **Yield** (positive nice) on a background hog genuinely helps,
+because it frees budget that is zero-sum. On a Pro with cooling headroom, Boost
+has real headroom to exploit.
+
+### Rule of thumb
+
+> **Fanless:** subtract work. Disable background daemons, yield the hogs, leave
+> the kernel's background brakes on.
+> **Actively cooled:** you can afford to add. Unthrottling and boosting have
+> headroom behind them.
+
+Either way, verify rather than trust: the Dashboard thermal card shows whether
+pressure is `Nominal` (full speed available) or elevated, and **Check speed**
+samples real per-cluster MHz against the hardware maximum. Remember that cores
+idling below maximum is normal — only the pressure level tells you the ceiling
+actually moved.
+
+---
+
 ## Summary
 
 | Tweak | Category | Privilege | Notes |

@@ -237,6 +237,10 @@ struct WizardAnswers {
             // Never auto-pick advanced or SIP-blocked tweaks.
             if t.risk == .advanced { continue }
             if t.sipRequired && SystemInfo.sipEnabled { continue }
+            // On a fanless Mac, tweaks that let *more* work run concurrently
+            // spend thermal budget the foreground app needs — the ceiling there
+            // is heat, not scheduling. Documented in docs/TWEAKS.md.
+            if t.tags.contains(.needsActiveCooling) && SystemInfo.isFanless { continue }
 
             // Respect features the user wants to keep.
             if t.tags.contains(.usesAI) && usesAI { continue }
