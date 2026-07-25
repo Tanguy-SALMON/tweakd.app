@@ -4,6 +4,25 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Fixed — Core Audio Watchdog restart loop
+- **The watchdog flapped.** Confirmed from its own log: 8 restarts in ~7 minutes at
+  a dead-regular 45 s cadence (exactly its minimum re-trip period). `killall
+  coreaudiod` makes launchd relaunch it immediately, the stuck HAL plugin loads
+  back into the fresh process, and it pegs again — so the watchdog re-tripped
+  forever, blipping audio each time and never touching the cause.
+- Added a **5-minute cooldown** between restarts and a **3-attempt cap**. After
+  three failures it gives up, keeps watching, and names the actual fix (quit the
+  app that installed the plugin in `/Library/Audio/Plug-Ins/HAL/`, usually Teams).
+  A sustained calm stretch (~2 min) clears the streak so a later wedge still acts.
+- **Threshold raised 8% → 70%.** 8% was below what `coreaudiod` legitimately uses
+  during a call with echo cancellation or spatial audio, so the watchdog could kill
+  audio mid-call; a genuinely wedged stream spins a whole core or more (156%
+  observed).
+- **Fixed a dead baseline reset:** `trip()` cleared the previous sample, but
+  `tick()`'s `defer` immediately wrote it back, so a pid change burned a tick
+  instead of rebaselining — the reason the loop period was 45 s rather than 30 s.
+- Watchdog restarts, give-ups and recoveries now appear in the audit log.
+
 ### Added — Cooling-aware tuning guidance (fanless vs. actively cooled)
 - **docs/TWEAKS.md** gains a section explaining that a fan changes *what the
   bottleneck is*, with a per-tweak table for fanless (Air) vs. actively cooled

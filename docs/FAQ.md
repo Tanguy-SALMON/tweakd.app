@@ -92,6 +92,17 @@ It relaunches automatically (audio blips for a second). MacTweak's **Core Audio
 Watchdog** can do this for you when `coreaudiod` stays hot for ~30 s — enable it on the
 Dashboard (auto-restart is silent only if passwordless admin is unlocked).
 
+**A restart is a symptom fix, not a cure.** launchd relaunches `coreaudiod`
+immediately and the stuck plugin loads right back into it, so the same wedge often
+returns within a minute. That's why the watchdog waits 5 minutes between restarts and
+**gives up after three** — if it's still pegged, the plugin is the problem:
+```bash
+ls -la /Library/Audio/Plug-Ins/HAL/          # see what's installed
+```
+Quit the app that owns it (Teams is the usual culprit), or move the `.driver` bundle
+out of that folder and restart `coreaudiod` once more. The watchdog keeps reporting
+CPU after giving up; re-toggle it to try restarting again.
+
 ### What is `PerfPowerServices`? Is there a tweak for it?
 It's Apple's **performance/power telemetry** helper — it periodically samples thermal
 and power state to inform the scheduler and battery health. It's low-impact, bursty,

@@ -8,6 +8,13 @@
 //  when the load is sustained, and only restarts silently if passwordless admin
 //  is unlocked so it never throws a password prompt on its own.
 //
+//  A restart is *not* assumed to work. launchd immediately relaunches coreaudiod
+//  and the offending HAL plugin loads straight back into the fresh process, so a
+//  naive watchdog re-trips every ~45s forever — audio blipping each time, root
+//  cause untouched (observed live: 8 restarts in 7 minutes). Hence the cooldown
+//  and the attempt cap below: after `maxAttempts` failures it gives up, stays
+//  watching, and says which plugin to remove instead of flapping.
+//
 
 import Foundation
 import Combine
@@ -28,10 +35,21 @@ final class CoreAudioWatchdog: ObservableObject {
     /// Human-readable note about the last thing the watchdog did.
     @Published private(set) var lastAction: String?
 
-    /// Trip threshold and how long it must hold before we act.
-    let thresholdPercent: Double = 8
+    /// Trip threshold, as % of one core. Deliberately high: a wedged stream spins
+    /// a whole core or more (156% observed in the wild), whereas coreaudiod doing
+    /// *legitimate* work — a call with echo cancellation, spatial audio — can
+    /// comfortably sustain 10–30%. A low bar here means killing audio mid-call,
+    /// which is far worse than leaving a busy-but-healthy daemon alone.
+    let thresholdPercent: Double = 70
     private let interval: TimeInterval = 15
     private let sustainedTicksToTrip = 2          // ~30s above threshold
+    /// Minimum spacing between restarts, so a plugin that re-wedges instantly
+    /// can't turn this into an audio-blipping loop.
+    private let cooldown: TimeInterval = 300
+    /// Consecutive failed restarts before giving up and telling the user instead.
+    private let maxAttempts = 3
+    /// Calm ticks that clear the failure streak (~2 min genuinely healthy).
+    private let calmTicksToForgive = 8
 
     private static let key = "watchdog.coreaudio"
     private weak var engine: TweakEngine?
@@ -39,6 +57,11 @@ final class CoreAudioWatchdog: ObservableObject {
     private var prevCPUSeconds: Double?
     private var prevStamp: Date?
     private var hotTicks = 0
+    private var calmTicks = 0
+    private var attempts = 0
+    private var lastRestart: Date?
+    /// Set once restarting has demonstrably failed; keeps watching, stops acting.
+    private var gaveUp = false
 
     init() {
         enabled = UserDefaults.standard.bool(forKey: Self.key)
@@ -53,7 +76,9 @@ final class CoreAudioWatchdog: ObservableObject {
 
     private func start() {
         guard timer == nil else { return }
-        prevCPUSeconds = nil; prevStamp = nil; hotTicks = 0
+        rebaseline()
+        // An explicit re-enable is the user saying "try again" — clear the streak.
+        attempts = 0; lastRestart = nil; gaveUp = false; lastAction = nil
         let t = Timer(timeInterval: interval, repeats: true) { [weak self] _ in
             Task { @MainActor in await self?.tick() }
         }
@@ -69,19 +94,43 @@ final class CoreAudioWatchdog: ObservableObject {
 
     // MARK: - Sampling
 
-    private func tick() async {
-        let sample = await Task.detached { Self.readCoreAudioCPUSeconds() }.value
-        let now = Date()
-        defer { prevCPUSeconds = sample; prevStamp = now }
+    /// Forget the previous sample, so the next tick only establishes a baseline
+    /// rather than deriving a bogus delta across a pid change or a gap.
+    private func rebaseline() {
+        prevCPUSeconds = nil; prevStamp = nil; hotTicks = 0
+    }
 
-        guard let secs = sample, let prev = prevCPUSeconds, let stamp = prevStamp else { return }
+    private func tick() async {
+        let now = Date()
+        guard let secs = await Task.detached { Self.readCoreAudioCPUSeconds() }.value else {
+            rebaseline(); return               // coreaudiod not running (mid-restart)
+        }
+        guard let prev = prevCPUSeconds, let stamp = prevStamp else {
+            prevCPUSeconds = secs; prevStamp = now; return
+        }
         let elapsed = now.timeIntervalSince(stamp)
-        // pid changed (a restart) → accumulated time drops; skip this delta.
-        guard elapsed > 0, secs >= prev else { hotTicks = 0; return }
+        // Accumulated CPU time going *backwards* means a new pid — the delta is
+        // meaningless, so adopt this sample as the baseline instead of dropping it.
+        guard elapsed > 0, secs >= prev else {
+            prevCPUSeconds = secs; prevStamp = now; hotTicks = 0; return
+        }
+        prevCPUSeconds = secs; prevStamp = now
 
         let pct = (secs - prev) / elapsed * 100
         lastCPU = pct
-        hotTicks = pct >= thresholdPercent ? hotTicks + 1 : 0
+
+        if pct >= thresholdPercent {
+            hotTicks += 1; calmTicks = 0
+        } else {
+            hotTicks = 0; calmTicks += 1
+            // A sustained healthy stretch means whatever we did (or the user did)
+            // worked — forgive the streak so a future wedge is acted on again.
+            if calmTicks >= calmTicksToForgive, attempts > 0 || gaveUp {
+                attempts = 0; gaveUp = false; lastRestart = nil
+                lastAction = nil
+                Log.audit("watchdog.recovered", ["daemon": "coreaudiod"], result: .ok)
+            }
+        }
 
         if hotTicks >= sustainedTicksToTrip {
             hotTicks = 0
@@ -91,14 +140,40 @@ final class CoreAudioWatchdog: ObservableObject {
 
     private func trip(observed pct: Double) async {
         guard let engine else { return }
+        let observed = Int(pct)
+
+        // Restarting has already failed repeatedly — the plugin reloads into the
+        // fresh process, so trying again just blips audio. Say what to fix.
+        if gaveUp {
+            lastAction = "Core Audio still pegged at \(observed)% after \(maxAttempts) restarts — a virtual-audio plugin in /Library/Audio/Plug-Ins/HAL/ is stuck. Quit the app that installed it (often Teams), or remove the plugin."
+            return
+        }
         guard engine.adminUnlocked else {
-            lastAction = "Core Audio pegged at \(Int(pct))% — unlock admin to auto-restart."
+            lastAction = "Core Audio pegged at \(observed)% — unlock admin to auto-restart."
+            return
+        }
+        if let last = lastRestart, Date().timeIntervalSince(last) < cooldown {
+            let wait = Int((cooldown - Date().timeIntervalSince(last)) / 60) + 1
+            lastAction = "Core Audio hot again (\(observed)%) — waiting ~\(wait) min before restarting again."
             return
         }
         guard let action = engine.actions.first(where: { $0.key == "restart-coreaudio" }) else { return }
+
+        attempts += 1
+        lastRestart = Date()
+        Log.audit("watchdog.restart", ["daemon": "coreaudiod", "cpu": "\(observed)",
+                                       "attempt": "\(attempts)/\(maxAttempts)"])
         await engine.run(action)
-        lastAction = "Restarted Core Audio (was \(Int(pct))%)."
-        prevCPUSeconds = nil; prevStamp = nil   // fresh baseline after restart
+        rebaseline()   // the new pid's counter starts from zero
+
+        if attempts >= maxAttempts {
+            gaveUp = true
+            lastAction = "Restarted Core Audio \(attempts)× and it keeps pegging — something in /Library/Audio/Plug-Ins/HAL/ is stuck. Quit the app that installed it (often Teams), or remove the plugin. Re-toggle this to try again."
+            Log.audit("watchdog.gaveUp", ["daemon": "coreaudiod", "attempts": "\(attempts)"],
+                      result: .failed)
+        } else {
+            lastAction = "Restarted Core Audio (was \(observed)%, attempt \(attempts) of \(maxAttempts))."
+        }
     }
 
     // MARK: - Reading another process's CPU (no root needed)
