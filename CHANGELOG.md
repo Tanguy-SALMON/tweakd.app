@@ -4,6 +4,29 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Diagnosis knowledge captured in the docs
+- **docs/FAQ.md** — "I cleaned my Mac and now it's hot. Did a tweak do that?": cleaning
+  **defers** work rather than removing it, so the heat is the rebuild bill (Spotlight
+  re-crawl, cache regeneration, a full Xcode build). Includes the audit-log query that
+  rules out a tweak, and the measured episode (load average **23.75 on 8 cores**,
+  self-resolving to **3.03**).
+- **docs/FAQ.md** — "How do I tell which process is *really* using the CPU?": a single
+  `top` frame overstates spikes (`duetexpertd` read 49.1% then accumulated **zero** CPU
+  over 10 s), so measure `ps -o cputime=` deltas; `%CPU` is per-core not per-machine;
+  compare load average to `hw.ncpu`.
+- **docs/FAQ.md** — `coreaudiod` **busy vs. wedged** table (5–30% is normal DSP work,
+  >100% is a spin), which is why the watchdog trips at 70%. Plus the app's own measured
+  cost: ~7.5% of one core with the Dashboard open, ~0.1% with the window closed.
+- **docs/SAFETY.md** — new "Cleanup & one-shot actions — reversible, but not free":
+  these leave nothing switched on, so there's nothing to revert, but they bill the
+  machine afterwards in CPU/heat/battery. Per-action delayed-cost table and the advice
+  not to chase the resulting heat by changing settings.
+- **docs/TWEAKS.md** — the cooling section now notes that "subtract work" applies to
+  *when* you run maintenance, not just which tweaks you apply.
+- Verified all cross-document anchors resolve against GitHub's real slug rules
+  (which keep the leading hyphen from a stripped emoji, `## 🌐 Network` → `#-network`,
+  and emit a double hyphen for ` — `).
+
 ### Fixed — Docker row reported a size that could never drop
 - **`Docker.raw` was measured with `ls -lh`, which reads the sparse file's *logical*
   ceiling** — a number that by design never shrinks. It showed **60G** on a machine

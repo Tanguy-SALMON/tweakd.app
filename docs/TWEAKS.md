@@ -109,6 +109,11 @@ has real headroom to exploit.
 > **Actively cooled:** you can afford to add. Unthrottling and boosting have
 > headroom behind them.
 
+The same "subtract work" logic applies to **when** you run maintenance, not just which
+tweaks you apply. Reindexing Spotlight or wiping caches schedules a large rebuild, and
+on a fanless Mac that rebuild competes for the same thermal budget as your foreground
+app — see [FAQ: I cleaned my Mac and now it's hot](FAQ.md#i-cleaned-my-mac-and-now-its-hot-did-a-tweak-do-that).
+
 Either way, verify rather than trust: the Dashboard thermal card shows whether
 pressure is `Nominal` (full speed available) or elevated, and **Check speed**
 samples real per-cluster MHz against the hardware maximum. Remember that cores

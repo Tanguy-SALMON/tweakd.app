@@ -75,6 +75,58 @@ Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which
 why frequency needs `powermetrics` and root. MacTweak derives each cluster's
 maximum from the frequency-residency histogram in that output.
 
+### I cleaned my Mac and now it's hot. Did a tweak do that?
+Almost certainly not — **check the audit trail before suspecting a setting**:
+```bash
+log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 2h
+```
+If every line is `event=action.run` or `event=cleanup.clean` and there's no tweak
+apply, then no persistent setting was changed and there is nothing to revert.
+
+What's really happening is that **cleaning defers work, it doesn't remove it.** The
+heat is the bill arriving:
+
+| What you cleaned | The rebuild it triggers |
+|---|---|
+| **Reindex Spotlight** | A **full-disk re-crawl**. Spawns a dozen-plus `mdworker_shared`; the heaviest thing on this list |
+| `~/Library/Caches` | Every app you open regenerates its cache |
+| Xcode DerivedData | The next build is a **full** build (`swift-frontend` pinning cores) |
+| Purge memory | The file cache was dropped, so reads hit the SSD again for a while |
+
+Observed live: those, landing together with a browser and an editor, took load average
+to **23.75 on 8 cores** — 3× oversubscribed. It settled to **3.03** on its own once
+indexing finished. **This is one-time and self-limiting**; wait it out rather than
+changing settings to chase it.
+
+It's felt hardest on a **fanless** Mac, which can only shed a 3× overload by slowing
+down — see [TWEAKS.md](TWEAKS.md#fanless-vs-actively-cooled--yes-this-changes-what-you-should-apply).
+The practical lesson: **don't reindex Spotlight and wipe caches right before you need
+the machine to be fast or quiet.**
+
+### How do I tell which process is *really* using the CPU?
+Don't trust a single `top` frame. Its percentages are a short-window sample and on
+Apple Silicon they routinely overstate brief spikes. Measured in this project:
+`duetexpertd` showed **49.1%** in one frame and then accumulated **zero** CPU time over
+the next 10 seconds; a Python process showed 79.9% and had already exited.
+
+Measure the **accumulated CPU-time delta** instead — that can't lie:
+```bash
+P=$(pgrep -x WindowServer)
+A=$(ps -o cputime= -p $P); sleep 12; B=$(ps -o cputime= -p $P)
+echo "$A -> $B"        # difference / 12 * 100 = % of one core, sustained
+```
+Two things to keep straight:
+- **`%CPU` is per-core, not per-machine.** 100% is one core saturated. On an 8-core Mac
+  the ceiling is 800%, so `coreaudiod` at 156% means "1.5 cores", not "the machine".
+- **Compare load average to core count.** `uptime` against `sysctl -n hw.ncpu`: at or
+  below core count is healthy; several times it means processes are queueing for CPU,
+  which is what actually produces sustained heat.
+
+Averaging two `top` samples and reading the second is a decent middle ground:
+```bash
+top -l 2 -o cpu -n 12 -stats pid,cpu,command | tail -14
+```
+
 ### I pruned Docker and the size barely moved. Did it work?
 Almost certainly yes — the number you were looking at was the wrong one. `Docker.raw`
 is a **sparse** file: it has a large *logical* size (the ceiling it may grow into) and a
@@ -101,7 +153,22 @@ chart/rings (continuous recompositing, ~32% idle) and always-on metric sampling.
 Fixed by removing those animations and **ref-counting sampling** (it only runs while a
 gauge is on screen). Idle is now ~0% with no gauge visible.
 
+Measured on an M2 Air, so you know what to expect: **~7.5% of one core with the
+Dashboard open**, **~0.1% with the window closed**. That difference *is* the
+ref-counting working — live gauges genuinely cost something, so close the window (the
+app keeps running in the menu bar) when you're not watching them.
+
 ### `coreaudiod` is pegging my CPU. What do I do?
+First check it really is pegged. **Busy is not wedged**, and the gap is wide:
+
+| `coreaudiod` CPU | Meaning |
+|---|---|
+| **5–30%** of one core | Normal. Real DSP work — a call with echo cancellation, spatial audio |
+| **>100%** (156% observed) | Wedged. A spinning stream, not work |
+
+That's why the watchdog trips at **70%** and not lower: a bar in the normal range would
+restart `coreaudiod` mid-call and drop your audio, which is worse than the problem.
+
 A **third-party virtual-audio HAL driver** (commonly Microsoft Teams'
 `MSTeamsAudioDevice.driver` in `/Library/Audio/Plug-Ins/HAL/`) can wedge a stream.
 Those drivers run **inside** `coreaudiod`, so the cost bills there. Restart it:

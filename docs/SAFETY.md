@@ -56,6 +56,31 @@ should leave it on** and simply skip the two SIP-off tweaks.
   memory/firmware. They vanish on restart — reapply if you want them permanent, or
   see **Process priority** below for the login-persistence option.
 
+## Cleanup & one-shot actions — reversible, but not free
+
+Disk Cleanup rows and one-shot actions are a different risk shape from tweaks. Nothing
+is left switched on, so there is **nothing to revert** — but some of them hand the
+machine a bill it pays afterwards, in CPU, heat and battery:
+
+| Action | The delayed cost |
+|---|---|
+| **Reindex Spotlight** (destructive) | A **full-disk re-crawl** by a dozen-plus `mdworker_shared`. The heaviest item here — minutes to hours depending on disk size |
+| **App Caches** / DerivedData | Regenerated on demand; the next Xcode build becomes a **full** build |
+| **Purge memory** | Drops the file cache, so reads hit the SSD again until it re-warms |
+| **Docker prune** (destructive) | Irreversible: unused images re-pull from the network |
+
+Measured consequence: reindexing plus a cache wipe, alongside a browser and an editor,
+drove load average to **23.75 on 8 cores** and made a fanless MacBook Air hot. It
+resolved by itself once indexing finished. So:
+
+- **Don't run these right before you need the machine fast, quiet, or on battery.** A
+  laptop on 20% battery is the wrong moment to reindex Spotlight.
+- **Don't chase the resulting heat by changing settings** — check the audit trail first
+  (below). If it only shows `cleanup.clean` / `action.run`, no setting is responsible.
+- Anything irreversible is marked **destructive** in the app and asks for confirmation
+  first, and every deleted path is logged **before** the delete so the record survives
+  a pass that dies partway through.
+
 ## Firewall & Stealth Mode — safe, reversible
 
 **Enable Application Firewall** and **Enable Stealth Mode** only flip built-in
