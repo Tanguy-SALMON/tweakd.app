@@ -167,10 +167,19 @@ final class DiskCleanupManager: ObservableObject {
         CleanupItem(
             id: "docker-raw",
             title: "Docker Data (Docker.raw)",
-            blurb: "Every image, container, and volume lives in one disk image that never shrinks on its own. Requires Docker Desktop running — deletes all unused images, stopped containers, and anonymous volumes.",
+            blurb: "Every image, container, and volume lives in one sparse disk image. Shows the space it really occupies, not the much larger size it's allowed to grow to. Requires Docker Desktop running — deletes all unused images, stopped containers, and anonymous volumes.",
             icon: "shippingbox.fill", risk: .advanced,
-            sizeCommand: "ls -lh ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw 2>/dev/null | awk '{print $5}'",
-            clearCommand: "docker system prune -af --volumes 2>/dev/null; true",
+            // `du`, not `ls -lh`: Docker.raw is *sparse*, so `ls` reports the
+            // logical size it may grow into (60G on a machine using 1.5G) — a
+            // number that never shrinks no matter how much you prune, which made
+            // the row look broken and inflated the reclaimable headline by ~58G.
+            // `du` counts blocks actually allocated, so a prune visibly lands.
+            sizeCommand: "du -h ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw 2>/dev/null | awk '{print $1}'",
+            // Deliberately *not* masked with `2>/dev/null; true` like the `rm`-based
+            // rows: if Docker Desktop isn't running, prune fails, and masking it
+            // made the row report "done." while freeing nothing. Let the real exit
+            // code and daemon error through so the UI can say so.
+            clearCommand: "docker system prune -af --volumes 2>&1",
             actionLabel: "Prune", destructive: true,
             checkCommand: "test -f ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw"
         ),
@@ -227,7 +236,7 @@ final class DiskCleanupManager: ObservableObject {
         let before = sizes[item.id] ?? "-"
         sizes[item.id] = newSize.isEmpty ? "0B" : newSize
         lastMessage = result.ok
-            ? "\(item.title): done."
+            ? "\(item.title): \(Self.summarize(result.output) ?? "done.")"
             : "\(item.title) failed. \(result.error.isEmpty ? result.output : result.error)"
         // Deletions are irreversible — record what was cleared and how much it freed.
         Log.audit("cleanup.clean",
@@ -274,6 +283,27 @@ final class DiskCleanupManager: ObservableObject {
             return sum + (Self.parseSize(s) ?? 0)
         }
         return itemsTotal + Double(max(0, orphanedBytes))
+    }
+
+    /// Pull the useful one-liner out of a cleanup command's output, so the UI can
+    /// say *what happened* rather than a bare "done." The tools that know how much
+    /// they freed say so — `docker system prune` ends with "Total reclaimed space:
+    /// 1.2GB", `brew cleanup -s` with "==> This operation has freed…".
+    ///
+    /// Matched by keyword rather than by "take the last line", because plenty of
+    /// these commands end on something that isn't a summary at all: `npm cache
+    /// clean` prints a `--force` warning and a failing `brew` ends on a Ruby
+    /// backtrace frame. Returns nil (→ "done.") unless a line really reports space.
+    nonisolated static func summarize(_ output: String) -> String? {
+        let keywords = ["reclaimed", "freed", "deleted", "removed"]
+        for raw in output.split(separator: "\n").reversed() {
+            let text = raw.trimmingCharacters(in: .whitespaces)
+                .replacingOccurrences(of: "==> ", with: "")
+            guard !text.isEmpty, text.count <= 120 else { continue }
+            let lower = text.lowercased()
+            if keywords.contains(where: lower.contains) { return text }
+        }
+        return nil
     }
 
     nonisolated static func parseSize(_ s: String) -> Double? {

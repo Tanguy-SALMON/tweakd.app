@@ -4,6 +4,20 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Fixed — Docker row reported a size that could never drop
+- **`Docker.raw` was measured with `ls -lh`, which reads the sparse file's *logical*
+  ceiling** — a number that by design never shrinks. It showed **60G** on a machine
+  where only **1.5G** was actually allocated, so pruning appeared to do nothing and
+  the "reclaimable" headline was inflated by ~58 GB of space that was never occupied.
+  Now measured with `du` (blocks actually on disk), so a prune visibly lands.
+- **Prune no longer reports a false success.** `docker system prune … 2>/dev/null;
+  true` masked the exit code, so with Docker Desktop not running the row still said
+  "done." while freeing nothing. The real exit code and daemon error now surface.
+- **Cleanup rows now report what was freed** instead of a bare "done." — the tools
+  that know say so (`Total reclaimed space: 1.2GB`, `This operation has freed…`).
+  Matched by keyword, not "last line of output", since `npm cache clean` ends on a
+  `--force` warning and a failing `brew` ends on a Ruby backtrace frame.
+
 ### Fixed — Core Audio Watchdog restart loop
 - **The watchdog flapped.** Confirmed from its own log: 8 restarts in ~7 minutes at
   a dead-regular 45 s cadence (exactly its minimum re-trip period). `killall

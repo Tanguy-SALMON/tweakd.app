@@ -75,6 +75,26 @@ Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which
 why frequency needs `powermetrics` and root. MacTweak derives each cluster's
 maximum from the frequency-residency histogram in that output.
 
+### I pruned Docker and the size barely moved. Did it work?
+Almost certainly yes — the number you were looking at was the wrong one. `Docker.raw`
+is a **sparse** file: it has a large *logical* size (the ceiling it may grow into) and a
+much smaller *allocated* size (what it really occupies). `ls -lh` reports the ceiling,
+which never shrinks:
+```bash
+F=~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
+ls -lh "$F" | awk '{print $5}'   # 60G  <- logical ceiling, always looks huge
+du -h  "$F" | awk '{print $1}'   # 1.5G <- actually on disk
+```
+MacTweak reports the `du` figure. To see what a prune really freed, read its own last
+line — `Total reclaimed space: …` (the app now shows it):
+```bash
+docker system prune -af --volumes
+```
+And unlike a cache row, **Docker won't reach `0B`.** Prune removes only *unused*
+images, stopped containers, and anonymous volumes; whatever's left is live data plus
+the guest filesystem's own overhead. `Total reclaimed space: 0B` means there was
+nothing unused left to remove — not a failure.
+
 ### The app itself used a lot of CPU when idle. Is that fixed?
 Yes. The cause was two things: per-second SwiftUI implicit animations on the
 chart/rings (continuous recompositing, ~32% idle) and always-on metric sampling.
