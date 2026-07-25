@@ -28,13 +28,18 @@ struct ProcessPriorityView: View {
                     targetCard(target)
                 }
 
+                liveSection
+
                 resetRow
             }
             .padding(Space.l)
             .frame(maxWidth: 720, alignment: .leading)
             .frame(maxWidth: .infinity)
         }
-        .task { await priority.refresh() }
+        .task {
+            await priority.refresh()
+            await priority.refreshLive()
+        }
     }
 
     // MARK: - Header
@@ -173,6 +178,95 @@ struct ProcessPriorityView: View {
             },
             set: { niceChoice[target.id] = $0 }
         )
+    }
+
+    // MARK: - Live process table
+
+    /// Any running process, busiest first — so you can renice whatever is
+    /// actually hot right now, not just the six curated targets above.
+    private var liveSection: some View {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            HStack(spacing: Space.xs) {
+                Text("Busiest processes").sectionTitle()
+                Spacer()
+                if priority.refreshingLive {
+                    ProgressView().controlSize(.small)
+                } else {
+                    Button {
+                        Task { await priority.refreshLive() }
+                    } label: {
+                        Label("Refresh", systemImage: "arrow.clockwise")
+                            .font(.system(size: 11, weight: .medium))
+                    }
+                    .buttonStyle(.gradientOutline).controlSize(.small)
+                }
+            }
+
+            Text("Sorted by CPU. Lower nice = higher priority (needs admin); higher nice makes a process yield.")
+                .font(.system(size: 12)).foregroundStyle(.secondary)
+
+            if priority.liveProcesses.isEmpty {
+                Text(priority.refreshingLive ? "Scanning…" : "No processes found.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .frame(maxWidth: .infinity).padding(.vertical, Space.m)
+                    .card(padding: Space.s)
+            } else {
+                VStack(spacing: 1) {
+                    ForEach(priority.liveProcesses) { proc in
+                        liveRow(proc)
+                    }
+                }
+                .card(padding: Space.xs)
+            }
+        }
+    }
+
+    private func liveRow(_ proc: PriorityProcess) -> some View {
+        let busy = priority.busy.contains(proc.id)
+        return HStack(spacing: Space.xs) {
+            Text(String(format: "%5.1f%%", proc.cpu))
+                .font(.system(size: 12, weight: .semibold, design: .monospaced))
+                .foregroundStyle(proc.cpu >= 50 ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                .frame(width: 54, alignment: .trailing)
+
+            VStack(alignment: .leading, spacing: 0) {
+                Text(proc.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
+                Text("pid \(proc.id)").font(.system(size: 10)).foregroundStyle(.secondary)
+            }
+
+            Spacer(minLength: Space.xxs)
+
+            if proc.nice != 0 {
+                Pill(text: "nice \(proc.nice)")
+            }
+
+            if busy {
+                ProgressView().controlSize(.small).frame(width: 92)
+            } else {
+                HStack(spacing: 3) {
+                    niceButton("Boost", to: -5, proc: proc, help: "Raise priority (nice −5) — needs admin")
+                    niceButton("Yield", to: 10, proc: proc, help: "Lower priority (nice 10) so it stops hogging CPU")
+                    if proc.nice != 0 {
+                        niceButton("Reset", to: 0, proc: proc, help: "Back to the default (nice 0)")
+                    }
+                }
+            }
+        }
+        .padding(.vertical, 5).padding(.horizontal, Space.xs)
+        .contentShape(Rectangle())
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(proc.name), pid \(proc.id), \(Int(proc.cpu)) percent CPU, nice \(proc.nice)")
+        .animation(.easeOut(duration: 0.15), value: busy)
+    }
+
+    private func niceButton(_ title: String, to value: Int, proc: PriorityProcess, help: String) -> some View {
+        Button(title) {
+            Task { await priority.setNice(proc, to: value) }
+        }
+        .buttonStyle(.gradientOutline)
+        .controlSize(.mini)
+        .disabled(proc.nice == value)
+        .help(help)
     }
 
     // MARK: - Reset

@@ -4,6 +4,16 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Renice any process
+- **Busiest processes** table on the Process Priority page: every running process
+  sorted by CPU (not just the six curated targets), with per-row **Boost** (−5),
+  **Yield** (+10) and **Reset** (0). Lets you renice whatever `top` would have
+  shown you — `coreaudiod`, Electron helpers, a runaway Python — instead of only
+  the predefined set.
+- **Fixed:** `setNice` verified the result by searching the known-target list, so
+  renicing anything outside it always reported failure even when it worked. It
+  now re-reads the specific pid.
+
 ### Added — Audit trail
 - **Every system change is logged** to macOS's unified log under a dedicated
   `audit` category (`subsystem == "com.tanguy.MacTweak"`), readable with

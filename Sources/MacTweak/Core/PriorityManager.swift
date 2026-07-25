@@ -37,6 +37,9 @@ struct PriorityProcess: Identifiable, Sendable, Hashable {
     let command: String     // full argv[0] path
     var nice: Int           // current NI (0 = default)
     let targetID: String?   // PriorityTarget.id if it matches a known target
+    /// Recent CPU% as reported by `ps` — only populated for the live top-CPU
+    /// table (the known-target scan doesn't need it).
+    var cpu: Double = 0
 }
 
 @MainActor
@@ -76,6 +79,10 @@ final class PriorityManager: ObservableObject {
     /// (applyTarget / setApplyAtLogin) that don't map to a single pid.
     @Published private(set) var busyTargets: Set<String> = []
     @Published private(set) var refreshing = false
+    /// The busiest processes right now (any process — not just known targets),
+    /// so the user can renice whatever `top` would have shown them.
+    @Published private(set) var liveProcesses: [PriorityProcess] = []
+    @Published private(set) var refreshingLive = false
     @Published var lastMessage: String?
 
     /// Number of targets with an "Apply at login" LaunchAgent installed — drives
@@ -98,6 +105,44 @@ final class PriorityManager: ObservableObject {
         defer { refreshing = false }
         let found = await Task.detached { Self.discoverProcesses() }.value
         processes = found
+    }
+
+    /// Re-scan the busiest processes on the machine (any process, not just the
+    /// known targets) so the user can renice whatever is actually hot right now.
+    /// Read-only `ps`, so it never prompts.
+    func refreshLive() async {
+        refreshingLive = true
+        defer { refreshingLive = false }
+        liveProcesses = await Task.detached { Self.discoverLive(limit: 25) }.value
+    }
+
+    /// Off-main: one `ps` pass sorted by CPU descending (`-r`), parsed into rows.
+    ///
+    /// Kernel threads and MacTweak itself are filtered out — you can't renice
+    /// pid 0, and offering to deprioritise the app you're clicking in is a trap.
+    nonisolated static func discoverLive(limit: Int) -> [PriorityProcess] {
+        let result = CommandRunner.user("/bin/ps -Ao pid=,nice=,%cpu=,comm= -r")
+        guard result.ok else { return [] }
+
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        var rows: [PriorityProcess] = []
+        for line in result.output.split(separator: "\n") {
+            // `comm` is a full path and may contain spaces, so take the first
+            // three fields and treat everything after them as the command.
+            let fields = line.split(separator: " ", omittingEmptySubsequences: true)
+            guard fields.count >= 4,
+                  let pid = Int32(fields[0]), let nice = Int(fields[1]),
+                  let cpu = Double(fields[2]) else { continue }
+            guard pid > 1, pid != ownPID else { continue }
+
+            let command = fields[3...].joined(separator: " ")
+            let name = (command as NSString).lastPathComponent
+            let target = targets.first { command.contains($0.pattern) }
+            rows.append(PriorityProcess(id: pid, name: name, command: command,
+                                        nice: nice, targetID: target?.id, cpu: cpu))
+            if rows.count >= limit { break }
+        }
+        return rows
     }
 
     /// Off-main: pgrep every target, then one `ps` call for the union of pids,
@@ -160,17 +205,34 @@ final class PriorityManager: ObservableObject {
             return
         }
 
+        // Verify by re-reading *this* pid, not by searching the known-target list:
+        // a process from the live top-CPU table isn't in `processes` at all, so
+        // searching there would report failure on a perfectly good renice.
+        let pid = process.id
+        let actual = await Task.detached { Self.currentNice(of: pid) }.value
         await refresh()
+        await refreshLive()
+
         let fields = ["pid": "\(process.id)", "process": process.name,
                       "from": "\(process.nice)", "to": "\(clamped)"]
-        if let updated = processes.first(where: { $0.id == process.id }), updated.nice == clamped {
+        if actual == clamped {
             lastMessage = "\(process.name) priority set to \(clamped)."
             Log.audit("priority.setNice", fields, result: .ok)
         } else {
             let detail = result.error.isEmpty ? result.output : result.error
             lastMessage = "Couldn't change priority for \(process.name). \(detail.isEmpty ? "" : detail)"
-            Log.audit("priority.setNice", fields.merging(["error": detail]) { a, _ in a }, result: .failed)
+            Log.audit("priority.setNice",
+                      fields.merging(["actual": actual.map(String.init) ?? "gone",
+                                      "error": detail]) { a, _ in a },
+                      result: .failed)
         }
+    }
+
+    /// Off-main: the current nice value of one pid, or nil if it's gone.
+    nonisolated static func currentNice(of pid: Int32) -> Int? {
+        let r = CommandRunner.user("/bin/ps -o nice= -p \(pid)")
+        guard r.ok else { return nil }
+        return Int(r.output.trimmingCharacters(in: .whitespacesAndNewlines))
     }
 
     /// Apply the target's suggested nice to every matching PID right now.
