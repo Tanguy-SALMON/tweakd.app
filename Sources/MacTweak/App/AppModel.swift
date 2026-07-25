@@ -53,6 +53,7 @@ final class AppModel: ObservableObject {
     let priority = PriorityManager()
     let diskCleanup = DiskCleanupManager()
     let adBlock = AdBlockManager()
+    let thermal = ThermalMonitor()
     /// Offline semantic search over the feature catalog (stemming, typo & fuzzy
     /// tolerance). Held here so its per-item token index is built once and reused.
     let search = FeatureSearchEngine()

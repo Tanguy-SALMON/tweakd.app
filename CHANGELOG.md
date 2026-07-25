@@ -4,6 +4,20 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Thermal & CPU speed check
+- **Thermal card** on the Dashboard answers "am I getting full performance, or am
+  I being throttled?" — reading macOS's own thermal-pressure level
+  (`ProcessInfo.thermalState`), which is free, needs no admin, and updates live.
+- **Check speed** samples real per-cluster frequencies via `powermetrics` (admin,
+  on demand) and shows current vs. **maximum** MHz per cluster with a bar. The
+  hardware maximum is derived from the DVFS residency histogram, since
+  `hw.cpufrequency` doesn't exist on Apple Silicon. Handles multi-cluster chips
+  (an M3 Pro/Max reports P0 and P1 separately).
+- States plainly that **a frequency below maximum is normally just idle, not
+  throttling** — only the pressure level means the ceiling was actually lowered.
+- On fanless Macs (Airs), adds a note that they shed heat by slowing down, so
+  sustained loads throttle where brief bursts don't.
+
 ### Added — Renice any process
 - **Busiest processes** table on the Process Priority page: every running process
   sorted by CPU (not just the six curated targets), with per-row **Boost** (−5),

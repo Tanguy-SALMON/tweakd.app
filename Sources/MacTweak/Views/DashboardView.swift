@@ -26,6 +26,7 @@ struct DashboardView: View {
                              systemImage: SystemInfo.sipEnabled ? "lock" : "lock.open")
                 }
 
+                ThermalCard(monitor: model.thermal)
                 adminCard
                 AudioWatchdogCard(watchdog: model.audioWatchdog,
                                   adminUnlocked: model.engine.adminUnlocked)
