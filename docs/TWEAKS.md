@@ -162,6 +162,7 @@ actually moved.
 | Enable Application Firewall | Security & Network | 🔐 | safe |
 | Enable Stealth Mode | Security & Network | 🔐 | safe · needs firewall on |
 | Block Auto-Allow Signed Apps | Security & Network | 🔐 | moderate |
+| Block Ads & Trackers (hosts file) | Security & Network | 🔐 | ⚠️ · weekly auto-update |
 | Use Privacy DNS (Cloudflare) | Security & Network | 🔐 | moderate · plaintext |
 | Disable IPv6 | Security & Network | 🔐 | ⚠️ |
 | Enable TCP Window Scaling | Security & Network | 🔐 | ♻️ |
@@ -591,6 +592,47 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setal
 # Check
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned
 ```
+
+### Block Ads & Trackers (hosts file) — 🔐 ⚠️
+Downloads the [StevenBlack](https://github.com/StevenBlack/hosts) ad/tracker list and
+routes every domain in it to `0.0.0.0` in `/etc/hosts`. System-wide — every browser and
+app, no extension needed.
+
+The block is written **between two markers**, so the rest of your `/etc/hosts` is
+preserved and revert removes only what MacTweak added. It's idempotent (a re-run strips
+the old block first), and a failed or empty download leaves `/etc/hosts` untouched
+rather than half-written.
+
+**Caveats worth knowing:** it can break a site that loads content from a blocked domain
+(some login flows and embedded players), it does nothing about ads served from the same
+domain as the content, and `~200k` extra hosts entries is normal but does grow the file.
+Revert is one command.
+
+```bash
+# Apply / refresh — download the list and rebuild the marked block
+sudo /bin/zsh -c 'L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then sed "/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d" /etc/hosts > "$T"; echo "# MacTweak-adblock-start" >> "$T"; grep "^0\.0\.0\.0 " "$L" >> "$T"; echo "# MacTweak-adblock-end" >> "$T"; cat "$T" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f "$L" "$T"'
+
+# Revert — delete only MacTweak's block
+sudo sed -i '' '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts
+sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+
+# Check
+grep -q '# MacTweak-adblock-start' /etc/hosts && echo ON || echo OFF
+grep -c '^0\.0\.0\.0 ' /etc/hosts          # how many domains are blocked
+```
+
+**Weekly auto-update.** The app can install a LaunchAgent that re-downloads the list
+every 7 days (the source updates often; a stale list quietly stops blocking new
+domains). It lives at `~/Library/LaunchAgents/com.mactweak.adblock.plist` and calls
+`~/Library/Application Support/MacTweak/adblock-update.sh`. To remove it by hand:
+
+```bash
+launchctl bootout gui/$(id -u)/com.mactweak.adblock 2>/dev/null
+rm ~/Library/LaunchAgents/com.mactweak.adblock.plist
+rm ~/Library/Application\ Support/MacTweak/adblock-update.sh
+```
+
+See [SERVICES.md](SERVICES.md) for what that agent looks like from `launchctl`'s side.
 
 ### Use Privacy DNS (Cloudflare) — 🔐 (per network service)
 Points DNS at Cloudflare's 1.1.1.1 / 1.0.0.1 privacy resolver instead of your ISP's

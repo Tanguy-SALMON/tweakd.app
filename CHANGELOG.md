@@ -4,6 +4,30 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Documentation for the tools, with Terminal equivalents
+- **New [docs/SERVICES.md](docs/SERVICES.md)** — the background-services guide: launchd
+  domains and why picking the wrong one is the #1 reason a command "does nothing", a
+  step-by-step **tutorial** (find → verify → stop → check → make permanent → undo), the
+  full `launchctl` cookbook (list · find failing · inspect · measure cost · stop ·
+  disable · **restart**), where plists live including app-registered `SMAppService`
+  items, what not to touch, and a **troubleshooting section for each `launchctl` error**.
+  - Documents the **exit-code table** (`78 = EX_CONFIG` — almost always a port already
+    held by a duplicate root daemon, which is exactly what's happening on the dev Mac).
+  - All output shown is real, captured from `launchctl print`, not invented.
+- **New [docs/TOOLS.md](docs/TOOLS.md)** — Terminal equivalents for every pane that
+  isn't a tweak: Dashboard metrics and Clear RAM, Thermal & CPU speed, **all 13 Disk
+  Cleanup rows** (measure + clear command each), Process Priority, Benchmark history
+  (JSON schema and how to plot it without the app), the Core Audio watchdog, and the
+  audit trail.
+- **`Block Ads & Trackers (hosts file)` was shipping undocumented** — now in TWEAKS.md
+  with its apply/revert/check commands, the marker mechanism, its caveats, and how to
+  remove the weekly auto-update LaunchAgent by hand.
+- Corrected two claims while verifying against the live machine: `pmset -g therm` reports
+  nothing useful on Apple Silicon (so "no warning" ≠ "not throttled" — `powermetrics
+  --samplers thermal` is the real source), and service listings need to filter
+  `application.*` / `NetworkExtension.*`, which are launchd bookkeeping for open apps
+  rather than background services.
+
 ### Added — Benchmark history & daily runs
 - **Results are now saved.** Every run is appended to
   `~/Library/Application Support/MacTweak/benchmark-history.json` (pretty-printed JSON,

@@ -6,8 +6,18 @@ Everything about MacTweak — the app, and how to do all of it **by hand** in Te
 
 - **[index.html](index.html)** — the web docs. Every tweak with its exact Apply/Revert
   command and **click-to-copy**. Open it in a browser (works offline).
-- **[TWEAKS.md](TWEAKS.md)** — the same reference in Markdown: all 35 tweaks + 6
-  one-shot actions, grouped by category, with manual commands.
+- **[TWEAKS.md](TWEAKS.md)** — the same reference in Markdown: every tweak + the one-shot
+  actions, grouped by category, with manual commands.
+
+## The tools (everything that isn't a toggle)
+
+- **[SERVICES.md](SERVICES.md)** — background services, start to finish: what launchd
+  domains are, a **step-by-step tutorial** for finding and stopping something you don't
+  need, the full `launchctl` cookbook (list · find failing · inspect · measure cost ·
+  stop · disable · restart), what not to touch, and what each `launchctl` error means.
+- **[TOOLS.md](TOOLS.md)** — command-line equivalents for the remaining panes: Dashboard
+  and Clear RAM, Thermal & CPU speed, every Disk Cleanup row, Process Priority, Benchmark
+  history (the JSON is yours to read), the Core Audio watchdog, and the audit trail.
 
 ## Reference
 

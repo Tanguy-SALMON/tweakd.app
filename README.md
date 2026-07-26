@@ -71,8 +71,12 @@ Full docs live in [`docs/`](docs/):
 
 - **[docs/index.html](docs/index.html)** — web docs: every tweak with its exact
   Terminal command and **click-to-copy** (works offline).
-- **[docs/TWEAKS.md](docs/TWEAKS.md)** — all 35 tweaks + 6 actions with manual
+- **[docs/TWEAKS.md](docs/TWEAKS.md)** — every tweak + one-shot action with manual
   apply/revert commands. **You can do everything by hand — no app required.**
+- **[docs/SERVICES.md](docs/SERVICES.md)** — background services: a tutorial plus the
+  full `launchctl` cookbook (list, find failing, inspect, stop, disable, restart).
+- **[docs/TOOLS.md](docs/TOOLS.md)** — Terminal equivalents for the other panes: Disk
+  Cleanup, Process Priority, Thermal, Benchmark history, audit trail.
 - **[docs/SAFETY.md](docs/SAFETY.md)** — `sudo`, SIP, reversibility, verification.
 - **[docs/FAQ.md](docs/FAQ.md)** — high CPU, `coreaudiod`, "the app disappeared", more.
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the app is built.
