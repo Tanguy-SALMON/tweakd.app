@@ -102,7 +102,9 @@ final class CoreAudioWatchdog: ObservableObject {
 
     private func tick() async {
         let now = Date()
-        guard let secs = await Task.detached { Self.readCoreAudioCPUSeconds() }.value else {
+        // Parenthesized rather than a trailing closure: inside a `guard`, a
+        // trailing closure reads as the guard's own body to the compiler.
+        guard let secs = await Task.detached(operation: { Self.readCoreAudioCPUSeconds() }).value else {
             rebaseline(); return               // coreaudiod not running (mid-restart)
         }
         guard let prev = prevCPUSeconds, let stamp = prevStamp else {
