@@ -308,6 +308,60 @@ Normal — screen capture drives WindowServer. Not a leak.
 
 ---
 
+## Benchmark
+
+### Where are my benchmark results saved?
+`~/Library/Application Support/MacTweak/benchmark-history.json` — pretty-printed JSON
+with ISO-8601 dates, so you can read or plot it without the app:
+
+```bash
+/bin/cat ~/Library/Application\ Support/MacTweak/benchmark-history.json
+```
+
+Every run is appended, manual or scheduled, capped at the most recent 400. **Clear** next
+to the run button only resets the current Baseline / After tweaks comparison; the
+timeline has its own **Clear history**.
+
+### Can it benchmark on its own, once a day?
+Yes — **Benchmark → Daily Benchmark**, with an hour picker that defaults to **12:00**.
+It's **off by default**, because a run pegs every core for a few seconds.
+
+It only fires while MacTweak is running (it's a plain in-app timer, not a LaunchAgent),
+but it's checked every 5 minutes rather than at the exact minute, so a Mac that was
+asleep at noon still gets its run shortly after waking.
+
+### The daily run didn't happen at exactly noon.
+By design, in one of three ways:
+
+- **The Mac was warm or busy.** The run is postponed while thermal pressure is above
+  nominal or the 1-minute load average is over 60% of your core count, then retried every
+  5 minutes. A benchmark measures whatever the machine has *left*, so one taken mid-build
+  records the build, not the Mac — on a fanless Air especially.
+- **The Mac was asleep.** It runs after the next wake.
+- **It was more than 4 hours late.** Then it's skipped entirely. A "noon" score taken at
+  11pm on a warm machine isn't comparable to the rest of the series, and a gap in the
+  chart is more honest than a misleading point.
+
+Both the runs and the skips are in the audit trail:
+
+```bash
+/usr/bin/log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 24h | /usr/bin/grep benchmark
+```
+
+### Why did my score drop 4% overnight? Did a tweak break something?
+Almost certainly not. Run-to-run variance of a few percent is normal — background work,
+SSD write state, and ambient temperature all move the number. **Read the trend across
+several days, not one point.** The timeline draws scheduled runs as dots (●) and manual
+ones as diamonds (◆) precisely because they aren't taken under the same conditions:
+a manual run you fire while Xcode is compiling will sit well below the scheduled series.
+
+### Why doesn't the daily run show up in "After tweaks"?
+Deliberately. Scheduled runs go to the timeline only. If they joined the A/B session,
+setting a baseline in the morning and applying tweaks in the afternoon would leave your
+tweaks measured against *noon's run* instead of your baseline.
+
+---
+
 ## The app "crashed" / disappeared
 
 ### I entered my admin password and the window vanished.

@@ -4,6 +4,29 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Benchmark history & daily runs
+- **Results are now saved.** Every run is appended to
+  `~/Library/Application Support/MacTweak/benchmark-history.json` (pretty-printed JSON,
+  ISO-8601 dates, capped at 400 records) instead of vanishing when the app quits.
+- **Timeline card** — a line chart of the overall score over time plus the last 8 runs
+  with the change against the run before. Scheduled runs are drawn as dots, manual ones
+  as diamonds, since they aren't measured under the same conditions.
+- **Daily Benchmark** — opt-in automatic run at a chosen hour (defaults to **12:00**).
+  Off by default: a benchmark saturates every core for a few seconds.
+  - **Polled every 5 minutes rather than fired by a one-shot timer**, because a sleeping
+    laptop silently swallows a scheduled fire — polling catches up after a wake.
+  - **Postponed while the Mac is warm or busy** (thermal pressure above nominal, or 1-min
+    load above 60% of core count). A benchmark measures what the machine has *left*, so
+    running it mid-build records the build, not the Mac.
+  - **Skips the day after a 4-hour grace window** rather than recording a late, warm,
+    non-comparable score. Both the run and the skip land in the audit trail.
+- Scheduled runs are recorded to history **only** — they deliberately stay out of the
+  Baseline / After tweaks comparison, which they would otherwise silently redefine.
+- The scoring weights now live in one place (`Bench.score`), shared by the in-session
+  result and the persisted record, so today's run and last month's are on the same scale.
+- **Clear** still clears only the current A/B session; history has its own
+  **Clear history** action.
+
 ### Added — Stop Accidental VoiceOver
 - New **Snappiness** tweak disabling symbolic hotkey **59** (⌘F5, "Turn VoiceOver on or
   off") — the shortcut behind the recurring "Do you want to turn on VoiceOver?" dialog.

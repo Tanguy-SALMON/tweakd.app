@@ -19,8 +19,8 @@ struct BenchmarkResult: Identifiable, Equatable {
 
     /// A single blended figure of merit.
     var overall: Double {
-        // Weighted, scaled into a friendly ~0–2000 range.
-        singleCore * 4 + multiCore * 1.5 + memoryBandwidth * 0.02 + disk * 0.05
+        Bench.score(singleCore: singleCore, multiCore: multiCore,
+                    memory: memoryBandwidth, disk: disk)
     }
 }
 
@@ -35,10 +35,68 @@ final class BenchmarkEngine: ObservableObject {
     @Published private(set) var currentTask: String = ""
     private var counter = 0
 
+    // MARK: Persisted history
+
+    /// Every run ever recorded, oldest first — the timeline's data source.
+    @Published private(set) var history: [BenchmarkRecord] = []
+
+    // MARK: Daily schedule
+
+    /// Opt-in daily run. Off by default: a benchmark saturates every core for
+    /// a few seconds, and doing that unasked on someone's machine is rude.
+    @Published var dailyEnabled: Bool {
+        didSet {
+            UserDefaults.standard.set(dailyEnabled, forKey: Keys.daily)
+            dailyEnabled ? startScheduler() : stopScheduler()
+            if !dailyEnabled { scheduleNote = nil }
+        }
+    }
+
+    /// Hour of day (0–23) the run is due. Defaults to noon.
+    @Published var dailyHour: Int {
+        didSet {
+            UserDefaults.standard.set(dailyHour, forKey: Keys.hour)
+            // A new time is a new appointment — let today's fire again.
+            lastAttemptDay = nil
+            scheduleNote = nil
+        }
+    }
+
+    /// Why the scheduler is waiting, when it is. Nil when there's nothing to say.
+    @Published private(set) var scheduleNote: String?
+
+    private enum Keys {
+        static let daily = "benchmark.daily"
+        static let hour = "benchmark.dailyHour"
+        static let lastAttempt = "benchmark.lastAttemptDay"
+    }
+
+    /// Checked every 5 minutes rather than fired by a one-shot timer at the
+    /// due time: a laptop is usually asleep at some point, and a sleeping Mac
+    /// silently swallows a scheduled fire. Polling catches up after a wake.
+    private let checkInterval: TimeInterval = 300
+    /// How late a missed run may still happen. Past this, skip the day — a
+    /// "noon" benchmark recorded at 11pm on a warm machine is not comparable.
+    private let graceWindow: TimeInterval = 4 * 3600
+    private var scheduleTimer: Timer?
+    /// Day we last ran *or* deliberately gave up on, so neither repeats.
+    private var lastAttemptDay: Date? {
+        didSet { UserDefaults.standard.set(lastAttemptDay, forKey: Keys.lastAttempt) }
+    }
+
+    init() {
+        dailyEnabled = UserDefaults.standard.bool(forKey: Keys.daily)
+        dailyHour = UserDefaults.standard.object(forKey: Keys.hour) as? Int ?? 12
+        lastAttemptDay = UserDefaults.standard.object(forKey: Keys.lastAttempt) as? Date
+        let loaded = BenchmarkHistoryStore.load()
+        history = loaded
+        if dailyEnabled { startScheduler() }
+    }
+
     var latest: BenchmarkResult? { results.last }
     var baseline: BenchmarkResult? { results.first }
 
-    func run(label: String) async {
+    func run(label: String, trigger: BenchmarkRecord.Trigger = .manual) async {
         guard !isRunning else { return }
         isRunning = true
         progress = 0
@@ -60,13 +118,37 @@ final class BenchmarkEngine: ObservableObject {
         let dk = await Task.detached(priority: .userInitiated) { Bench.disk() }.value
         progress = 1
 
-        counter += 1
-        results.append(BenchmarkResult(id: counter, label: label,
-                                       singleCore: sc, multiCore: mc,
-                                       memoryBandwidth: mb, disk: dk))
+        // Only manual runs join the A/B session. A scheduled run landing in
+        // `results` would silently redefine "After tweaks" — you'd set a
+        // baseline in the morning and have noon's run become the thing your
+        // tweaks are measured against.
+        if trigger == .manual {
+            counter += 1
+            results.append(BenchmarkResult(id: counter, label: label,
+                                           singleCore: sc, multiCore: mc,
+                                           memoryBandwidth: mb, disk: dk))
+        }
+
+        let record = BenchmarkRecord(id: UUID(), date: Date(), trigger: trigger,
+                                     singleCore: sc, multiCore: mc,
+                                     memoryBandwidth: mb, disk: dk)
+        history.append(record)
+        persistHistory()
+        Log.audit("benchmark.run", [
+            "trigger": trigger.rawValue,
+            "overall": String(format: "%.0f", record.overall),
+        ], result: .ok)
     }
 
+    /// Clears the current A/B session only. History is deliberately untouched —
+    /// "Clear" next to the run button means "start a fresh comparison", not
+    /// "throw away a year of measurements".
     func clear() { results.removeAll() }
+
+    func clearHistory() {
+        history.removeAll()
+        Task.detached { BenchmarkHistoryStore.deleteFile() }
+    }
 
     func nextLabel() -> String {
         switch results.count {
@@ -75,11 +157,102 @@ final class BenchmarkEngine: ObservableObject {
         default: return "Run \(results.count + 1)"
         }
     }
+
+    private func persistHistory() {
+        let snapshot = history
+        Task.detached { BenchmarkHistoryStore.save(snapshot) }
+    }
+
+    // MARK: - Scheduling
+
+    /// When the next daily run is due (today's slot if still ahead, else tomorrow's).
+    var nextDueDate: Date? {
+        guard dailyEnabled else { return nil }
+        let cal = Calendar.current
+        let now = Date()
+        guard let todaySlot = cal.date(bySettingHour: dailyHour, minute: 0, second: 0, of: now) else { return nil }
+        let doneToday = lastAttemptDay.map { cal.isDate($0, inSameDayAs: now) } ?? false
+        if !doneToday, now < todaySlot { return todaySlot }
+        return cal.date(byAdding: .day, value: 1, to: todaySlot)
+    }
+
+    private func startScheduler() {
+        guard scheduleTimer == nil else { return }
+        // No immediate fire: the first tick is one interval away, which doubles
+        // as a grace period so launching the app at 3pm doesn't peg all cores
+        // while the login items are still settling.
+        let t = Timer(timeInterval: checkInterval, repeats: true) { [weak self] _ in
+            Task { @MainActor in await self?.checkSchedule() }
+        }
+        RunLoop.main.add(t, forMode: .common)
+        scheduleTimer = t
+    }
+
+    private func stopScheduler() {
+        scheduleTimer?.invalidate()
+        scheduleTimer = nil
+    }
+
+    private func checkSchedule() async {
+        guard dailyEnabled, !isRunning else { return }
+        let cal = Calendar.current
+        let now = Date()
+        guard let due = cal.date(bySettingHour: dailyHour, minute: 0, second: 0, of: now),
+              now >= due else { return }
+        if let last = lastAttemptDay, cal.isDate(last, inSameDayAs: now) { return }
+
+        if now.timeIntervalSince(due) > graceWindow {
+            lastAttemptDay = now
+            scheduleNote = "Missed today's run — the Mac was asleep or busy past the window."
+            Log.audit("benchmark.skipped", ["reason": "outside grace window"], result: .skipped)
+            return
+        }
+
+        // A benchmark measures whatever the machine has left, so running it on
+        // a hot or loaded Mac records the *load*, not the Mac. Waiting out a
+        // build or a video call is what keeps the timeline comparable.
+        if let blocker = Self.busyReason() {
+            scheduleNote = "Waiting — \(blocker). Will retry shortly."
+            return
+        }
+
+        lastAttemptDay = now
+        scheduleNote = nil
+        await run(label: Self.scheduledLabel(now), trigger: .scheduled)
+    }
+
+    private static func scheduledLabel(_ date: Date) -> String {
+        let f = DateFormatter()
+        f.dateFormat = "MMM d"
+        return f.string(from: date)
+    }
+
+    /// Non-nil when now is a bad moment to benchmark, describing why.
+    nonisolated static func busyReason() -> String? {
+        if ProcessInfo.processInfo.thermalState != .nominal { return "the Mac is warm" }
+        let cores = Double(max(1, ProcessInfo.processInfo.activeProcessorCount))
+        var load = [Double](repeating: 0, count: 3)
+        if getloadavg(&load, 3) > 0, load[0] > cores * 0.6 {
+            return String(format: "the system is busy (load %.1f)", load[0])
+        }
+        return nil
+    }
 }
 
 // MARK: - Workloads (pure, run off the main actor)
 
 enum Bench {
+
+    /// The one place the weights live. Both the in-session `BenchmarkResult`
+    /// and the persisted `BenchmarkRecord` score through here — if these ever
+    /// drifted apart, today's run and last month's would be on different
+    /// scales and the timeline would show a phantom cliff.
+    ///
+    /// Weighted, scaled into a friendly ~0–4000 range.
+    static func score(singleCore: Double, multiCore: Double,
+                      memory: Double, disk: Double) -> Double {
+        singleCore * 4 + multiCore * 1.5 + memory * 0.02 + disk * 0.05
+    }
 
     private static func seconds(_ block: () -> Void) -> Double {
         let start = DispatchTime.now().uptimeNanoseconds

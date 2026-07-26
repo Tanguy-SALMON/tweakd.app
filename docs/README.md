@@ -16,7 +16,8 @@ Everything about MacTweak — the app, and how to do all of it **by hand** in Te
 - **[FAQ.md](FAQ.md)** — troubleshooting: stopping background services (MySQL/PHP/nginx)
   and proving detection is complete, the recurring VoiceOver dialog, high CPU and how to
   measure it honestly, `coreaudiod`, why cleaning makes a Mac hot, Docker sparse-file
-  sizing, tuning an Air vs. a Pro, "the app disappeared", passwordless admin, uninstalling.
+  sizing, tuning an Air vs. a Pro, where benchmark history lives and why the daily run
+  skips a busy Mac, "the app disappeared", passwordless admin, uninstalling.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — how the app is built (SwiftUI, TweakEngine,
   CommandRunner escalation, Mach metrics, **ServicesManager and how it detects *every*
   background service**, watchdog, logging, theme).

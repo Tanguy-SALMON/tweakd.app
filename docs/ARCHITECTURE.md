@@ -19,7 +19,7 @@ Sources/MacTweak/
   App/        MacTweakApp (scenes), AppModel (+ wizard), Theme (design system)
   Core/       CommandRunner, TweakEngine, SystemInfo, CoreAudioWatchdog, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
-  Metrics/    SystemMetrics (Mach sampling), Benchmark
+  Metrics/    SystemMetrics (Mach sampling), Benchmark (+ BenchmarkHistory), ThermalMonitor
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               ScanSheet, MainWindow, Components (HeroHeader, RingGauge, gauges)
   Onboarding/ OnboardingView
@@ -270,6 +270,48 @@ ls /Library/StartupItems 2>/dev/null        # deprecated, occasionally still pre
 ```
 Login items that aren't launchd jobs live in **System Settings → General → Login Items
 & Extensions**.
+
+## BenchmarkEngine — measuring, and keeping the measurements
+
+Four micro-benchmarks (single-core, multi-core, memory `memcpy` bandwidth, disk
+write+read), each run in a detached task so the UI stays live. Every workload feeds a
+`BenchSink` static, without which the optimizer deletes the timed loop entirely.
+
+**One scoring function.** `Bench.score(singleCore:multiCore:memory:disk:)` holds the
+weights, and both the in-session `BenchmarkResult` and the persisted `BenchmarkRecord`
+call it. Two copies of those weights would put today's run and last month's on different
+scales — a phantom cliff in the timeline with no cause in the hardware.
+
+### History
+
+- Appended to `~/Library/Application Support/MacTweak/benchmark-history.json` —
+  pretty-printed, `sortedKeys`, ISO-8601 dates, so it reads and greps by hand like the
+  audit trail. Written atomically, off the main actor, capped at **400 records**.
+- A corrupt or half-written file decodes to an **empty history**, never a crash. Losing
+  the trend is recoverable; a crash loop on a file you can't see isn't.
+- Every run also lands in the audit trail as `benchmark.run`.
+
+### The daily schedule
+
+Opt-in, off by default — a benchmark saturates every core for several seconds, and doing
+that unasked is rude. Persisted in `UserDefaults` (`benchmark.daily`, `.dailyHour`,
+`.lastAttemptDay`); the hour defaults to **12**.
+
+- **Polled every 5 minutes, not fired by a one-shot timer at the due time.** A laptop is
+  asleep at some point most days, and a sleeping Mac silently swallows a scheduled fire.
+  Polling notices the missed slot on the next wake. The first tick is one interval after
+  launch, which doubles as a grace period so opening the app doesn't peg all cores while
+  login items are still settling.
+- **Deferred while the Mac is warm or busy** — `ProcessInfo.thermalState != .nominal`, or
+  `getloadavg` 1-minute load above 60% of core count. A benchmark measures whatever the
+  machine has *left*, so running it mid-build records the build. It retries each tick.
+- **Skipped after a 4-hour grace window.** A "noon" score recorded at 11pm on a warm Mac
+  isn't comparable to the rest of the series; a gap in the chart is more honest than a
+  bad point. `lastAttemptDay` marks the day as handled for a run *or* a skip, so neither
+  repeats. The skip is audited (`benchmark.skipped`).
+- **Scheduled runs are recorded to history only.** They stay out of the
+  Baseline / After tweaks session, which they would otherwise silently redefine — set a
+  baseline in the morning and noon's run becomes what your tweaks get measured against.
 
 ## CoreAudioWatchdog
 

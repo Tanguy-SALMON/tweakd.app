@@ -53,6 +53,9 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
   you rely on.
 - **Benchmark** — single-core, multi-core, memory-bandwidth and disk micro-benchmarks.
   Run a *Baseline*, apply tweaks, run *After tweaks*, and see the delta in a chart.
+  Results are **saved to disk** and plotted on a **timeline**, and an opt-in **daily
+  run** (noon by default) keeps the trend going on its own — postponed while the Mac is
+  warm or busy, so a build never lands in the numbers.
 - **Quick Actions** — one-shot maintenance: purge inactive memory, flush DNS, restart
   Dock/Finder, restart Core Audio, purge bloat daemons, rebuild Spotlight, and
   **generate an emergency revert script** (`~/Documents/MacTweak_Revert.sh`) that undoes
