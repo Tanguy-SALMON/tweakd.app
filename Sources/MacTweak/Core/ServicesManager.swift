@@ -100,9 +100,18 @@ struct LaunchService: Identifiable, Sendable, Hashable {
     /// genuinely different jobs.
     var id: String { "\(domain.rawValue)/\(label)" }
 
+    /// Where we learned about this job.
+    enum Origin: String, Sendable {
+        case plist        // a .plist in one of the three standard launchd directories
+        case registered   // no plist there — launchd knows it, an app registered it
+    }
+
     let label: String
+    /// Empty for `.registered` jobs: their plist lives inside the owning app's
+    /// bundle, so there's no path here to bootstrap from.
     let plistPath: String
     let domain: ServiceDomain
+    var origin: Origin = .plist
     let kind: ServiceKind
     /// Executable the job runs, for display.
     let program: String
@@ -141,6 +150,7 @@ struct LaunchService: Identifiable, Sendable, Hashable {
     /// One-line state for the row subtitle.
     var statusText: String {
         if disabled { return "Disabled — won't start at login" }
+        if origin == .registered && pid == nil { return "Registered by an app" }
         if let pid { return "Running · pid \(pid)" }
         if let e = lastExit, e != 0 { return "Not running — last exit \(e)" }
         return loaded ? "Loaded, idle" : "Not loaded"
@@ -259,7 +269,65 @@ final class ServicesManager: ObservableObject {
                 ))
             }
         }
+
+        out += reconcile(found: out, userState: userState, systemState: systemState)
         return attachRuntime(to: out)
+    }
+
+    /// Catch background items that have **no plist in the three standard
+    /// directories** by diffing what we found against what launchd actually knows.
+    ///
+    /// This is what makes the list complete rather than merely conventional.
+    /// Since macOS 13 the normal way for an app to install a background item is
+    /// `SMAppService`, which registers a plist from *inside the app bundle*
+    /// (`Foo.app/Contents/Library/LaunchAgents/…`) — `launchctl print` shows those
+    /// as `path = (submitted by smd.N)`. No amount of directory scanning finds
+    /// them, so we ask launchd instead and add whatever it knows that we didn't.
+    nonisolated static func reconcile(found: [LaunchService],
+                                      userState: DomainState,
+                                      systemState: DomainState) -> [LaunchService] {
+        var extras: [LaunchService] = []
+        for (state, domain) in [(userState, ServiceDomain.user), (systemState, ServiceDomain.system)] {
+            let known = Set(found.filter { $0.domain == domain }.map(\.label))
+            for label in state.known.sorted() where !known.contains(label) {
+                guard isReportable(label) else { continue }
+                extras.append(LaunchService(
+                    label: label,
+                    plistPath: "",
+                    domain: domain,
+                    origin: .registered,
+                    kind: classify(label: label, program: ""),
+                    program: "",
+                    pid: state.running[label],
+                    lastExit: state.lastStatus[label],
+                    disabled: state.disabled.contains(label),
+                    loaded: true
+                ))
+            }
+        }
+        return extras
+    }
+
+    /// Whether an orphan label is a real background service worth listing.
+    nonisolated static func isReportable(_ label: String) -> Bool {
+        // Apple's own, by label…
+        if label.hasPrefix("com.apple.") { return false }
+        // …and Apple's own that don't use the prefix (com.openssh.ssh-agent,
+        // com.vix.cron, org.cups.cupsd). Anything shipping a plist under
+        // /System/Library is the OS, whatever it calls itself.
+        for dir in ["/System/Library/LaunchAgents", "/System/Library/LaunchDaemons"]
+        where FileManager.default.fileExists(atPath: "\(dir)/\(label).plist") { return false }
+
+        // `application.<bundle-id>.<n>.<n>` is a *running GUI app* that launchd
+        // tracks for the session — Firefox, Zed, MacTweak itself. Not a service,
+        // and it disappears when the app quits.
+        if label.hasPrefix("application.") { return false }
+        // NetworkExtension providers (VPN tunnels, content filters) are managed by
+        // the NE framework and System Settings, not by launchctl enable/disable.
+        if label.hasPrefix("NetworkExtension.") { return false }
+        // launchd's own bookkeeping rows, not jobs.
+        if label.hasPrefix("com.apple.xpc.") || label == "0" { return false }
+        return true
     }
 
     /// Everything known about one launchd domain.
@@ -496,8 +564,13 @@ final class ServicesManager: ObservableObject {
         // `disable` only sets the flag and `enable` only clears it, so each is
         // paired with the matching runtime action. `|| true` on bootout: it fails
         // when the job isn't loaded, which is a no-op, not an error.
+        // An app-registered job has no plist path we could bootstrap from, so
+        // enabling it only clears the flag — it comes back when its app next
+        // registers it (usually at login). Disabling works the same either way,
+        // because `disable`/`bootout` address the label, not the file.
+        let start = s.origin == .plist ? "; /bin/launchctl bootstrap \(dom) \(quoted) 2>&1 || true" : ""
         let cmd = enabled
-            ? "/bin/launchctl enable \(t); /bin/launchctl bootstrap \(dom) \(quoted) 2>&1 || true"
+            ? "/bin/launchctl enable \(t)\(start)"
             : "/bin/launchctl disable \(t); /bin/launchctl bootout \(t) 2>&1 || true"
 
         let result = await run(cmd, admin: s.domain.needsAdmin)

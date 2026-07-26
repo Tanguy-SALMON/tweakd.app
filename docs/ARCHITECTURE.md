@@ -145,16 +145,150 @@ Commands run through a single `run(executable:arguments:)`:
   continuous SwiftUI recompositing (it once put idle CPU at ~32%). Removing it +
   ref-counting brought idle to ~0%.
 
+## ServicesManager — detecting *every* background service
+
+The hard requirement for the Services page is completeness: a machine that isn't the
+developer's must not quietly hide a service. Scanning the well-known directories alone
+does **not** achieve that, so discovery runs in two phases.
+
+### Phase 1 — the three standard directories
+
+| Directory | launchd domain | Needs admin to change |
+|---|---|---|
+| `~/Library/LaunchAgents` | `gui/<uid>` | no |
+| `/Library/LaunchAgents` | `gui/<uid>` | no |
+| `/Library/LaunchDaemons` | `system` | **yes** (runs as root) |
+
+Each `.plist` is parsed with `PropertyListSerialization` (handles binary *and* XML), and
+the **`Label` key inside the file wins over the filename** — they're conventionally the
+same but nothing enforces it, and a mismatch would otherwise create a row whose
+`launchctl` target doesn't exist.
+
+`/System/Library/Launch{Agents,Daemons}` is never scanned: that's the OS.
+
+### Phase 2 — reconcile against launchd itself (the completeness guarantee)
+
+Directory scanning is *conventional*, not *authoritative*. Since macOS 13 the standard
+way for an app to install a background item is **`SMAppService`**, which registers a
+plist from **inside the app bundle** (`Foo.app/Contents/Library/LaunchAgents/…`). Those
+jobs exist, run, and are invisible to any directory scan. `launchctl print` marks them:
+
+```
+path = (submitted by smd.90609)      # smd = the Service Management daemon
+```
+
+So MacTweak asks launchd what it actually knows, and adds anything the directory scan
+missed. On the development machine this recovered **20 further services** the first
+phase never saw — a running Teams agent, Docker's helper, OneDrive launchers, plus
+several *ghost* Homebrew registrations (`homebrew.mxcl.php@8.1`, `opensearch`,
+`postgresql-14`) whose plists are long gone but which launchd still lists.
+
+Those rows are flagged **App-registered**. They can be stopped and disabled normally
+(`bootout`/`disable` address the *label*, not a file), but re-enabling only clears the
+flag — there's no plist path to `bootstrap`, so the owning app re-registers it at the
+next login.
+
+**This is why a custom service you invented is still detected**: whatever installed it,
+if launchd is running it, it appears.
+
+### What is deliberately excluded, and why
+
+`isReportable(_:)` drops four classes. Each exclusion is a deliberate claim, not an
+oversight:
+
+| Excluded | Why |
+|---|---|
+| `com.apple.*` | Apple's own. SIP-protected and load-bearing |
+| Any label with a plist in `/System/Library/Launch*` | **Also Apple's, but unprefixed** — `com.openssh.ssh-agent`, `com.vix.cron`, `org.cups.cupsd`. Caught by looking for the file, not by trusting the name |
+| `application.<bundle-id>.<n>.<n>` | A *running GUI app* launchd tracks for the session (Firefox, Zed, MacTweak itself). Not a service; vanishes when the app quits |
+| `NetworkExtension.*` | VPN tunnels and content filters, managed by the NetworkExtension framework and System Settings — `launchctl enable/disable` is not the right lever |
+
+On the development machine that's 858 exclusions against 68 listed services.
+
+### Verifying completeness on any machine
+
+To prove nothing is hidden, diff launchd's inventory against what's on disk:
+
+```bash
+# What launchd knows (both domains), minus Apple's:
+{ launchctl print gui/$(id -u); launchctl print system; } 2>/dev/null \
+  | sed -n '/services = {/,/^	}/p' | awk 'NF>=3 {print $NF}' \
+  | grep -v '^com\.apple\.' | sort -u > /tmp/launchd.txt
+
+# What a directory scan alone would find:
+ls ~/Library/LaunchAgents /Library/LaunchAgents /Library/LaunchDaemons 2>/dev/null \
+  | grep '\.plist$' | sed 's/\.plist$//' | sort -u > /tmp/ondisk.txt
+
+comm -13 /tmp/ondisk.txt /tmp/launchd.txt     # the gap phase 2 closes
+```
+
+Then trace any single label to its origin:
+
+```bash
+launchctl print gui/$(id -u)/<label> | head -5   # or system/<label>; no root needed
+```
+
+### Classification
+
+`classify(label:program:)` buckets a job by label and executable path, **most specific
+first**, so a security agent can never fall through into a controllable group:
+
+1. **security** — `paloaltonetworks`/`cortex`, `crowdstrike`, `sentinelone`, `jamf`,
+   `microsoft.defender`, `kandji`, `intune`… → listed **read-only**
+2. **mactweak** → our own agents
+3. **updater** — `update`, `keystone`, `autoupdate`, `sparkle`
+4. **developer** — `homebrew.mxcl.*`, or any program under `/opt/homebrew/`, or a known
+   server name (`mysql`, `postgres`, `redis`, `nginx`, `ollama`…)
+5. **vendor** — `docker`, `teamviewer`, `adobe`, `zoom`…
+6. **other** — everything unmatched
+
+An unrecognised custom service is **still listed and still controllable**; it just lands
+in **Other**. Misclassification never hides a service — it only changes which heading it
+sits under. To teach it a new name, add a substring to the relevant array in
+`Sources/MacTweak/Core/ServicesManager.swift`; adding to the `security` list is how you
+make something *protected* from MacTweak's own controls.
+
+### Cost measurement
+
+CPU, memory, process count and listening ports are summed over each job's **whole
+process tree**, not the single pid launchd reports — otherwise `nginx` reads 0 MB with
+no ports (its master forks the workers that hold the memory and own the socket) and
+Homebrew's `mysql` job reads 0 MB (it's a `/bin/sh` wrapper, `mysqld_safe`). Two passes
+total — one `ps -Ao pid=,ppid=,%cpu=,rss=` and one `lsof -nP -iTCP -sTCP:LISTEN` —
+regardless of service count.
+
+### Not covered by this page
+
+These start things at boot but aren't launchd jobs, so they're out of scope:
+
+```bash
+crontab -l                                  # cron jobs
+sudo ls /etc/periodic/*/                    # periodic scripts
+docker ps -a --filter 'status=running' \
+  --format '{{.Names}}: {{.Image}}'         # containers with restart policies
+ls /Library/StartupItems 2>/dev/null        # deprecated, occasionally still present
+```
+Login items that aren't launchd jobs live in **System Settings → General → Login Items
+& Extensions**.
+
 ## CoreAudioWatchdog
 
 A third-party virtual-audio HAL driver (e.g. Microsoft Teams') can wedge a stream and
 peg `coreaudiod` — the driver runs **inside** `coreaudiod`, so the cost bills there.
 
 - Samples `coreaudiod` CPU every **15 s** via `ps -o cputime=` (a cputime *delta*).
-- Trips after **2 sustained ticks** over an **8%** threshold (~30 s).
+- Trips after **2 sustained ticks** over a **70%** threshold (~30 s). The bar is high on
+  purpose: `coreaudiod` legitimately sustains 5–30% during a call with echo cancellation
+  or spatial audio, and a wedged stream spins a whole core or more (156% observed). A
+  lower bar restarts audio mid-call, which is worse than the problem.
 - On trip, restarts `coreaudiod` via the `restart-coreaudio` action — but only
   **silently** if passwordless admin is unlocked (else it just reports "unlock admin
   to auto-restart"). Persisted on/off in `UserDefaults` (`watchdog.coreaudio`).
+- **A restart is not assumed to work.** launchd relaunches `coreaudiod` immediately and
+  the offending HAL plugin loads back into the fresh process, so a naive watchdog
+  re-trips every ~45 s forever. Hence a **5-minute cooldown** and a **3-attempt cap**,
+  after which it gives up, keeps watching, and names the plugin to remove. ~2 minutes of
+  calm clears the streak.
 
 ## Log
 

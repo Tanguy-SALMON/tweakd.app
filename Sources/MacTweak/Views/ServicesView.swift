@@ -204,6 +204,9 @@ struct ServicesView: View {
                     if s.domain == .system && s.kind.controllable {
                         Pill(text: "System")
                     }
+                    if s.origin == .registered {
+                        Pill(text: "App-registered", systemImage: "app.badge")
+                    }
                     ForEach(s.ports, id: \.self) { port in
                         Pill(text: ":\(port)")
                     }

@@ -23,6 +23,21 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 - **Uses `launchctl`, not `brew services`:** brew's wrapper is only a launchd front-end
   and breaks on new macOS releases (on macOS 26 it dies with "unknown or unsupported
   macOS version" before doing anything).
+- **Detection is reconciled against launchd itself, not just the three standard
+  directories** — the completeness guarantee. Since macOS 13 apps register background
+  items with `SMAppService`, whose plist lives *inside the app bundle*, so no directory
+  scan can see them. Anything launchd knows that the scan missed is added and tagged
+  **App-registered**. On the dev machine this recovered **20 further services**: a
+  running Teams agent, Docker's helper, OneDrive launchers, and ghost Homebrew
+  registrations (`php@8.1`, `opensearch`, `postgresql-14`) whose plists were deleted but
+  which launchd still lists. Four classes are deliberately excluded (Apple's, including
+  unprefixed OS jobs that ship a plist in `/System/Library`; `application.*` running GUI
+  apps; `NetworkExtension.*` providers) — 858 exclusions against 68 listed services.
+- **Documented** in ARCHITECTURE.md ("detecting *every* background service": both
+  discovery phases, every exclusion and its rationale, how to extend classification) and
+  in FAQ.md with a copy-paste recipe to verify completeness on any machine.
+- Also corrected the **stale CoreAudioWatchdog section** in ARCHITECTURE.md, which still
+  documented the old 8% threshold and no cooldown.
 - **Cost is measured over each service's whole process tree, not the one pid launchd
   reports** — which understated almost everything. `nginx` showed 0 MB and no ports
   because its master forks the workers that hold the memory and own the socket; the

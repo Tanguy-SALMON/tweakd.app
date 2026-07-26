@@ -99,6 +99,47 @@ launchctl print gui/$(id -u)/homebrew.mxcl.mysql@8.0 | head -5
 > breaks on new macOS releases — on macOS 26 it dies with `unknown or unsupported macOS
 > version` before doing anything. `launchctl` is the real interface and always works.
 
+### How do I know MacTweak found *all* my services, including custom ones?
+Because it doesn't only look in the usual folders — **it asks launchd**, then adds
+anything the folder scan missed. If launchd is running your service, it's listed,
+however you installed it.
+
+That second pass matters more than it sounds. Since macOS 13, apps register background
+items with **`SMAppService`**, which keeps the plist **inside the app bundle** — no
+folder scan can ever see those. On the development Mac this recovered **20 extra
+services**: a running Teams agent, Docker's helper, OneDrive launchers, and several
+*ghost* Homebrew registrations (`php@8.1`, `opensearch`, `postgresql-14`) whose plists
+were long deleted but which launchd still had. They're tagged **App-registered**.
+
+Verify it yourself — this prints anything launchd knows that a folder scan would miss:
+```bash
+{ launchctl print gui/$(id -u); launchctl print system; } 2>/dev/null \
+  | sed -n '/services = {/,/^	}/p' | awk 'NF>=3 {print $NF}' \
+  | grep -v '^com\.apple\.' | sort -u > /tmp/launchd.txt
+ls ~/Library/LaunchAgents /Library/LaunchAgents /Library/LaunchDaemons 2>/dev/null \
+  | grep '\.plist$' | sed 's/\.plist$//' | sort -u > /tmp/ondisk.txt
+comm -13 /tmp/ondisk.txt /tmp/launchd.txt
+```
+Everything that prints should appear in the app tagged **App-registered** — except four
+deliberately excluded classes: Apple's own (`com.apple.*`, plus unprefixed OS jobs like
+`com.vix.cron` that ship a plist in `/System/Library`), `application.*` entries (running
+GUI apps, not services), and `NetworkExtension.*` (VPN/filter providers, managed in
+System Settings).
+
+**A service MacTweak doesn't recognise is never hidden** — it's listed under **Other**
+and is fully controllable. Classification only decides the heading.
+
+Trace any single job to its origin (no root needed):
+```bash
+launchctl print gui/$(id -u)/<label> | head -5      # or system/<label>
+# "path = (submitted by smd.N)" means an app registered it via SMAppService
+```
+
+Things that start at boot but **aren't** launchd jobs are genuinely out of scope —
+check those separately: `crontab -l`, Docker containers with restart policies
+(`docker ps`), and **System Settings → General → Login Items & Extensions**. Full
+mechanism: [ARCHITECTURE.md](ARCHITECTURE.md#servicesmanager--detecting-every-background-service).
+
 ### Which background services are safe to disable?
 MacTweak groups them by what they are:
 
