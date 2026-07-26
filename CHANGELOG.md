@@ -4,6 +4,14 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Stop Accidental VoiceOver
+- New **Snappiness** tweak disabling symbolic hotkey **59** (⌘F5, "Turn VoiceOver on or
+  off") — the shortcut behind the recurring "Do you want to turn on VoiceOver?" dialog.
+  Writes the whole hotkey entry in both directions so revert restores a working binding,
+  and runs `activateSettings -u` so it applies without a re-login. VoiceOver itself is
+  untouched. FAQ also documents the second trigger, triple-pressing Touch ID, which is a
+  System Settings toggle with no `defaults` key.
+
 ### Added — Services page (see and stop background launchd jobs)
 - **New Services pane** listing every non-Apple `launchd` job from
   `~/Library/LaunchAgents`, `/Library/LaunchAgents` and `/Library/LaunchDaemons`, with

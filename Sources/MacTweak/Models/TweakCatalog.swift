@@ -136,6 +136,23 @@ enum TweakCatalog {
             tags: [.snappyUI], recommended: false
         ),
 
+        Tweak(
+            key: "no-voiceover-hotkey",
+            title: "Stop Accidental VoiceOver",
+            summary: "Disables the ⌘F5 shortcut that pops up \"Do you want to turn on VoiceOver?\". VoiceOver itself is untouched — you can still enable it in System Settings.",
+            category: .snappiness, privilege: .user, risk: .safe, sipRequired: false,
+            // Symbolic hotkey 59 is "Turn VoiceOver on or off". Both directions
+            // write the *whole* entry, including the standard ⌘F5 binding
+            // (65535 = no charCode, 96 = F5, 1048576 = ⌘) — writing only
+            // `enabled` would leave the key binding behind on revert.
+            // `activateSettings -u` makes it take effect without a re-login.
+            applyCommand: "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 59 '<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>96</integer><integer>1048576</integer></array><key>type</key><string>standard</string></dict></dict>' && /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u",
+            revertCommand: "defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 59 '<dict><key>enabled</key><true/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>96</integer><integer>1048576</integer></array><key>type</key><string>standard</string></dict></dict>' && /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u",
+            statusCommand: "defaults read com.apple.symbolichotkeys AppleSymbolicHotKeys 2>/dev/null | awk '/ 59 =/,/};/' | grep -q 'enabled = 0' && echo APPLIED",
+            appliedWhenOutputContains: "APPLIED",
+            tags: [.snappyUI], recommended: false
+        ),
+
         // MARK: Privacy
         Tweak(
             key: "crashreporter-silent",

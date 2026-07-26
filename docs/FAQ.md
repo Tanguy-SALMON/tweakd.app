@@ -99,6 +99,29 @@ launchctl print gui/$(id -u)/homebrew.mxcl.mysql@8.0 | head -5
 > breaks on new macOS releases — on macOS 26 it dies with `unknown or unsupported macOS
 > version` before doing anything. `launchctl` is the real interface and always works.
 
+### "Do you want to turn on VoiceOver?" keeps popping up. How do I stop it?
+Two different triggers fire that dialog, and you probably need both:
+
+**1. The ⌘F5 keyboard shortcut.** Apply **Stop Accidental VoiceOver** (Snappiness), or
+by hand — this is symbolic hotkey **59**, "Turn VoiceOver on or off":
+```bash
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 59 \
+  '<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>96</integer><integer>1048576</integer></array><key>type</key><string>standard</string></dict></dict>'
+/System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+```
+`activateSettings -u` applies it without logging out. Set `<true/>` to restore.
+
+**2. Triple-pressing Touch ID** (the "Accessibility Shortcut"). This one is *not* a
+`defaults` key — turn it off in **System Settings → Accessibility → Shortcut** and
+uncheck **VoiceOver**. Easy to trigger by accident if you authenticate with Touch ID a
+lot, which is the usual reason this dialog appears "out of nowhere".
+
+> **This doesn't remove or disable anything accessibility-related** — it only stops the
+> accidental *shortcut*. VoiceOver still works from System Settings whenever you want it.
+> The accessibility daemons (`universalaccessd`, `AccessibilityUIServer`, `axassetsd`)
+> can't be removed at all: they're Apple's, live in `/System/Library`, are SIP-protected,
+> and measure 0.0% CPU idle. They also aren't what shows the dialog.
+
 ### How do I know MacTweak found *all* my services, including custom ones?
 Because it doesn't only look in the usual folders — **it asks launchd**, then adds
 anything the folder scan missed. If launchd is running your service, it's listed,
