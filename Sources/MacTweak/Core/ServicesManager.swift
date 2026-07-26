@@ -114,8 +114,18 @@ struct LaunchService: Identifiable, Sendable, Hashable {
     let disabled: Bool
     /// Present in launchd's inventory at all.
     let loaded: Bool
-    let cpu: Double
-    let memoryMB: Double
+
+    // Runtime cost, filled in by `attachRuntime`. Aggregated over the job's whole
+    // **process tree**, not just the pid launchd holds: a service's real cost
+    // usually sits in its children (nginx's workers, php-fpm's pool), and some
+    // jobs are only a shell wrapper (`mysqld_safe`) that owns nothing itself.
+    var cpu: Double = 0
+    var memoryMB: Double = 0
+    /// Processes in the tree, so a pool of eight workers can say so.
+    var processCount: Int = 0
+    /// TCP ports the tree is listening on — the fastest way to recognise a
+    /// service you forgot you were running.
+    var ports: [Int] = []
 
     var running: Bool { pid != nil }
 
@@ -140,6 +150,10 @@ struct LaunchService: Identifiable, Sendable, Hashable {
 @MainActor
 final class ServicesManager: ObservableObject {
 
+    /// How one control action ended. Returned rather than inferred from
+    /// `lastMessage`, so batch operations can react without string-matching UI copy.
+    enum Outcome: Sendable { case ok, failed, cancelled, blocked }
+
     @Published private(set) var services: [LaunchService] = []
     @Published private(set) var scanning = false
     @Published private(set) var busy: Set<String> = []
@@ -147,26 +161,44 @@ final class ServicesManager: ObservableObject {
     /// True once a scan has run, so the UI can tell "empty" from "not scanned".
     @Published private(set) var scanned = false
 
-    // MARK: - Grouping
+    // MARK: - Derived state
+    //
+    // Computed once per scan rather than per render: `grouped()` sorts every
+    // section and the view reads it on each body evaluation, which at ~50
+    // services is real work to repeat for a hover.
 
-    func grouped() -> [(kind: ServiceKind, items: [LaunchService])] {
-        Dictionary(grouping: services, by: \.kind)
-            .map { (kind: $0.key, items: $0.value.sorted { a, b in
-                if a.running != b.running { return a.running }        // running first
-                return a.displayName.localizedCaseInsensitiveCompare(b.displayName) == .orderedAscending
-            }) }
-            .sorted { $0.kind.order < $1.kind.order }
-    }
-
-    var runningCount: Int { services.filter(\.running).count }
-    var controllableCount: Int { services.filter { $0.kind.controllable }.count }
-
+    @Published private(set) var groups: [ServiceGroup] = []
+    @Published private(set) var runningCount = 0
+    @Published private(set) var totalMemoryMB: Double = 0
     /// Labels present in *both* domains. Stopping only one of the pair leaves the
     /// process running, which looks like the button did nothing — the UI warns.
-    var duplicatedLabels: Set<String> {
+    @Published private(set) var duplicatedLabels: [String] = []
+
+    struct ServiceGroup: Identifiable, Sendable {
+        var id: ServiceKind { kind }
+        let kind: ServiceKind
+        let items: [LaunchService]
+        var runningCount: Int { items.filter(\.running).count }
+        var canDisableAny: Bool { kind.controllable && items.contains { !$0.disabled } }
+    }
+
+    private func recomputeDerived() {
+        groups = Dictionary(grouping: services, by: \.kind)
+            .map { kind, items in
+                ServiceGroup(kind: kind, items: items.sorted { a, b in
+                    if a.running != b.running { return a.running }    // running first
+                    if a.disabled != b.disabled { return b.disabled } // then live, then disabled
+                    return a.displayName.localizedCaseInsensitiveCompare(b.displayName) == .orderedAscending
+                })
+            }
+            .sorted { $0.kind.order < $1.kind.order }
+
+        runningCount = services.filter(\.running).count
+        totalMemoryMB = services.reduce(0) { $0 + $1.memoryMB }
+
         let user = Set(services.filter { $0.domain == .user }.map(\.label))
         let system = Set(services.filter { $0.domain == .system }.map(\.label))
-        return user.intersection(system)
+        duplicatedLabels = user.intersection(system).sorted()
     }
 
     // MARK: - Discovery
@@ -175,6 +207,7 @@ final class ServicesManager: ObservableObject {
         scanning = true
         defer { scanning = false; scanned = true }
         services = await Task.detached { Self.discover() }.value
+        recomputeDerived()
     }
 
     /// Off-main: read every non-Apple job from the three launchd directories and
@@ -222,12 +255,11 @@ final class ServicesManager: ObservableObject {
                     pid: state.running[label],
                     lastExit: state.lastStatus[label],
                     disabled: state.disabled.contains(label),
-                    loaded: state.known.contains(label),
-                    cpu: 0, memoryMB: 0
+                    loaded: state.known.contains(label)
                 ))
             }
         }
-        return attachUsage(to: out)
+        return attachRuntime(to: out)
     }
 
     /// Everything known about one launchd domain.
@@ -290,27 +322,78 @@ final class ServicesManager: ObservableObject {
         return state
     }
 
-    /// One `ps` pass for every running pid, folded back into the rows.
-    nonisolated static func attachUsage(to services: [LaunchService]) -> [LaunchService] {
-        let pids = services.compactMap(\.pid)
-        guard !pids.isEmpty else { return services }
-        let r = CommandRunner.user("/bin/ps -o pid=,%cpu=,rss= -p \(pids.map(String.init).joined(separator: " "))")
-        guard r.ok else { return services }
+    /// Fold live cost into the rows: CPU, memory, process count and listening
+    /// ports, each summed over the job's **whole process tree**.
+    ///
+    /// Measuring only the pid launchd reports would badly understate most
+    /// services — `nginx`'s master forks eight workers that hold the memory and
+    /// own the listening socket, and Homebrew's `mysql` job is a `/bin/sh`
+    /// wrapper (`mysqld_safe`) whose child is the actual database. Two `ps`/`lsof`
+    /// passes total, regardless of how many services there are.
+    nonisolated static func attachRuntime(to services: [LaunchService]) -> [LaunchService] {
+        let roots = Set(services.compactMap(\.pid))
+        guard !roots.isEmpty else { return services }
 
-        var usage: [Int32: (Double, Double)] = [:]
-        for line in r.output.split(separator: "\n") {
+        // One pass for the whole process table: usage plus the parent links we
+        // need to walk each tree.
+        var children: [Int32: [Int32]] = [:]
+        var usage: [Int32: (cpu: Double, memMB: Double)] = [:]
+        let ps = CommandRunner.user("/bin/ps -Ao pid=,ppid=,%cpu=,rss=")
+        guard ps.ok else { return services }
+        for line in ps.output.split(separator: "\n") {
             let f = line.split(separator: " ", omittingEmptySubsequences: true)
-            guard f.count >= 3, let pid = Int32(f[0]),
-                  let cpu = Double(f[1]), let rss = Double(f[2]) else { continue }
-            usage[pid] = (cpu, rss / 1024.0)     // rss is KB
+            guard f.count >= 4, let pid = Int32(f[0]), let ppid = Int32(f[1]),
+                  let cpu = Double(f[2]), let rss = Double(f[3]) else { continue }
+            children[ppid, default: []].append(pid)
+            usage[pid] = (cpu, rss / 1024.0)          // ps reports rss in KB
         }
+
+        let portsByPID = listeningPorts()
+
         return services.map { s in
-            guard let pid = s.pid, let u = usage[pid] else { return s }
-            return LaunchService(label: s.label, plistPath: s.plistPath, domain: s.domain,
-                                 kind: s.kind, program: s.program, pid: s.pid,
-                                 lastExit: s.lastExit, disabled: s.disabled, loaded: s.loaded,
-                                 cpu: u.0, memoryMB: u.1)
+            guard let root = s.pid else { return s }
+            var s = s
+            var cpu = 0.0, mem = 0.0, count = 0
+            var ports = Set<Int>()
+
+            // Breadth-first over the tree, guarding against a cycle in a
+            // pid table we sampled while it was changing under us.
+            var queue = [root]
+            var visited: Set<Int32> = [root]
+            while let pid = queue.popLast() {
+                count += 1
+                if let u = usage[pid] { cpu += u.cpu; mem += u.memMB }
+                if let p = portsByPID[pid] { ports.formUnion(p) }
+                for child in children[pid] ?? [] where !visited.contains(child) {
+                    visited.insert(child)
+                    queue.append(child)
+                }
+            }
+            s.cpu = cpu
+            s.memoryMB = mem
+            s.processCount = count
+            s.ports = ports.sorted()
+            return s
         }
+    }
+
+    /// pid → TCP ports in LISTEN state. Unprivileged `lsof` only reports sockets
+    /// owned by processes we can see, so a port we can't read is simply omitted
+    /// rather than guessed at.
+    nonisolated static func listeningPorts() -> [Int32: Set<Int>] {
+        let r = CommandRunner.user("/usr/sbin/lsof -nP -iTCP -sTCP:LISTEN 2>/dev/null")
+        guard r.ok else { return [:] }
+        var out: [Int32: Set<Int>] = [:]
+        for line in r.output.split(separator: "\n").dropFirst() {
+            let f = line.split(separator: " ", omittingEmptySubsequences: true)
+            guard f.count >= 9, let pid = Int32(f[1]) else { continue }
+            // NAME is like `*:8080`, `127.0.0.1:6379` or `[::1]:6379` — the port
+            // is whatever follows the final colon.
+            guard let colon = f[8].lastIndex(of: ":"),
+                  let port = Int(f[8][f[8].index(after: colon)...]) else { continue }
+            out[pid, default: []].insert(port)
+        }
+        return out
     }
 
     /// Label (and program) from the plist — binary or XML, both handled.
@@ -374,8 +457,9 @@ final class ServicesManager: ObservableObject {
 
     /// Stop the job now. It comes back at the next login/boot — that's the point
     /// of keeping this separate from `setEnabled(false)`.
-    func stop(_ s: LaunchService) async {
-        guard guardControllable(s) else { return }
+    @discardableResult
+    func stop(_ s: LaunchService) async -> Outcome {
+        guard guardControllable(s) else { return .blocked }
         busy.insert(s.id); defer { busy.remove(s.id) }
 
         let cmd = "/bin/launchctl bootout \(Self.target(s))"
@@ -383,7 +467,7 @@ final class ServicesManager: ObservableObject {
         guard !result.userCancelled else {
             lastMessage = "Cancelled."
             Log.audit("service.stop", ["label": s.label, "domain": s.domain.rawValue], result: .cancelled)
-            return
+            return .cancelled
         }
         await scan()
         let nowStopped = services.first { $0.id == s.id }?.running != true
@@ -393,13 +477,17 @@ final class ServicesManager: ObservableObject {
         Log.audit("service.stop",
                   ["label": s.label, "domain": s.domain.rawValue, "exit": "\(result.exitCode)"],
                   result: nowStopped ? .ok : .failed)
+        return nowStopped ? .ok : .failed
     }
 
     /// Persistently enable or disable the job. Disabling also stops it now;
     /// enabling also starts it — otherwise the button appears to do nothing until
     /// the next reboot.
-    func setEnabled(_ s: LaunchService, _ enabled: Bool) async {
-        guard guardControllable(s) else { return }
+    /// `rescan: false` lets a batch caller skip the (relatively costly) full
+    /// re-enumeration between items and do it once at the end.
+    @discardableResult
+    func setEnabled(_ s: LaunchService, _ enabled: Bool, rescan: Bool = true) async -> Outcome {
+        guard guardControllable(s) else { return .blocked }
         busy.insert(s.id); defer { busy.remove(s.id) }
 
         let t = Self.target(s)
@@ -417,12 +505,16 @@ final class ServicesManager: ObservableObject {
             lastMessage = "Cancelled."
             Log.audit("service.setEnabled", ["label": s.label, "enabled": enabled ? "yes" : "no"],
                       result: .cancelled)
-            return
+            return .cancelled
         }
 
-        await scan()
-        let after = services.first { $0.id == s.id }
-        let ok = after.map { $0.disabled == !enabled } ?? false
+        // Verify against the real domain state rather than trusting exit 0 —
+        // `launchctl disable` happily succeeds on a label it doesn't manage.
+        let label = s.label
+        let nowDisabled = await Task.detached { Self.domainState(dom).disabled.contains(label) }.value
+        let ok = nowDisabled == !enabled
+        if rescan { await scan() }
+
         lastMessage = ok
             ? (enabled ? "\(s.displayName) enabled and started."
                        : "\(s.displayName) disabled — it won't start at login.")
@@ -431,6 +523,7 @@ final class ServicesManager: ObservableObject {
                   ["label": s.label, "domain": s.domain.rawValue,
                    "enabled": enabled ? "yes" : "no", "exit": "\(result.exitCode)"],
                   result: ok ? .ok : .failed)
+        return ok ? .ok : .failed
     }
 
     /// Disable every controllable job in a group in one pass — the "I don't do
@@ -441,15 +534,26 @@ final class ServicesManager: ObservableObject {
         guard !victims.isEmpty else { lastMessage = "Nothing to disable in \(kind.title)."; return }
 
         Log.audit("service.disableAll.begin", ["kind": kind.rawValue, "count": "\(victims.count)"])
+        var done = 0, cancelled = false
         for s in victims {
-            await setEnabled(s, false)
-            if lastMessage == "Cancelled." { break }   // user dismissed the auth prompt
+            // One rescan at the end instead of per item — the auth prompt for the
+            // first system daemon covers the rest, so this batch is fast.
+            switch await setEnabled(s, false, rescan: false) {
+            case .ok: done += 1
+            case .cancelled: cancelled = true
+            case .failed, .blocked: break
+            }
+            if cancelled { break }   // user dismissed the auth prompt; stop asking
         }
         await scan()
+
         let left = services.filter { $0.kind == kind && !$0.disabled }.count
-        lastMessage = "\(kind.title): \(victims.count - left) disabled\(left > 0 ? ", \(left) left" : "")."
-        Log.audit("service.disableAll", ["kind": kind.rawValue, "remaining": "\(left)"],
-                  result: left == 0 ? .ok : .failed)
+        lastMessage = cancelled
+            ? "Cancelled after disabling \(done) of \(victims.count)."
+            : "\(kind.title): \(done) disabled\(left > 0 ? ", \(left) couldn't be" : "")."
+        Log.audit("service.disableAll",
+                  ["kind": kind.rawValue, "disabled": "\(done)", "remaining": "\(left)"],
+                  result: cancelled ? .cancelled : (left == 0 ? .ok : .failed))
     }
 
     // MARK: - Internals

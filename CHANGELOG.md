@@ -23,6 +23,13 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 - **Uses `launchctl`, not `brew services`:** brew's wrapper is only a launchd front-end
   and breaks on new macOS releases (on macOS 26 it dies with "unknown or unsupported
   macOS version" before doing anything).
+- **Cost is measured over each service's whole process tree, not the one pid launchd
+  reports** — which understated almost everything. `nginx` showed 0 MB and no ports
+  because its master forks the workers that hold the memory and own the socket; the
+  Homebrew `mysql` job is a `/bin/sh` wrapper (`mysqld_safe`) that owns nothing at all.
+- **Listening ports per service** (`:3306`, `:9000`, `:80`) — the fastest way to
+  recognise a service you forgot you were running, and shown in the disable
+  confirmation so you know what's about to stop answering.
 - **Handles services installed twice.** Homebrew often registers the same service as
   both a user agent and a root daemon; they're separate jobs and the *system* copy is
   usually the one running. State is read **per domain** (`launchctl print gui/<uid>` and
