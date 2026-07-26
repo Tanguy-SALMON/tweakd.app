@@ -5,11 +5,23 @@ with the exact command used, what it does, and its current status.
 
 - **When:** 2026-07-22, during UI testing (the app's guided-setup wizard auto-applied
   its user-level tweaks).
-- **Current status:** ✅ **All reverted to stock and verified.** Nothing below is
-  currently applied.
+- **Current status:** ✅ **All of the settings listed below are reverted to stock and
+  verified.** None of them is currently applied.
 - **Scope:** Only **user-level** settings were changed. No `sudo`/admin command ever
   ran — no password prompt was approved — so power, Spotlight, kernel, and network
   settings were **never touched**.
+
+> **This file is not a live inventory of the Mac.** It records one 2026-07-22 testing
+> session. Since then the owner has applied tweaks deliberately, for real use, and those
+> are *meant* to stay applied — they are not tracked here. For what is actually in effect
+> right now, ask the app (**Re-scan**) or read the audit trail, which records every
+> change with its verified resulting state:
+> ```bash
+> log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 24h
+> ```
+> Known intentional exception, applied 2026-07-26 and left on at the owner's request:
+> **Stop Accidental VoiceOver** (symbolic hotkey 59 / ⌘F5 disabled). Revert it from the
+> Snappiness tab or with the command in [docs/TWEAKS.md](docs/TWEAKS.md).
 
 ---
 

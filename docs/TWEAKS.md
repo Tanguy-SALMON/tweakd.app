@@ -138,6 +138,7 @@ actually moved.
 | Disable Window Animations | Snappiness | 🔓 | safe |
 | Instant Dock Auto-Hide | Snappiness | 🔓 | restarts Dock |
 | Turbo Key Repeat | Snappiness | 🔓 | re-login |
+| Stop Accidental VoiceOver | Snappiness | 🔓 | |
 | Faster Mission Control | Snappiness | 🔓 | restarts Dock |
 | Instant Fullscreen Menu Bar | Snappiness | 🔓 | restarts Dock |
 | Disable Smooth Scrolling | Snappiness | 🔓 | moderate |
@@ -296,6 +297,30 @@ defaults write -g KeyRepeat -int 2 && defaults write -g InitialKeyRepeat -int 15
 # Revert
 defaults delete -g KeyRepeat; defaults delete -g InitialKeyRepeat
 ```
+
+### Stop Accidental VoiceOver — 🔓
+Disables **⌘F5**, the shortcut behind the recurring *"Do you want to turn on
+VoiceOver?"* dialog. VoiceOver itself is untouched — enable it from System Settings
+whenever you actually want it.
+
+This is symbolic hotkey **59** ("Turn VoiceOver on or off"). Both directions write the
+*whole* entry, including the standard ⌘F5 binding (`65535` = no charCode, `96` = F5,
+`1048576` = ⌘), so reverting restores a working shortcut instead of a bound-but-disabled
+stub. `activateSettings -u` applies it without logging out.
+```bash
+# Apply
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 59 '<dict><key>enabled</key><false/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>96</integer><integer>1048576</integer></array><key>type</key><string>standard</string></dict></dict>' && /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+# Revert
+defaults write com.apple.symbolichotkeys AppleSymbolicHotKeys -dict-add 59 '<dict><key>enabled</key><true/><key>value</key><dict><key>parameters</key><array><integer>65535</integer><integer>96</integer><integer>1048576</integer></array><key>type</key><string>standard</string></dict></dict>' && /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+```
+
+> **Two triggers, and this covers only one.** The other is **triple-pressing Touch ID**
+> (the "Accessibility Shortcut"), which has no `defaults` key — uncheck **VoiceOver** in
+> **System Settings → Accessibility → Shortcut**. That's the usual culprit if the dialog
+> appears "out of nowhere", since it's easy to trigger while authenticating.
+>
+> Note `com.apple.universalaccess voiceOverOnOffKey` is a *different, older* setting;
+> it can already be `false` while ⌘F5 still works.
 
 ### Faster Mission Control — 🔓 (restarts Dock)
 ```bash

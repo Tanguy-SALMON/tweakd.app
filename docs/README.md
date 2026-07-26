@@ -13,10 +13,13 @@ Everything about MacTweak — the app, and how to do all of it **by hand** in Te
 
 - **[SAFETY.md](SAFETY.md)** — privileges (`sudo`), System Integrity Protection (SIP),
   reversibility, the emergency revert script, and how to verify changes yourself.
-- **[FAQ.md](FAQ.md)** — troubleshooting: high CPU, `coreaudiod`, `PerfPowerServices`,
-  "the app disappeared", passwordless admin, uninstalling.
+- **[FAQ.md](FAQ.md)** — troubleshooting: stopping background services (MySQL/PHP/nginx)
+  and proving detection is complete, the recurring VoiceOver dialog, high CPU and how to
+  measure it honestly, `coreaudiod`, why cleaning makes a Mac hot, Docker sparse-file
+  sizing, tuning an Air vs. a Pro, "the app disappeared", passwordless admin, uninstalling.
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** — how the app is built (SwiftUI, TweakEngine,
-  CommandRunner escalation, Mach metrics, watchdog, logging, theme).
+  CommandRunner escalation, Mach metrics, **ServicesManager and how it detects *every*
+  background service**, watchdog, logging, theme).
 
 ## Project root
 
@@ -24,7 +27,8 @@ Everything about MacTweak — the app, and how to do all of it **by hand** in Te
 - **[../CONTRIBUTING.md](../CONTRIBUTING.md)** — build, and how to add a tweak safely.
 - **[../CHANGELOG.md](../CHANGELOG.md)** — version history.
 - **[../SYSTEM-CHANGES.md](../SYSTEM-CHANGES.md)** — log of settings changed on the dev
-  Mac during testing (all reverted).
+  Mac during the 2026-07-22 testing session (all of those reverted). Not a live
+  inventory — read the audit trail for what is actually applied now.
 
 ## The one-paragraph version
 

@@ -21,7 +21,22 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
   stream (e.g. a virtual-audio HAL driver) pegs it.
 - **Re-scan** — a progress modal that re-probes every tweak against the live system, then
   confirms with a summary of what's applied and **what changed since the last scan**.
-- **32 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
+- **Services** — every non-Apple `launchd` job (Homebrew databases and servers, vendor
+  updaters, app helpers), with live state, **CPU/memory summed over each service's whole
+  process tree**, and the **ports it's listening on**. **Stop** (until next login) or
+  **Disable** (persists), individually or per group. Detection is reconciled against
+  launchd itself, so app-registered background items (`SMAppService`, whose plist lives
+  inside the app bundle) are found too. Security/EDR agents are listed **read-only**;
+  Apple's daemons aren't listed at all.
+- **Disk Cleanup** — measured, one-tap reclaim of caches, Xcode DerivedData, simulator
+  junk, package-manager caches, orphaned leftovers from uninstalled apps, and Docker.
+- **Process Priority** — `renice` any running process (not just a curated list), with a
+  busiest-processes table and optional apply-at-login.
+- **Thermal & CPU speed** — reads macOS's own thermal-pressure level and samples real
+  per-cluster MHz against the hardware maximum, so you can tell *throttled* from *idle*.
+- **Audit trail** — every change is logged to the unified log (category `audit`) and to
+  `~/Library/Logs/MacTweak/MacTweak.log`, recording before → intended → **actual** state.
+- **51 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
   Services, Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
   unthrottle background I/O, server performance mode), RAM/GPU responsiveness (reduce
   transparency & motion), Finder/Dock snappiness (faster Mission Control, instant dock,
