@@ -4,6 +4,33 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Added — Services page (see and stop background launchd jobs)
+- **New Services pane** listing every non-Apple `launchd` job from
+  `~/Library/LaunchAgents`, `/Library/LaunchAgents` and `/Library/LaunchDaemons`, with
+  live state (running + pid, idle, disabled, last exit status) and **live CPU / memory
+  per service** — the answer to "what is running behind my back and what does it cost?".
+- **Two levels of off, both reversible:** **Stop** (`launchctl bootout` — until the next
+  login) and **Disable** (`launchctl disable` + bootout — persists). Plus **Disable all**
+  per group, and re-enable at any time. Every change goes to the audit trail.
+- **Grouped by what it is**, which decides how freely it may be switched: developer
+  services (Homebrew databases/servers/model runners), auto-updaters, app helpers,
+  security & management, MacTweak's own.
+- **Security/EDR agents are read-only** (Cortex XDR, CrowdStrike, Jamf, Defender…). On a
+  managed Mac they're required by policy, and disabling one is both a compliance problem
+  and a real loss of protection — listed for transparency, never switched.
+- **Apple's daemons are not listed at all** — SIP-protected and load-bearing; the few
+  worth changing already ship as reversible tweaks.
+- **Uses `launchctl`, not `brew services`:** brew's wrapper is only a launchd front-end
+  and breaks on new macOS releases (on macOS 26 it dies with "unknown or unsupported
+  macOS version" before doing anything).
+- **Handles services installed twice.** Homebrew often registers the same service as
+  both a user agent and a root daemon; they're separate jobs and the *system* copy is
+  usually the one running. State is read **per domain** (`launchctl print gui/<uid>` and
+  `launchctl print system`, both readable without root) rather than from `launchctl
+  list`, which only ever reports the caller's own domain and would have shown a system
+  daemon its user agent's status. Duplicated names get an explicit warning, since
+  disabling one copy leaves the other running.
+
 ### Added — Diagnosis knowledge captured in the docs
 - **docs/FAQ.md** — "I cleaned my Mac and now it's hot. Did a tweak do that?": cleaning
   **defers** work rather than removing it, so the heat is the rebuild bill (Spotlight

@@ -75,6 +75,45 @@ Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which
 why frequency needs `powermetrics` and root. MacTweak derives each cluster's
 maximum from the frequency-residency histogram in that output.
 
+### How do I stop MySQL / PHP / nginx starting at boot?
+Use the **Services** page. Those are `launchd` jobs, not apps, so quitting them does
+nothing — launchd restarts them. Two levels, both reversible:
+
+- **Stop** — `launchctl bootout`. Ends it now; it returns at the next login.
+- **Disable** — `launchctl disable` + bootout. It won't come back until you re-enable.
+
+**The trap: Homebrew often installs the same service twice** — once as a user agent in
+`~/Library/LaunchAgents` and once as a root daemon in `/Library/LaunchDaemons`. They are
+two separate jobs with the same name, and it's usually the **system** one actually
+running. Disable only the user copy and the process keeps running, which looks like the
+button did nothing. MacTweak flags duplicated names and labels each row `User`/`System`.
+
+Check which copy owns the process:
+```bash
+launchctl print system/homebrew.mxcl.mysql@8.0 | head -5   # works without root
+launchctl print gui/$(id -u)/homebrew.mxcl.mysql@8.0 | head -5
+```
+`state = running` plus a pid tells you which domain to switch off.
+
+> **`brew services` is not the tool for this.** It's only a launchd front-end, and it
+> breaks on new macOS releases — on macOS 26 it dies with `unknown or unsupported macOS
+> version` before doing anything. `launchctl` is the real interface and always works.
+
+### Which background services are safe to disable?
+MacTweak groups them by what they are:
+
+| Group | Safe to disable? |
+|---|---|
+| **Developer services** (Homebrew databases, web servers, model runners) | **Yes** — nothing else depends on them. Start them when you need them |
+| **Auto-updaters** (Google Keystone, Microsoft AutoUpdate, TeamViewer) | **Yes** — you just update that app manually |
+| **App helpers** (Docker, vendor daemons) | Usually — the app may restart it or lose a background feature |
+| **Security & management** (Cortex XDR, Jamf, Defender…) | **No** — MacTweak lists these read-only and won't switch them |
+| **Apple daemons** | Not listed at all — SIP-protected and load-bearing |
+
+Security agents are deliberately **Protected**: on a managed Mac they're required by
+policy, and disabling one is both a compliance problem and a real loss of protection.
+The Apple daemons worth changing already ship as reversible tweaks in the catalog.
+
 ### I cleaned my Mac and now it's hot. Did a tweak do that?
 Almost certainly not — **check the audit trail before suspecting a setting**:
 ```bash

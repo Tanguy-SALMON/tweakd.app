@@ -22,6 +22,8 @@ struct SidebarView: View {
                 row(.processPriority, "Process Priority", "cpu",
                     badge: model.priority.managedCount == 0 ? nil : "\(model.priority.managedCount)")
                 row(.diskCleanup, "Disk Cleanup", "internaldrive")
+                row(.services, "Services", "square.stack.3d.up",
+                    badge: model.services.runningCount == 0 ? nil : "\(model.services.runningCount)")
             }
 
             Section("Tweaks") {

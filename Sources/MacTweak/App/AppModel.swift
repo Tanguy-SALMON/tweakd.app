@@ -16,6 +16,7 @@ enum Panel: Hashable {
     case actions
     case processPriority
     case diskCleanup
+    case services
     case category(TweakCategory)
 }
 
@@ -52,6 +53,7 @@ final class AppModel: ObservableObject {
     let audioWatchdog = CoreAudioWatchdog()
     let priority = PriorityManager()
     let diskCleanup = DiskCleanupManager()
+    let services = ServicesManager()
     let adBlock = AdBlockManager()
     let thermal = ThermalMonitor()
     /// Offline semantic search over the feature catalog (stemming, typo & fuzzy
@@ -87,6 +89,7 @@ final class AppModel: ObservableObject {
         benchmark.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         priority.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
         diskCleanup.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
+        services.objectWillChange.sink { [weak self] _ in self?.objectWillChange.send() }.store(in: &bag)
 
         // Keep the ad-block weekly auto-updater LaunchAgent in step with the
         // "Block Ads & Trackers" tweak whenever it's toggled.
@@ -136,6 +139,7 @@ final class AppModel: ObservableObject {
         .init(panel: .actions, title: "Quick Actions", subtitle: "One-tap system actions", icon: "bolt"),
         .init(panel: .processPriority, title: "Process Priority", subtitle: "Renice network & UI processes", icon: "cpu"),
         .init(panel: .diskCleanup, title: "Disk Cleanup", subtitle: "Reclaim space from caches, Xcode, Docker", icon: "internaldrive"),
+        .init(panel: .services, title: "Services", subtitle: "Background launchd jobs — MySQL, PHP, nginx, updaters. Stop or disable them", icon: "square.stack.3d.up"),
     ]
 
     /// True while search results are taking over the detail area (active + a

@@ -71,6 +71,7 @@ struct MainWindowView: View {
         case .actions:   ActionsView()
         case .processPriority: ProcessPriorityView()
         case .diskCleanup: DiskCleanupView()
+        case .services: ServicesView()
         case .category(let c): TweakListView(section: .category(c))
         }
     }
