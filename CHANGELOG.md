@@ -4,6 +4,16 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+_Nothing yet._
+
+## [0.6.0] — 2026-07-26
+
+**Theme: seeing what your Mac is actually doing.** Where earlier versions were a
+catalog of toggles, this one adds the instruments — every background service and
+what it costs, disk usage broken down and reclaimable, thermal pressure vs. real
+clock speed, benchmark scores kept over time, and an audit trail of every change
+with its *verified* result. Plus the manuals for all of it.
+
 ### Added — Documentation for the tools, with Terminal equivalents
 - **New [docs/SERVICES.md](docs/SERVICES.md)** — the background-services guide: launchd
   domains and why picking the wrong one is the #1 reason a command "does nothing", a
@@ -219,6 +229,8 @@ All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
   non-sensitive identifiers (keys, states, exit codes, pids), never raw commands.
 - Irreversible deletions log each path **before** acting, so the record survives
   a pass that dies partway through.
+
+## [0.5.0] — 2026-07-23
 
 ### Added — Security & Process Priority module (PRP_5)
 - **Security & Network** category with seven new tweaks: Enable Application
