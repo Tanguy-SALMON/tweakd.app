@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 #
-# build.sh — compile MacTweak and wrap the SPM binary in a proper,
+# build.sh — compile tweakd and wrap the SPM binary in a proper,
 # menu-bar-only macOS .app bundle (correct Info.plist, AppIcon, entitlements,
 # and the Finder hide-extension flag). Ad-hoc signed, not sandboxed.
 #
 # Adapted from the Queried/SQLAgent build script so the same build mental
 # model carries across both projects — minus the brand/Pro/Lite flavor
-# machinery MacTweak doesn't have.
+# machinery tweakd doesn't have.
 #
 # Usage:
 #   Scripts/build.sh               # release build, then auto-launch
@@ -18,7 +18,7 @@
 # Flags can combine; order does not matter.
 #
 # Output:
-#   build/MacTweak.app                 # open with `open build/MacTweak.app`
+#   build/tweakd.app                 # open with `open build/tweakd.app`
 #                                      # drag to /Applications to install
 #
 set -euo pipefail
@@ -45,9 +45,9 @@ for arg in "$@"; do
 done
 
 # ----- config ----------------------------------------------------------------
-APP_NAME="MacTweak"
-PRODUCT_NAME="MacTweak"           # SPM target/product name (see Package.swift)
-BUNDLE_ID="com.tanguy.MacTweak"
+APP_NAME="tweakd"
+PRODUCT_NAME="Tweakd"            # SPM target/product name (see Package.swift)
+BUNDLE_ID="app.tweakd"          # reverse-DNS of tweakd.app
 APP_BUNDLE="build/${APP_NAME}.app"
 ICON_ICONSET="Resources/AppIcon.iconset"
 ICON_FALLBACK="Resources/AppIcon.icns"
@@ -86,7 +86,7 @@ chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 
 # Info.plist is generated (not a checked-in file) so VERSION and the git
 # commit flow straight into the bundle. LSUIElement makes it menu-bar-only
-# (no Dock icon), which is the whole point of MacTweak.
+# (no Dock icon), which is the whole point of tweakd.
 cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -128,8 +128,8 @@ fi
 # Ad-hoc signature ("-") + entitlements. Enough for local launch; real
 # distribution would need a Developer ID cert + notarisation.
 echo "==> ad-hoc codesign with entitlements"
-if [[ -f "MacTweak.entitlements" ]]; then
-    codesign --force --sign - --entitlements "MacTweak.entitlements" --timestamp=none "${APP_BUNDLE}" >/dev/null 2>&1 || {
+if [[ -f "tweakd.entitlements" ]]; then
+    codesign --force --sign - --entitlements "tweakd.entitlements" --timestamp=none "${APP_BUNDLE}" >/dev/null 2>&1 || {
         echo "WARNING: codesign with entitlements failed; retrying without."
         codesign --force --sign - "${APP_BUNDLE}" >/dev/null 2>&1 || true
     }
@@ -138,7 +138,7 @@ else
 fi
 
 # ----- 5. mark the .app extension as hidden ---------------------------------
-# So Finder shows "MacTweak" instead of "MacTweak.app" even with
+# So Finder shows "tweakd" instead of "tweakd.app" even with
 # "Show all filename extensions" enabled — matches Apple-shipped apps.
 echo "==> hide .app extension in Finder"
 osascript -e "tell application \"Finder\" to set extension hidden of (POSIX file \"${PWD}/${APP_BUNDLE}\" as alias) to true" >/dev/null 2>&1 || {

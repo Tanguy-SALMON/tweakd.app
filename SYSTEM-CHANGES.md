@@ -1,6 +1,6 @@
 # System Changes Log
 
-Every macOS setting that was modified on this Mac while building & testing MacTweak,
+Every macOS setting that was modified on this Mac while building & testing tweakd,
 with the exact command used, what it does, and its current status.
 
 - **When:** 2026-07-22, during UI testing (the app's guided-setup wizard auto-applied
@@ -17,7 +17,7 @@ with the exact command used, what it does, and its current status.
 > right now, ask the app (**Re-scan**) or read the audit trail, which records every
 > change with its verified resulting state:
 > ```bash
-> log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 24h
+> log show --predicate 'subsystem == "app.tweakd" AND category == "audit"' --last 24h
 > ```
 > Known intentional exception, applied 2026-07-26 and left on at the owner's request:
 > **Stop Accidental VoiceOver** (symbolic hotkey 59 / ⌘F5 disabled). Revert it from the
@@ -87,9 +87,9 @@ password prompt was ever approved). They remain at their original values:
 
 ## App's own preferences (not a system setting)
 
-MacTweak stored its own state in the `com.tanguy.MacTweak` UserDefaults domain
+tweakd stored its own state in the `app.tweakd` UserDefaults domain
 (`didOnboard`, `tweak.order`, `tweak.favorites`). This was also cleared with
-`defaults delete com.tanguy.MacTweak` so you get a clean first run.
+`defaults delete app.tweakd` so you get a clean first run.
 
 ---
 

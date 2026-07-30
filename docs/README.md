@@ -1,6 +1,6 @@
-# MacTweak Documentation
+# tweakd Documentation
 
-Everything about MacTweak — the app, and how to do all of it **by hand** in Terminal.
+Everything about tweakd — the app, and how to do all of it **by hand** in Terminal.
 
 ## Start here
 
@@ -43,7 +43,7 @@ Everything about MacTweak — the app, and how to do all of it **by hand** in Te
 
 ## The one-paragraph version
 
-MacTweak is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
+tweakd is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
 optimizations — Performance, Power, Snappiness, Privacy, Background Services, Network,
 AI. It drives plain `defaults` / `pmset` / `sysctl` / `launchctl` / `mdutil` / `nvram`
 commands (all documented here), re-probes the real state after every change, and can

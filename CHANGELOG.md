@@ -1,10 +1,71 @@
 # Changelog
 
-All notable changes to MacTweak. Dates are `YYYY-MM-DD`.
+All notable changes to tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
 _Nothing yet._
+
+## [0.7.0] — 2026-07-30
+
+### Changed — renamed MacTweak → tweakd (`tweakd.app`)
+
+Everything user-visible is now lowercase **tweakd**. The Swift module stays `Tweakd`
+(Swift convention, invisible at runtime) and the bundle identifier is **`app.tweakd`**,
+the reverse-DNS of the domain.
+
+| | Was | Is |
+|---|---|---|
+| Bundle | `MacTweak.app` | `tweakd.app` |
+| Bundle ID / log subsystem | `com.tanguy.MacTweak` | `app.tweakd` |
+| Support dir | `…/Application Support/MacTweak/` | `…/Application Support/tweakd/` |
+| Log file | `…/Logs/MacTweak/MacTweak.log` | `…/Logs/tweakd/tweakd.log` |
+| sudoers rule | `/etc/sudoers.d/mactweak` | `/etc/sudoers.d/tweakd` |
+| LaunchAgents | `com.mactweak.*` | `app.tweakd.*` |
+| Revert script | `~/Documents/MacTweak_Revert.sh` | `~/Documents/tweakd_Revert.sh` |
+| `/etc/hosts` markers | `# MacTweak-adblock-*` | `# tweakd-adblock-*` |
+| Firefox `user.js` marker | `// MacTweak privacy` | `// tweakd privacy` |
+| SPM target / sources | `MacTweak` · `Sources/MacTweak/` | `Tweakd` · `Sources/Tweakd/` |
+
+### Added — migration, because a rename orphans real state
+
+A rename changes the bundle identifier, and macOS keys preferences on it. Shipping the
+rename alone would make the app look **brand new** on an existing install — onboarding
+again, no favorites, no tweak order, no window position, no benchmark history, audit log
+from zero — with all of it intact in directories nothing reads any more.
+
+`LegacyMigration` runs once, before the first preference read or log write:
+
+- **Preferences** copied from `com.tanguy.MacTweak` into `app.tweakd`, never overwriting
+  a value the new domain already has. The old domain is **left in place** — deleting a
+  user's only copy of their settings to save a few KB is a bad trade if anything's wrong.
+- **Application Support** and **Logs** directories moved, with `MacTweak.log` renamed so
+  the audit trail stays continuous rather than restarting.
+- **Ad-block LaunchAgent re-registered** under the new label. Not a file rename: launchd
+  keys the loaded job on the `Label` *inside* the plist, and the old helper script had the
+  old `/etc/hosts` markers baked in. The old job is booted out and deleted, so the Mac
+  doesn't end up running two weekly rebuilds fighting over the same block.
+- File moves never delete what they couldn't move, and the migration is idempotent.
+
+### Fixed — three artifacts that a blind rename would have stranded
+
+These live in root-owned or third-party files, where migrating would mean a password
+prompt at launch. Instead the **new name is written and both are recognised**:
+
+- **`/etc/sudoers.d/mactweak`** — **Lock Admin** now removes every path the app has ever
+  written. Missing this would have been the serious one: Lock would report success while
+  the old drop-in kept granting passwordless root indefinitely. Detection was already
+  path-independent (it tests `sudo -n`, not the file), and **Unlock** now clears the old
+  rule as it writes the new one.
+- **`/etc/hosts` ad-block markers** — status and revert match either marker pair. On the
+  dev Mac that's **93,156 blocked domains** fenced by the old markers: matching only the
+  new ones would have reported the tweak **Off** while it was on, and revert would have
+  left every entry behind with nothing in the UI able to remove them.
+- **Firefox `user.js` marker** — status and revert match either, so a `user.js` written
+  before the rename is still detected and still removable. Status now emits a normalized
+  `APPLIED` instead of the marker text, since `appliedWhenOutputContains` takes one string.
+
+Priority LaunchAgents scan both prefixes, and the emergency revert script cleans up both.
 
 ## [0.6.0] — 2026-07-26
 
@@ -40,7 +101,7 @@ with its *verified* result. Plus the manuals for all of it.
 
 ### Added — Benchmark history & daily runs
 - **Results are now saved.** Every run is appended to
-  `~/Library/Application Support/MacTweak/benchmark-history.json` (pretty-printed JSON,
+  `~/Library/Application Support/tweakd/benchmark-history.json` (pretty-printed JSON,
   ISO-8601 dates, capped at 400 records) instead of vanishing when the app quits.
 - **Timeline card** — a line chart of the overall score over time plus the last 8 runs
   with the change against the run before. Scheduled runs are drawn as dots, manual ones
@@ -79,7 +140,7 @@ with its *verified* result. Plus the manuals for all of it.
   per group, and re-enable at any time. Every change goes to the audit trail.
 - **Grouped by what it is**, which decides how freely it may be switched: developer
   services (Homebrew databases/servers/model runners), auto-updaters, app helpers,
-  security & management, MacTweak's own.
+  security & management, tweakd's own.
 - **Security/EDR agents are read-only** (Cortex XDR, CrowdStrike, Jamf, Defender…). On a
   managed Mac they're required by policy, and disabling one is both a compliance problem
   and a real loss of protection — listed for transparency, never switched.
@@ -218,9 +279,9 @@ with its *verified* result. Plus the manuals for all of it.
 
 ### Added — Audit trail
 - **Every system change is logged** to macOS's unified log under a dedicated
-  `audit` category (`subsystem == "com.tanguy.MacTweak"`), readable with
+  `audit` category (`subsystem == "app.tweakd"`), readable with
   `log show`/`log stream` or in Console.app, and mirrored to
-  `~/Library/Logs/MacTweak/MacTweak.log` as `[CHANGE]` lines.
+  `~/Library/Logs/tweakd/tweakd.log` as `[CHANGE]` lines.
 - Covers tweak apply/revert (with before → intended → *actual* state, so
   `result=ok` means **verified**, not just "exited 0"), presets and revert-all
   batches, one-shot actions, `renice` changes, apply-at-login LaunchAgents,
@@ -246,7 +307,7 @@ with its *verified* result. Plus the manuals for all of it.
   low-latency) that steer the recommended set.
 - **Menu-bar quick actions:** Quick Security, Low-Latency Network, Reset Priorities.
 - Emergency revert script now also resets renice priorities and removes
-  MacTweak's priority LaunchAgents.
+  tweakd's priority LaunchAgents.
 
 ### Fixed (code review, max-effort pass)
 - **Emergency revert script** now single-quotes admin revert commands, so reverts
@@ -285,7 +346,7 @@ with its *verified* result. Plus the manuals for all of it.
 - **Browser-privacy tweaks** in the Privacy tab: Disable Personalized Ads, Harden
   Chromium & Chrome Telemetry (Chromium/Chrome/Brave/Edge), Disable Firefox Telemetry
   (per-profile `user.js`).
-- **Diagnostic logging** — unified log + `~/Library/Logs/MacTweak/MacTweak.log` with
+- **Diagnostic logging** — unified log + `~/Library/Logs/tweakd/tweakd.log` with
   crash/signal handlers.
 - Disabled the blue focus ring app-wide.
 
@@ -307,7 +368,7 @@ with its *verified* result. Plus the manuals for all of it.
   more tweaks. Simplified hot paths (dedup, caching, parallel probing). README refresh.
 
 ## [0.1.0] — 2026-07-22
-- Initial MacTweak: menu-bar system-tweak tool — data-driven catalog, user/admin
+- Initial tweakd: menu-bar system-tweak tool — data-driven catalog, user/admin
   escalation via the native macOS dialog, reversible tweaks, presets, guided setup,
   benchmarks.
 

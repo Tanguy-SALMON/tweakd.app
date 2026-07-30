@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>MacTweak — Tune macOS. Or do it by hand.</title>
-<meta name="description" content="MacTweak is a premium menu-bar app for macOS that toggles reversible system optimizations. This page documents every tweak — and the exact Terminal command to apply and revert each one yourself, no app required.">
+<title>tweakd — Tune macOS. Or do it by hand.</title>
+<meta name="description" content="tweakd is a premium menu-bar app for macOS that toggles reversible system optimizations. This page documents every tweak — and the exact Terminal command to apply and revert each one yourself, no app required.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='0' y2='1'%3E%3Cstop offset='0' stop-color='%23F54900'/%3E%3Cstop offset='1' stop-color='%23E7000E'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='100' height='100' rx='23' fill='url(%23g)'/%3E%3Cg stroke='white' stroke-width='7' stroke-linecap='round'%3E%3Cline x1='24' y1='34' x2='76' y2='34'/%3E%3Cline x1='24' y1='50' x2='76' y2='50'/%3E%3Cline x1='24' y1='66' x2='76' y2='66'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   :root {
@@ -271,7 +271,7 @@
 <body>
 
 <nav><div class="wrap">
-  <span class="brand"><svg class="navmark" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F54900"/><stop offset="1" stop-color="#E7000E"/></linearGradient></defs><rect width="100" height="100" rx="23.4" fill="url(#navGrad)"/><g stroke="#fff" stroke-width="7" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="url(#navGrad)" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>MacTweak</span>
+  <span class="brand"><svg class="navmark" viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F54900"/><stop offset="1" stop-color="#E7000E"/></linearGradient></defs><rect width="100" height="100" rx="23.4" fill="url(#navGrad)"/><g stroke="#fff" stroke-width="7" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="url(#navGrad)" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>tweakd</span>
   <span class="spacer"></span>
   <a href="#about">About</a>
   <a href="#manual">Do it by hand</a>
@@ -287,8 +287,8 @@
 </div></nav>
 
 <header class="hero"><div class="wrap">
-  <svg class="mark" viewBox="0 0 100 100" role="img" aria-label="MacTweak"><defs><linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F54900"/><stop offset="1" stop-color="#E7000E"/></linearGradient><radialGradient id="heroGlow" cx="0.28" cy="0.2" r="0.9"><stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs><rect width="100" height="100" rx="23.4" fill="url(#heroGrad)"/><rect width="100" height="100" rx="23.4" fill="url(#heroGlow)"/><g stroke="#fff" stroke-width="6.5" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="url(#heroGrad)" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>
-  <h1>MacTweak</h1>
+  <svg class="mark" viewBox="0 0 100 100" role="img" aria-label="tweakd"><defs><linearGradient id="heroGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#F54900"/><stop offset="1" stop-color="#E7000E"/></linearGradient><radialGradient id="heroGlow" cx="0.28" cy="0.2" r="0.9"><stop offset="0" stop-color="#ffffff" stop-opacity="0.45"/><stop offset="0.5" stop-color="#ffffff" stop-opacity="0"/></radialGradient></defs><rect width="100" height="100" rx="23.4" fill="url(#heroGrad)"/><rect width="100" height="100" rx="23.4" fill="url(#heroGlow)"/><g stroke="#fff" stroke-width="6.5" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="url(#heroGrad)" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>
+  <h1>tweakd</h1>
   <p class="tagline">Tune macOS. Or do it entirely by hand.</p>
   <p class="sub">A premium menu-bar app that toggles reversible system optimizations — live CPU/RAM, guided setup, one-tap presets. Prefer the Terminal? This page lists <b>every tweak and the exact command</b> to apply and revert it yourself. No app required.</p>
   <div class="cta">
@@ -301,7 +301,7 @@
 <section id="about"><div class="wrap">
   <p class="eyebrow">What it does</p>
   <h2>Apple-like tweaking, with nothing hidden.</h2>
-  <p class="lead">MacTweak drives the same <span class="inline-code">defaults</span>, <span class="inline-code">pmset</span>, <span class="inline-code">sysctl</span>, <span class="inline-code">launchctl</span> and <span class="inline-code">mdutil</span> commands you'd type yourself — wrapped in a native SwiftUI window, with a live status probe so a tweak only shows <em>Applied</em> when the system really changed.</p>
+  <p class="lead">tweakd drives the same <span class="inline-code">defaults</span>, <span class="inline-code">pmset</span>, <span class="inline-code">sysctl</span>, <span class="inline-code">launchctl</span> and <span class="inline-code">mdutil</span> commands you'd type yourself — wrapped in a native SwiftUI window, with a live status probe so a tweak only shows <em>Applied</em> when the system really changed.</p>
   <div class="grid">
     <div class="card"><div class="ic"><svg class="ic-line" viewBox="0 0 24 24"><line x1="21" x2="14" y1="4" y2="4"/><line x1="10" x2="3" y1="4" y2="4"/><line x1="21" x2="12" y1="12" y2="12"/><line x1="8" x2="3" y1="12" y2="12"/><line x1="21" x2="16" y1="20" y2="20"/><line x1="12" x2="3" y1="20" y2="20"/><line x1="14" x2="14" y1="2" y2="6"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="16" x2="16" y1="18" y2="22"/></svg></div><h3>48 reversible tweaks</h3><p>Performance, Power, Snappiness, Privacy, Background Services, Network, Security &amp; Network, Process Priority, and AI — each with a risk badge and a one-click revert.</p></div>
     <div class="card"><div class="ic"><svg class="ic-line" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div><h3>Live metrics</h3><p>CPU &amp; RAM ring gauges read straight from the Mach kernel, a 90-second chart, and a one-tap <b>Clear RAM</b>.</p></div>
@@ -315,10 +315,10 @@
 <section id="manual"><div class="wrap">
   <p class="eyebrow">Do it by hand</p>
   <h2>Every tweak is just a command.</h2>
-  <p class="lead">Should you prefer not to install the application, every optimization it performs remains fully available to you. Open <b>Terminal</b> (Applications → Utilities), paste the <b>Apply</b> command, and press Return; to undo a change, run its <b>Revert</b> command. MacTweak simply automates these very same commands on your behalf.</p>
+  <p class="lead">Should you prefer not to install the application, every optimization it performs remains fully available to you. Open <b>Terminal</b> (Applications → Utilities), paste the <b>Apply</b> command, and press Return; to undo a change, run its <b>Revert</b> command. tweakd simply automates these very same commands on your behalf.</p>
 
   <div class="callout accent">
-    <p><b>What the app actually does.</b> MacTweak is essentially an <b>automation layer</b> over the commands on this page. Each toggle just runs the matching <b>Apply</b> or <b>Revert</b> command for you, then re-reads the system to confirm it really changed — nothing is hidden, and nothing is done that you can't type yourself.</p>
+    <p><b>What the app actually does.</b> tweakd is essentially an <b>automation layer</b> over the commands on this page. Each toggle just runs the matching <b>Apply</b> or <b>Revert</b> command for you, then re-reads the system to confirm it really changed — nothing is hidden, and nothing is done that you can't type yourself.</p>
     <p>The app adds a few conveniences on top — live CPU/RAM gauges, a guided-setup wizard, one-tap presets, one-click <b>Revert All</b>, and a Core Audio watchdog — but the <b>essential feature, applying and reverting every optimization, is 100% doable straight from the command line</b>, right here. The app just saves you the copy-pasting.</p>
   </div>
 
@@ -557,7 +557,7 @@ done</code><button>Copy</button></div>
     <div class="cmd apply"><span class="lbl">Apply</span><code>for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   [ -d "$p" ] || continue
   printf '%s\n' \
-    '// MacTweak privacy — Firefox telemetry off' \
+    '// tweakd privacy — Firefox telemetry off' \
     'user_pref("toolkit.telemetry.enabled", false);' \
     'user_pref("toolkit.telemetry.unified", false);' \
     'user_pref("toolkit.telemetry.archive.enabled", false);' \
@@ -571,7 +571,7 @@ done</code><button>Copy</button></div>
 done</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   f="$p/user.js"
-  [ -f "$f" ] &amp;&amp; grep -q 'MacTweak privacy' "$f" &amp;&amp; rm -f "$f"
+  [ -f "$f" ] &amp;&amp; grep -qE 'tweakd privacy|MacTweak privacy' "$f" &amp;&amp; rm -f "$f"
 done</code><button>Copy</button></div>
   </div>
 </div></section>
@@ -753,13 +753,13 @@ done</code><button>Copy</button></div>
 
   <div class="tweak">
     <div class="th"><h3>Apply at Login (Persistence)</h3><span class="badge user">no sudo to write</span><span class="badge note">writes a LaunchAgent</span></div>
-    <p class="desc">Because <span class="inline-code">renice</span> resets on reboot, MacTweak's <b>Apply at login</b> option writes a per-target LaunchAgent that waits 15 seconds after login (so the target app has time to launch), then reapplies the same <span class="inline-code">renice</span> through a passwordless sudo rule. Below is the exact plist the app writes for Firefox — replace the label, path and <span class="inline-code">pgrep</span> pattern to build one for another target.</p>
-    <div class="cmd apply"><span class="lbl">~/Library/LaunchAgents/com.mactweak.priority.firefox.plist</span><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
+    <p class="desc">Because <span class="inline-code">renice</span> resets on reboot, tweakd's <b>Apply at login</b> option writes a per-target LaunchAgent that waits 15 seconds after login (so the target app has time to launch), then reapplies the same <span class="inline-code">renice</span> through a passwordless sudo rule. Below is the exact plist the app writes for Firefox — replace the label, path and <span class="inline-code">pgrep</span> pattern to build one for another target.</p>
+    <div class="cmd apply"><span class="lbl">~/Library/LaunchAgents/app.tweakd.priority.firefox.plist</span><code>&lt;?xml version="1.0" encoding="UTF-8"?&gt;
 &lt;!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd"&gt;
 &lt;plist version="1.0"&gt;
 &lt;dict&gt;
     &lt;key&gt;Label&lt;/key&gt;
-    &lt;string&gt;com.mactweak.priority.firefox&lt;/string&gt;
+    &lt;string&gt;app.tweakd.priority.firefox&lt;/string&gt;
     &lt;key&gt;ProgramArguments&lt;/key&gt;
     &lt;array&gt;
         &lt;string&gt;/bin/sh&lt;/string&gt;
@@ -770,14 +770,14 @@ done</code><button>Copy</button></div>
     &lt;true/&gt;
 &lt;/dict&gt;
 &lt;/plist&gt;</code><button>Copy</button></div>
-    <div class="cmd"><span class="lbl">Load</span><code>launchctl load ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist</code><button>Copy</button></div>
-    <div class="cmd"><span class="lbl">Remove</span><code>launchctl unload ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist; rm ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist</code><button>Copy</button></div>
+    <div class="cmd"><span class="lbl">Load</span><code>launchctl load ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist</code><button>Copy</button></div>
+    <div class="cmd"><span class="lbl">Remove</span><code>launchctl unload ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist; rm ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist</code><button>Copy</button></div>
   </div>
 
   <div class="callout accent">
     <p><b>Read before you raise anything below −5.</b> The app caps every priority change at <span class="inline-code">-10</span> and warns before applying anything more negative than <span class="inline-code">-5</span> — an overly negative nice value can starve the UI and other apps of CPU time, making the whole Mac feel worse, not better.</p>
     <p>Changes made with <span class="inline-code">renice</span> alone reset on reboot; turn on <b>Apply at login</b> above if you want a target to keep its priority across restarts.</p>
-    <p><b>Emergency reset:</b> run <span class="inline-code">sudo renice -n 0</span> on every process you've raised or lowered, then remove any <span class="inline-code">~/Library/LaunchAgents/com.mactweak.priority.*.plist</span> LaunchAgents you created.</p>
+    <p><b>Emergency reset:</b> run <span class="inline-code">sudo renice -n 0</span> on every process you've raised or lowered, then remove any <span class="inline-code">~/Library/LaunchAgents/app.tweakd.priority.*.plist</span> LaunchAgents you created.</p>
   </div>
 </div></section>
 
@@ -867,18 +867,18 @@ done</code><button>Copy</button></div>
   </div>
 
   <div class="callout" style="margin-top:36px">
-    <p><b>Verify any change yourself.</b> Read a current value before and after with the same tools — e.g. <span class="inline-code">defaults read -g NSWindowResizeTime</span>, <span class="inline-code">pmset -g | grep powernap</span>, or <span class="inline-code">sysctl -n kern.ipc.somaxconn</span>. MacTweak does exactly this after every change, which is why it only marks a tweak <em>Applied</em> when the system truly reports the new state.</p>
+    <p><b>Verify any change yourself.</b> Read a current value before and after with the same tools — e.g. <span class="inline-code">defaults read -g NSWindowResizeTime</span>, <span class="inline-code">pmset -g | grep powernap</span>, or <span class="inline-code">sysctl -n kern.ipc.somaxconn</span>. tweakd does exactly this after every change, which is why it only marks a tweak <em>Applied</em> when the system truly reports the new state.</p>
   </div>
 
   <div class="callout">
-    <p><b>Prefer the app?</b> MacTweak wraps all of the above with a live status probe, one-tap presets, a guided setup, and a <b>Revert All</b> button. It's a menu-bar app for macOS 15+ — not sandboxed and locally signed, because it drives <span class="inline-code">pmset</span>, <span class="inline-code">mdutil</span>, <span class="inline-code">launchctl</span> and <span class="inline-code">defaults</span> and escalates through the native macOS password prompt.</p>
+    <p><b>Prefer the app?</b> tweakd wraps all of the above with a live status probe, one-tap presets, a guided setup, and a <b>Revert All</b> button. It's a menu-bar app for macOS 15+ — not sandboxed and locally signed, because it drives <span class="inline-code">pmset</span>, <span class="inline-code">mdutil</span>, <span class="inline-code">launchctl</span> and <span class="inline-code">defaults</span> and escalates through the native macOS password prompt.</p>
   </div>
 </div></section>
 
 <section id="get"><div class="wrap">
   <div class="download-banner">
     <svg class="banner-mark" viewBox="0 0 100 100" aria-hidden="true"><rect width="100" height="100" rx="23.4" fill="rgba(255,255,255,0.18)"/><g stroke="#fff" stroke-width="6.5" stroke-linecap="round"><line x1="24" y1="34" x2="76" y2="34"/><line x1="24" y1="50" x2="76" y2="50"/><line x1="24" y1="66" x2="76" y2="66"/></g><g fill="none" stroke="#fff" stroke-width="5"><circle cx="42" cy="34" r="7.5"/><circle cx="60" cy="50" r="7.5"/><circle cx="38" cy="66" r="7.5"/></g></svg>
-    <h2>Get MacTweak.</h2>
+    <h2>Get tweakd.</h2>
     <p>A lightweight menu-bar app for macOS 15+. Everything on this page, one click away — or keep it all manual.</p>
     <div class="cta">
       <a class="btn on-grad" href="#"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download <span class="sz">v0.4.0 · .dmg</span></a>
@@ -889,7 +889,7 @@ done</code><button>Copy</button></div>
 </div></section>
 
 <footer><div class="wrap">
-  MacTweak · Every tweak verified against macOS output formats. Use at your own discretion — all changes are reversible.<br>
+  tweakd · Every tweak verified against macOS output formats. Use at your own discretion — all changes are reversible.<br>
   © 2026 Tanguy Salmon · Designed for macOS.
 </div></footer>
 

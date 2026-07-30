@@ -1,6 +1,6 @@
 # Tools — the panes that aren't tweaks
 
-MacTweak's toggle catalog is documented in [TWEAKS.md](TWEAKS.md) and the Services page
+tweakd's toggle catalog is documented in [TWEAKS.md](TWEAKS.md) and the Services page
 has its own guide in [SERVICES.md](SERVICES.md). This page covers **everything else**:
 Dashboard, Disk Cleanup, Process Priority, Thermal, Benchmark, the audio watchdog, and
 the audit trail — with the exact Terminal command for each, so none of it needs the app.
@@ -149,7 +149,7 @@ no matter how much you prune. `du` counts blocks actually allocated. Compare the
 ```
 
 **Docker prune needs Docker running.** If Docker Desktop is stopped, `docker system
-prune` fails — MacTweak deliberately does *not* mask that error, so a failed prune
+prune` fails — tweakd deliberately does *not* mask that error, so a failed prune
 reports as failed rather than "done" while freeing nothing.
 
 **Clearing a cache does not remove work — it defers it.** Every wiped cache is rebuilt on
@@ -215,7 +215,7 @@ The four workloads are compiled into the app (a shell script can't measure singl
 integer throughput meaningfully), but the **results are plain JSON** and yours to read:
 
 ```bash
-/bin/cat ~/Library/Application\ Support/MacTweak/benchmark-history.json
+/bin/cat ~/Library/Application\ Support/tweakd/benchmark-history.json
 ```
 
 ```json
@@ -240,7 +240,7 @@ Plot or summarise it without the app:
 ```bash
 # every run, as date + overall score
 /usr/bin/python3 -c 'import json,sys;[print(r["date"][:10], round(r["singleCore"]*4+r["multiCore"]*1.5+r["memoryBandwidth"]*0.02+r["disk"]*0.05)) for r in json.load(open(sys.argv[1]))]' \
-  ~/Library/Application\ Support/MacTweak/benchmark-history.json
+  ~/Library/Application\ Support/tweakd/benchmark-history.json
 ```
 
 **Rough shell equivalents** if you want a sanity check outside the app:
@@ -254,13 +254,13 @@ Plot or summarise it without the app:
 /usr/bin/time /usr/bin/openssl speed -seconds 1 sha256 2>/dev/null | /usr/bin/tail -3
 ```
 
-These are **not** comparable to MacTweak's scores — different work, different scale. Use
+These are **not** comparable to tweakd's scores — different work, different scale. Use
 them for "is the disk suddenly slow", not for tracking a trend.
 
 ### The daily run
 
 Configured in the app (**Benchmark → Daily Benchmark**, default 12:00, off until you
-enable it). It's an in-app timer, so it only fires while MacTweak is running, and it is
+enable it). It's an in-app timer, so it only fires while tweakd is running, and it is
 **postponed while the Mac is warm or busy** and **skipped entirely if more than 4 hours
 late** — a benchmark taken mid-build measures the build. Details and reasoning in
 [FAQ.md § Benchmark](FAQ.md#benchmark).
@@ -268,8 +268,8 @@ late** — a benchmark taken mid-build measures the build. Details and reasoning
 Check whether it's on, and when:
 
 ```bash
-defaults read com.tanguy.MacTweak benchmark.daily      # 1 = on
-defaults read com.tanguy.MacTweak benchmark.dailyHour  # hour of day
+defaults read app.tweakd benchmark.daily      # 1 = on
+defaults read app.tweakd benchmark.dailyHour  # hour of day
 ```
 
 ---
@@ -306,18 +306,18 @@ sudo /usr/bin/killall coreaudiod        # 🔐  audio blips for ~1 s
 Toggle state:
 
 ```bash
-defaults read com.tanguy.MacTweak watchdog.coreaudio    # 1 = watching
+defaults read app.tweakd watchdog.coreaudio    # 1 = watching
 ```
 
 ---
 
 ## The audit trail
 
-**Every change MacTweak makes** is recorded with its before state, its intended state,
+**Every change tweakd makes** is recorded with its before state, its intended state,
 and the **verified actual** state afterwards — including the ones that failed.
 
 ```bash
-/usr/bin/log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 24h
+/usr/bin/log show --predicate 'subsystem == "app.tweakd" AND category == "audit"' --last 24h
 ```
 
 ```
@@ -343,7 +343,7 @@ Useful filters:
 There's also a plain file, which survives a crash the unified log wouldn't record:
 
 ```bash
-/usr/bin/tail -50 ~/Library/Logs/MacTweak/MacTweak.log
+/usr/bin/tail -50 ~/Library/Logs/tweakd/tweakd.log
 ```
 
 > **This is the answer to "what is actually applied right now?"** — not

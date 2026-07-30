@@ -1,6 +1,6 @@
-# MacTweak — FAQ & Troubleshooting
+# tweakd — FAQ & Troubleshooting
 
-Real questions that came up building and using MacTweak, with honest answers.
+Real questions that came up building and using tweakd, with honest answers.
 
 ## General
 
@@ -72,7 +72,7 @@ sudo powermetrics --samplers thermal -n 1         # "Current pressure level: Nom
 sudo powermetrics --samplers cpu_power -n 1 -i 300 | grep "HW active frequency"
 ```
 Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which is
-why frequency needs `powermetrics` and root. MacTweak derives each cluster's
+why frequency needs `powermetrics` and root. tweakd derives each cluster's
 maximum from the frequency-residency histogram in that output.
 
 ### How do I stop MySQL / PHP / nginx starting at boot?
@@ -86,7 +86,7 @@ nothing — launchd restarts them. Two levels, both reversible:
 `~/Library/LaunchAgents` and once as a root daemon in `/Library/LaunchDaemons`. They are
 two separate jobs with the same name, and it's usually the **system** one actually
 running. Disable only the user copy and the process keeps running, which looks like the
-button did nothing. MacTweak flags duplicated names and labels each row `User`/`System`.
+button did nothing. tweakd flags duplicated names and labels each row `User`/`System`.
 
 Check which copy owns the process:
 ```bash
@@ -122,7 +122,7 @@ lot, which is the usual reason this dialog appears "out of nowhere".
 > can't be removed at all: they're Apple's, live in `/System/Library`, are SIP-protected,
 > and measure 0.0% CPU idle. They also aren't what shows the dialog.
 
-### How do I know MacTweak found *all* my services, including custom ones?
+### How do I know tweakd found *all* my services, including custom ones?
 Because it doesn't only look in the usual folders — **it asks launchd**, then adds
 anything the folder scan missed. If launchd is running your service, it's listed,
 however you installed it.
@@ -149,7 +149,7 @@ deliberately excluded classes: Apple's own (`com.apple.*`, plus unprefixed OS jo
 GUI apps, not services), and `NetworkExtension.*` (VPN/filter providers, managed in
 System Settings).
 
-**A service MacTweak doesn't recognise is never hidden** — it's listed under **Other**
+**A service tweakd doesn't recognise is never hidden** — it's listed under **Other**
 and is fully controllable. Classification only decides the heading.
 
 Trace any single job to its origin (no root needed):
@@ -164,14 +164,14 @@ check those separately: `crontab -l`, Docker containers with restart policies
 mechanism: [ARCHITECTURE.md](ARCHITECTURE.md#servicesmanager--detecting-every-background-service).
 
 ### Which background services are safe to disable?
-MacTweak groups them by what they are:
+tweakd groups them by what they are:
 
 | Group | Safe to disable? |
 |---|---|
 | **Developer services** (Homebrew databases, web servers, model runners) | **Yes** — nothing else depends on them. Start them when you need them |
 | **Auto-updaters** (Google Keystone, Microsoft AutoUpdate, TeamViewer) | **Yes** — you just update that app manually |
 | **App helpers** (Docker, vendor daemons) | Usually — the app may restart it or lose a background feature |
-| **Security & management** (Cortex XDR, Jamf, Defender…) | **No** — MacTweak lists these read-only and won't switch them |
+| **Security & management** (Cortex XDR, Jamf, Defender…) | **No** — tweakd lists these read-only and won't switch them |
 | **Apple daemons** | Not listed at all — SIP-protected and load-bearing |
 
 Security agents are deliberately **Protected**: on a managed Mac they're required by
@@ -181,7 +181,7 @@ The Apple daemons worth changing already ship as reversible tweaks in the catalo
 ### I cleaned my Mac and now it's hot. Did a tweak do that?
 Almost certainly not — **check the audit trail before suspecting a setting**:
 ```bash
-log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 2h
+log show --predicate 'subsystem == "app.tweakd" AND category == "audit"' --last 2h
 ```
 If every line is `event=action.run` or `event=cleanup.clean` and there's no tweak
 apply, then no persistent setting was changed and there is nothing to revert.
@@ -240,7 +240,7 @@ F=~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
 ls -lh "$F" | awk '{print $5}'   # 60G  <- logical ceiling, always looks huge
 du -h  "$F" | awk '{print $1}'   # 1.5G <- actually on disk
 ```
-MacTweak reports the `du` figure. To see what a prune really freed, read its own last
+tweakd reports the `du` figure. To see what a prune really freed, read its own last
 line — `Total reclaimed space: …` (the app now shows it):
 ```bash
 docker system prune -af --volumes
@@ -278,7 +278,7 @@ Those drivers run **inside** `coreaudiod`, so the cost bills there. Restart it:
 ```bash
 sudo killall coreaudiod
 ```
-It relaunches automatically (audio blips for a second). MacTweak's **Core Audio
+It relaunches automatically (audio blips for a second). tweakd's **Core Audio
 Watchdog** can do this for you when `coreaudiod` stays hot for ~30 s — enable it on the
 Dashboard (auto-restart is silent only if passwordless admin is unlocked).
 
@@ -297,7 +297,7 @@ CPU after giving up; re-toggle it to try restarting again.
 It's Apple's **performance/power telemetry** helper — it periodically samples thermal
 and power state to inform the scheduler and battery health. It's low-impact, bursty,
 and **part of the OS's power management**; there's no safe, meaningful tweak for it,
-so MacTweak doesn't ship one. Leave it alone.
+so tweakd doesn't ship one. Leave it alone.
 
 ### High CPU from `mlx`/Python processes?
 That's **legitimate local inference** (MLX-LM), not waste — the model is doing work.
@@ -311,11 +311,11 @@ Normal — screen capture drives WindowServer. Not a leak.
 ## Benchmark
 
 ### Where are my benchmark results saved?
-`~/Library/Application Support/MacTweak/benchmark-history.json` — pretty-printed JSON
+`~/Library/Application Support/tweakd/benchmark-history.json` — pretty-printed JSON
 with ISO-8601 dates, so you can read or plot it without the app:
 
 ```bash
-/bin/cat ~/Library/Application\ Support/MacTweak/benchmark-history.json
+/bin/cat ~/Library/Application\ Support/tweakd/benchmark-history.json
 ```
 
 Every run is appended, manual or scheduled, capped at the most recent 400. **Clear** next
@@ -326,7 +326,7 @@ timeline has its own **Clear history**.
 Yes — **Benchmark → Daily Benchmark**, with an hour picker that defaults to **12:00**.
 It's **off by default**, because a run pegs every core for a few seconds.
 
-It only fires while MacTweak is running (it's a plain in-app timer, not a LaunchAgent),
+It only fires while tweakd is running (it's a plain in-app timer, not a LaunchAgent),
 but it's checked every 5 minutes rather than at the exact minute, so a Mac that was
 asleep at noon still gets its run shortly after waking.
 
@@ -345,7 +345,7 @@ By design, in one of three ways:
 Both the runs and the skips are in the audit trail:
 
 ```bash
-/usr/bin/log show --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --last 24h | /usr/bin/grep benchmark
+/usr/bin/log show --predicate 'subsystem == "app.tweakd" AND category == "audit"' --last 24h | /usr/bin/grep benchmark
 ```
 
 ### Why did my score drop 4% overnight? Did a tweak break something?
@@ -365,17 +365,17 @@ tweaks measured against *noon's run* instead of your baseline.
 ## The app "crashed" / disappeared
 
 ### I entered my admin password and the window vanished.
-It almost certainly **didn't crash**. MacTweak is a menu-bar (accessory) app with no
+It almost certainly **didn't crash**. tweakd is a menu-bar (accessory) app with no
 Dock icon; when the macOS password dialog appears it steals focus, and afterward the
 window can drop **behind** other windows — it *looks* gone but is alive in the menu
 bar. This is now handled: after any auth dialog the app reactivates and raises its
-window. If it ever truly crashes, `~/Library/Logs/MacTweak/MacTweak.log` records it.
+window. If it ever truly crashes, `~/Library/Logs/tweakd/tweakd.log` records it.
 
 ### Where are the logs?
 ```bash
-tail -f ~/Library/Logs/MacTweak/MacTweak.log
+tail -f ~/Library/Logs/tweakd/tweakd.log
 # or the unified log:
-log show --predicate 'subsystem == "com.tanguy.MacTweak"' --last 30m
+log show --predicate 'subsystem == "app.tweakd"' --last 30m
 ```
 
 ---
@@ -384,13 +384,13 @@ log show --predicate 'subsystem == "com.tanguy.MacTweak"' --last 30m
 
 ### Why does it ask for my password?
 Admin tweaks (`pmset`, `sysctl`, `mdutil`, system `launchctl`, `nvram`) need root.
-MacTweak uses the **native macOS password dialog** — no helper tool, no stored
+tweakd uses the **native macOS password dialog** — no helper tool, no stored
 password. See [SAFETY.md](SAFETY.md).
 
 ### What is "Unlock passwordless admin"?
 A one-time convenience: it installs a validated sudoers rule so later admin tweaks
 skip the prompt. It grants your user passwordless root via `/bin/zsh` — **Lock** it
-when done tuning if that concerns you. Manual removal: `sudo rm /etc/sudoers.d/mactweak`.
+when done tuning if that concerns you. Manual removal: `sudo rm /etc/sudoers.d/tweakd`.
 
 ### Can I do the admin tweaks without unlocking anything?
 Yes — run the `sudo` commands in [TWEAKS.md](TWEAKS.md) directly in Terminal.
@@ -401,12 +401,67 @@ Yes — run the `sudo` commands in [TWEAKS.md](TWEAKS.md) directly in Terminal.
 
 ### Undo everything.
 In the app: **Revert All**. By hand: the **Revert** commands in [TWEAKS.md](TWEAKS.md),
-or the emergency script (`bash ~/Documents/MacTweak_Revert.sh`).
+or the emergency script (`bash ~/Documents/tweakd_Revert.sh`).
 
 ### Remove the app's own settings and sudoers rule.
 ```bash
-defaults delete com.tanguy.MacTweak 2>/dev/null   # onboarding/order/favorites
-sudo rm -f /etc/sudoers.d/mactweak                 # passwordless-admin rule
+defaults delete app.tweakd 2>/dev/null           # onboarding/order/favorites
+defaults delete com.tanguy.MacTweak 2>/dev/null  # pre-rename copy, if you ever ran MacTweak
+sudo rm -f /etc/sudoers.d/tweakd /etc/sudoers.d/mactweak   # passwordless-admin rule(s)
+launchctl bootout gui/$(id -u)/app.tweakd.adblock 2>/dev/null
+rm -f ~/Library/LaunchAgents/app.tweakd.*.plist ~/Library/LaunchAgents/com.mactweak.*.plist
+rm -rf ~/Library/Application\ Support/tweakd ~/Library/Logs/tweakd
+```
+
+---
+
+## It used to be called MacTweak
+
+### I updated and it's called tweakd now. Did I lose my settings?
+No. On first launch tweakd **migrates** what MacTweak left behind, because renaming an
+app changes its bundle identifier and macOS keys preferences on that identifier. Without
+the migration the app would look brand new: onboarding again, no favorites, no tweak
+order, no window position, no benchmark history, and an audit log starting from zero.
+
+What moves, once, automatically:
+
+| Was | Is now |
+|---|---|
+| `com.tanguy.MacTweak` preferences | `app.tweakd` (keys copied; the old domain is left in place, not deleted) |
+| `~/Library/Application Support/MacTweak/` | `~/Library/Application Support/tweakd/` |
+| `~/Library/Logs/MacTweak/MacTweak.log` | `~/Library/Logs/tweakd/tweakd.log` (history preserved, appended to) |
+| LaunchAgent `com.mactweak.adblock` | `app.tweakd.adblock` (re-registered, old one booted out) |
+
+Confirm it ran:
+```bash
+/usr/bin/log show --predicate 'subsystem == "app.tweakd" AND category == "audit"' --last 1h | grep migration
+```
+
+### Three things were deliberately *not* renamed on disk. Why?
+Because migrating them would mean a password prompt at launch, which is a bad trade for
+a cosmetic rename. Instead tweakd **recognises both names** wherever these are used, so
+nothing is stranded:
+
+- **`/etc/sudoers.d/mactweak`** — a rule installed before the rename keeps working, and
+  **Lock Admin** deletes both paths. This one matters: if Lock only removed the new path,
+  it would report success while the old file kept granting passwordless root. The next
+  time you use **Unlock**, the rule is rewritten at `/etc/sudoers.d/tweakd` and the old
+  file removed.
+- **`# MacTweak-adblock-*` markers in `/etc/hosts`** — the ~93k blocked domains stay
+  fenced by the old markers until the next refresh. The tweak's status check and revert
+  both match either marker pair, so it still reads as **On** and still turns off cleanly.
+  A refresh rewrites the block with the new markers.
+- **`// MacTweak privacy` in Firefox's `user.js`** — same idea: status and revert match
+  either marker, so a `user.js` written before the rename is still detected and still
+  removable.
+
+### Can I query the old audit-log history?
+The file log at `~/Library/Logs/tweakd/tweakd.log` is continuous — the migration moved it,
+so pre-rename lines are still there. The **unified** log is keyed on subsystem, though, so
+anything recorded before the rename needs the old one:
+```bash
+/usr/bin/log show --predicate 'subsystem == "com.tanguy.MacTweak"' --last 7d   # pre-rename
+/usr/bin/log show --predicate 'subsystem == "app.tweakd"' --last 7d            # since
 ```
 
 See also: [TWEAKS.md](TWEAKS.md) · [SAFETY.md](SAFETY.md) · [ARCHITECTURE.md](ARCHITECTURE.md)

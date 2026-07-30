@@ -1,11 +1,11 @@
-# MacTweak — Tweak & Command Reference
+# tweakd — Tweak & Command Reference
 
-Every optimization MacTweak can apply, with the **exact Terminal command** to
+Every optimization tweakd can apply, with the **exact Terminal command** to
 apply and revert it **by hand** — no app required. This is the plain-text twin
 of [`index.html`](index.html).
 
 > **How to use this by hand:** open **Terminal** (Applications → Utilities), paste
-> the **Apply** line, press Return. To undo, paste the **Revert** line. MacTweak
+> the **Apply** line, press Return. To undo, paste the **Revert** line. tweakd
 > runs exactly these commands.
 
 ## Before you paste — three rules
@@ -39,7 +39,7 @@ should be applied differently because of it.
 sysctl -n hw.model            # e.g. Mac14,2 = MacBook Air (M2, fanless)
 system_profiler SPHardwareDataType | grep "Model Name"   # the plain-English name
 ```
-MacTweak detects this for you — the Dashboard's thermal card says *"This Mac is
+tweakd detects this for you — the Dashboard's thermal card says *"This Mac is
 fanless"* and reports live thermal pressure, so you can see whether you're
 actually being throttled rather than guessing.
 
@@ -462,7 +462,7 @@ Takes effect on Firefox restart.
 for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   [ -d "$p" ] || continue
   printf '%s\n' \
-    '// MacTweak privacy — Firefox telemetry off' \
+    '// tweakd privacy — Firefox telemetry off' \
     'user_pref("toolkit.telemetry.enabled", false);' \
     'user_pref("toolkit.telemetry.unified", false);' \
     'user_pref("toolkit.telemetry.archive.enabled", false);' \
@@ -475,10 +475,10 @@ for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
     'user_pref("browser.discovery.enabled", false);' > "$p/user.js"
 done
 
-# Revert (only removes the file MacTweak wrote)
+# Revert (only removes the file tweakd wrote)
 for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   f="$p/user.js"
-  [ -f "$f" ] && grep -q 'MacTweak privacy' "$f" && rm -f "$f"
+  [ -f "$f" ] && grep -q 'tweakd privacy' "$f" && rm -f "$f"
 done
 ```
 
@@ -599,7 +599,7 @@ routes every domain in it to `0.0.0.0` in `/etc/hosts`. System-wide — every br
 app, no extension needed.
 
 The block is written **between two markers**, so the rest of your `/etc/hosts` is
-preserved and revert removes only what MacTweak added. It's idempotent (a re-run strips
+preserved and revert removes only what tweakd added. It's idempotent (a re-run strips
 the old block first), and a failed or empty download leaves `/etc/hosts` untouched
 rather than half-written.
 
@@ -610,26 +610,26 @@ Revert is one command.
 
 ```bash
 # Apply / refresh — download the list and rebuild the marked block
-sudo /bin/zsh -c 'L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then sed "/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d" /etc/hosts > "$T"; echo "# MacTweak-adblock-start" >> "$T"; grep "^0\.0\.0\.0 " "$L" >> "$T"; echo "# MacTweak-adblock-end" >> "$T"; cat "$T" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f "$L" "$T"'
+sudo /bin/zsh -c 'L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then sed "/# tweakd-adblock-start/,/# tweakd-adblock-end/d" /etc/hosts > "$T"; echo "# tweakd-adblock-start" >> "$T"; grep "^0\.0\.0\.0 " "$L" >> "$T"; echo "# tweakd-adblock-end" >> "$T"; cat "$T" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f "$L" "$T"'
 
-# Revert — delete only MacTweak's block
-sudo sed -i '' '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts
+# Revert — delete only tweakd's block
+sudo sed -i '' '/# tweakd-adblock-start/,/# tweakd-adblock-end/d' /etc/hosts
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 
 # Check
-grep -q '# MacTweak-adblock-start' /etc/hosts && echo ON || echo OFF
+grep -q '# tweakd-adblock-start' /etc/hosts && echo ON || echo OFF
 grep -c '^0\.0\.0\.0 ' /etc/hosts          # how many domains are blocked
 ```
 
 **Weekly auto-update.** The app can install a LaunchAgent that re-downloads the list
 every 7 days (the source updates often; a stale list quietly stops blocking new
-domains). It lives at `~/Library/LaunchAgents/com.mactweak.adblock.plist` and calls
-`~/Library/Application Support/MacTweak/adblock-update.sh`. To remove it by hand:
+domains). It lives at `~/Library/LaunchAgents/app.tweakd.adblock.plist` and calls
+`~/Library/Application Support/tweakd/adblock-update.sh`. To remove it by hand:
 
 ```bash
-launchctl bootout gui/$(id -u)/com.mactweak.adblock 2>/dev/null
-rm ~/Library/LaunchAgents/com.mactweak.adblock.plist
-rm ~/Library/Application\ Support/MacTweak/adblock-update.sh
+launchctl bootout gui/$(id -u)/app.tweakd.adblock 2>/dev/null
+rm ~/Library/LaunchAgents/app.tweakd.adblock.plist
+rm ~/Library/Application\ Support/tweakd/adblock-update.sh
 ```
 
 See [SERVICES.md](SERVICES.md) for what that agent looks like from `launchctl`'s side.
@@ -763,20 +763,20 @@ sudo renice -n 0 -p <pid>
 
 ### Apply at login (persistence)
 
-Because `renice` resets on reboot, MacTweak's **Apply at login** option writes a
+Because `renice` resets on reboot, tweakd's **Apply at login** option writes a
 per-target LaunchAgent that waits 15 seconds after login (so the target app has time
 to launch), then reapplies the same `renice` through a passwordless sudo rule. Below
 is the exact plist the app writes for Firefox — swap the label, path and `pgrep`
 pattern to build one for another target.
 
-`~/Library/LaunchAgents/com.mactweak.priority.firefox.plist`:
+`~/Library/LaunchAgents/app.tweakd.priority.firefox.plist`:
 ```xml
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.mactweak.priority.firefox</string>
+    <string>app.tweakd.priority.firefox</string>
     <key>ProgramArguments</key>
     <array>
         <string>/bin/sh</string>
@@ -790,11 +790,11 @@ pattern to build one for another target.
 ```
 Load it:
 ```bash
-launchctl load ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist
+launchctl load ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist
 ```
 Remove it:
 ```bash
-launchctl unload ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist; rm ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist
+launchctl unload ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist; rm ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist
 ```
 
 > **Before you raise anything below −5:** the app caps every priority change at
@@ -802,7 +802,7 @@ launchctl unload ~/Library/LaunchAgents/com.mactweak.priority.firefox.plist; rm 
 > negative nice value can starve the UI and other apps of CPU time, making the whole
 > Mac feel worse, not better. **Emergency reset:** run `sudo renice -n 0` on every
 > process you've raised or lowered, then remove any
-> `~/Library/LaunchAgents/com.mactweak.priority.*.plist` LaunchAgents you created.
+> `~/Library/LaunchAgents/app.tweakd.priority.*.plist` LaunchAgents you created.
 
 ---
 
@@ -869,7 +869,7 @@ launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate   # security & network
 ps -o pid,nice,comm -p $(pgrep mDNSResponder)                            # process priority
 ```
-MacTweak does exactly this after every change — which is why it only marks a tweak
+tweakd does exactly this after every change — which is why it only marks a tweak
 *Applied* when the system truly reports the new state.
 
 See also: [SAFETY.md](SAFETY.md) · [FAQ.md](FAQ.md) · [ARCHITECTURE.md](ARCHITECTURE.md)

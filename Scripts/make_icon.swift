@@ -1,6 +1,6 @@
 //
 //  make_icon.swift
-//  Renders the MacTweak app icon (a rounded square with a brand gradient and
+//  Renders the tweakd app icon (a rounded square with a brand gradient and
 //  the slider glyph) to a 1024×1024 PNG. Run:  swift Scripts/make_icon.swift <out.png>
 //
 //  Rendering model: a soft directional light from the top, a multi-stop

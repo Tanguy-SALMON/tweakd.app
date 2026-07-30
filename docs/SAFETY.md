@@ -1,6 +1,6 @@
-# MacTweak — Privileges, SIP & Safety
+# tweakd — Privileges, SIP & Safety
 
-Everything MacTweak does is **reversible**. This page explains the ground rules so
+Everything tweakd does is **reversible**. This page explains the ground rules so
 nothing surprises you — whether you use the app or the [manual commands](TWEAKS.md).
 
 ## Privilege levels
@@ -135,21 +135,21 @@ specifically to priority:
   **Apply at login** if you want a target's priority reapplied automatically every
   time you log in (see [TWEAKS.md](TWEAKS.md) for the exact LaunchAgent plist).
 - **Emergency reset:** run `sudo renice -n 0` on every process you've raised or
-  lowered, then remove any `~/Library/LaunchAgents/com.mactweak.priority.*.plist`
+  lowered, then remove any `~/Library/LaunchAgents/app.tweakd.priority.*.plist`
   files and `launchctl unload` them first if still loaded.
 
 ## The emergency revert script
 
-If a tweak ever makes the system misbehave and the app won't open, MacTweak can write
+If a tweak ever makes the system misbehave and the app won't open, tweakd can write
 a standalone script (**Quick Actions → Create Emergency Revert Script**) to:
 
 ```
-~/Documents/MacTweak_Revert.sh
+~/Documents/tweakd_Revert.sh
 ```
 
 Run it from Terminal to undo everything:
 ```bash
-bash ~/Documents/MacTweak_Revert.sh
+bash ~/Documents/tweakd_Revert.sh
 ```
 
 It reverts every user-level tweak, then every admin tweak (prompting for `sudo`),
@@ -167,29 +167,29 @@ mdutil -s /                                           # spotlight
 launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 ```
 
-This is exactly what MacTweak does after every change — which is why it only marks a
+This is exactly what tweakd does after every change — which is why it only marks a
 tweak *Applied* when the system truly reports the new state.
 
 ## Audit trail — every change is logged
 
-MacTweak records each system change you make to macOS's **unified log** (the same
+tweakd records each system change you make to macOS's **unified log** (the same
 journal `Console.app` reads) under a dedicated `audit` category, so you can always
 answer *"what did this app actually change, and did it work?"* — even weeks later,
 and even for changes made by its background agents.
 
 Read the trail:
 ```bash
-# everything MacTweak changed in the last hour
-log show --last 1h --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"' --style compact
+# everything tweakd changed in the last hour
+log show --last 1h --predicate 'subsystem == "app.tweakd" AND category == "audit"' --style compact
 
 # watch changes live as you toggle things
-log stream --predicate 'subsystem == "com.tanguy.MacTweak" AND category == "audit"'
+log stream --predicate 'subsystem == "app.tweakd" AND category == "audit"'
 ```
 
 Entries are `key=value` pairs, so they're greppable:
 ```
 CHANGE event=tweak.set key=disable-siri-daemon from=notApplied to=applied privilege=admin exit=0 result=ok
-CHANGE event=admin.unlock sudoers=/etc/sudoers.d/mactweak exit=0 result=ok
+CHANGE event=admin.unlock sudoers=/etc/sudoers.d/tweakd exit=0 result=ok
 CHANGE event=cleanup.clean item=xcode-derived sizeBefore=564M sizeAfter=0B exit=0 result=ok
 CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=ok
 ```
@@ -197,7 +197,7 @@ CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=
 - **`result=`** is `ok` (the probe confirmed the new state), `failed` (ran, but the
   system didn't end up where it was asked — the `error=` field says why),
   `cancelled` (you dismissed the auth prompt), or `skipped` (nothing to do).
-- `result=ok` means **verified**, not merely "the command exited 0" — MacTweak
+- `result=ok` means **verified**, not merely "the command exited 0" — tweakd
   re-probes the real state and logs `actual=` alongside the intent.
 - **Destructive actions log before they act.** Orphaned-leftover deletions write one
   `cleanup.orphaned.delete path=…` line per path *before* the delete runs, so the
@@ -207,9 +207,9 @@ CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=
   (not `<private>`), because a trail redacted to `<private>` is useless.
 
 The same lines are mirrored to a plain-text file at
-`~/Library/Logs/MacTweak/MacTweak.log`, tagged `[CHANGE]`:
+`~/Library/Logs/tweakd/tweakd.log`, tagged `[CHANGE]`:
 ```bash
-grep CHANGE ~/Library/Logs/MacTweak/MacTweak.log
+grep CHANGE ~/Library/Logs/tweakd/tweakd.log
 ```
 
 ## Passwordless admin — the trade-off
@@ -217,9 +217,9 @@ grep CHANGE ~/Library/Logs/MacTweak/MacTweak.log
 **Unlock** on the Dashboard's *Admin Access* card authenticates **once** and installs
 a sudoers rule so later admin tweaks apply without a prompt:
 
-- Lives at `/etc/sudoers.d/mactweak` (root-owned, `0440`, validated with `visudo -c`).
+- Lives at `/etc/sudoers.d/tweakd` (root-owned, `0440`, validated with `visudo -c`).
 - Grants your user passwordless root via `NOPASSWD: /bin/zsh`.
-- **Lock** removes it. Manual removal: `sudo rm /etc/sudoers.d/mactweak`.
+- **Lock** removes it. Manual removal: `sudo rm /etc/sudoers.d/tweakd`.
 
 This is a genuine convenience-for-safety trade: any process running as you can then
 reach root without a password. Fine for a personal machine — **lock it when you're
@@ -227,7 +227,7 @@ done tuning** if that matters to you.
 
 ## What "not sandboxed / ad-hoc signed" means
 
-MacTweak is **not** in the App Sandbox and is **locally (ad-hoc) signed**. It has to
+tweakd is **not** in the App Sandbox and is **locally (ad-hoc) signed**. It has to
 be: driving `pmset`/`mdutil`/`launchctl`/`sysctl`/`nvram` and escalating through the
 native password prompt is impossible inside the sandbox. Everything it runs is listed
 in [TWEAKS.md](TWEAKS.md) — nothing is hidden, and you can run all of it by hand.

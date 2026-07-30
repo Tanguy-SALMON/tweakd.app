@@ -1,6 +1,6 @@
-# Contributing to MacTweak
+# Contributing to tweakd
 
-MacTweak is data-driven: the catalog is the source of truth, and adding a tweak is a
+tweakd is data-driven: the catalog is the source of truth, and adding a tweak is a
 one-entry change. This guide covers how to build, add a tweak safely, and the
 conventions the code follows.
 
@@ -9,7 +9,7 @@ conventions the code follows.
 Requirements: **macOS 15+**, **Xcode 16+** (Swift 6 / Swift Charts).
 
 ```bash
-# compile, bundle into build/MacTweak.app, and launch (default)
+# compile, bundle into build/tweakd.app, and launch (default)
 Scripts/build.sh
 
 # build + bundle without launching
@@ -24,7 +24,7 @@ Scripts/build.sh --help
 
 The script kills any running instance, compiles the `.icns` from
 `Resources/AppIcon.iconset`, generates the `Info.plist` (stamping `CFBundleVersion`
-with the short git commit), ad-hoc signs with `MacTweak.entitlements`, and hides the
+with the short git commit), ad-hoc signs with `tweakd.entitlements`, and hides the
 `.app` extension in Finder.
 
 You can also `open Package.swift` in Xcode and Run — but the bare SPM executable skips
@@ -32,7 +32,7 @@ the `Info.plist`, so use the script for the real menu-bar experience.
 
 ## Adding a tweak
 
-Add one entry to `TweakCatalog.all` in `Sources/MacTweak/Models/TweakCatalog.swift`:
+Add one entry to `TweakCatalog.all` in `Sources/Tweakd/Models/TweakCatalog.swift`:
 
 ```swift
 Tweak(

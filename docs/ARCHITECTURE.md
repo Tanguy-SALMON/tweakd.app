@@ -1,4 +1,4 @@
-# MacTweak — Architecture
+# tweakd — Architecture
 
 How the app is built, for anyone reading or extending the code.
 
@@ -15,8 +15,8 @@ How the app is built, for anyone reading or extending the code.
 ## Layout
 
 ```
-Sources/MacTweak/
-  App/        MacTweakApp (scenes), AppModel (+ wizard), Theme (design system)
+Sources/Tweakd/
+  App/        TweakdApp (scenes), AppModel (+ wizard), Theme (design system)
   Core/       CommandRunner, TweakEngine, SystemInfo, CoreAudioWatchdog, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
   Metrics/    SystemMetrics (Mach sampling), Benchmark (+ BenchmarkHistory), ThermalMonitor
@@ -82,7 +82,7 @@ tweak only shows *Applied* if the system actually changed.
   `apply(keys:)` — bulk operations used by presets and the wizard.
 - `run(_ action:)` — one-shot actions.
 - `unlockAdmin()` / `lockAdmin()` — passwordless-admin management (below).
-- `writeEmergencyRevertScript()` — writes `~/Documents/MacTweak_Revert.sh`, a
+- `writeEmergencyRevertScript()` — writes `~/Documents/tweakd_Revert.sh`, a
   standalone script that reverts every tweak from Terminal if the app can't.
 - `reactivate()` — after the macOS auth dialog closes, brings the app + main window
   back to the front (a menu-bar app loses focus and *looks* like it crashed
@@ -106,7 +106,7 @@ CommandRunner.admin(_:)  // root, via one of two backends
 ### Passwordless admin (authenticate once)
 
 `enablePasswordlessAdmin()` prompts **once** and installs
-`/etc/sudoers.d/mactweak` (root-owned `0440`, validated with `visudo -c`):
+`/etc/sudoers.d/tweakd` (root-owned `0440`, validated with `visudo -c`):
 
 ```
 <user> ALL=(root) NOPASSWD: /bin/zsh
@@ -177,7 +177,7 @@ jobs exist, run, and are invisible to any directory scan. `launchctl print` mark
 path = (submitted by smd.90609)      # smd = the Service Management daemon
 ```
 
-So MacTweak asks launchd what it actually knows, and adds anything the directory scan
+So tweakd asks launchd what it actually knows, and adds anything the directory scan
 missed. On the development machine this recovered **20 further services** the first
 phase never saw — a running Teams agent, Docker's helper, OneDrive launchers, plus
 several *ghost* Homebrew registrations (`homebrew.mxcl.php@8.1`, `opensearch`,
@@ -200,7 +200,7 @@ oversight:
 |---|---|
 | `com.apple.*` | Apple's own. SIP-protected and load-bearing |
 | Any label with a plist in `/System/Library/Launch*` | **Also Apple's, but unprefixed** — `com.openssh.ssh-agent`, `com.vix.cron`, `org.cups.cupsd`. Caught by looking for the file, not by trusting the name |
-| `application.<bundle-id>.<n>.<n>` | A *running GUI app* launchd tracks for the session (Firefox, Zed, MacTweak itself). Not a service; vanishes when the app quits |
+| `application.<bundle-id>.<n>.<n>` | A *running GUI app* launchd tracks for the session (Firefox, Zed, tweakd itself). Not a service; vanishes when the app quits |
 | `NetworkExtension.*` | VPN tunnels and content filters, managed by the NetworkExtension framework and System Settings — `launchctl enable/disable` is not the right lever |
 
 On the development machine that's 858 exclusions against 68 listed services.
@@ -235,7 +235,7 @@ first**, so a security agent can never fall through into a controllable group:
 
 1. **security** — `paloaltonetworks`/`cortex`, `crowdstrike`, `sentinelone`, `jamf`,
    `microsoft.defender`, `kandji`, `intune`… → listed **read-only**
-2. **mactweak** → our own agents
+2. **tweakd** → our own agents
 3. **updater** — `update`, `keystone`, `autoupdate`, `sparkle`
 4. **developer** — `homebrew.mxcl.*`, or any program under `/opt/homebrew/`, or a known
    server name (`mysql`, `postgres`, `redis`, `nginx`, `ollama`…)
@@ -245,8 +245,8 @@ first**, so a security agent can never fall through into a controllable group:
 An unrecognised custom service is **still listed and still controllable**; it just lands
 in **Other**. Misclassification never hides a service — it only changes which heading it
 sits under. To teach it a new name, add a substring to the relevant array in
-`Sources/MacTweak/Core/ServicesManager.swift`; adding to the `security` list is how you
-make something *protected* from MacTweak's own controls.
+`Sources/Tweakd/Core/ServicesManager.swift`; adding to the `security` list is how you
+make something *protected* from tweakd's own controls.
 
 ### Cost measurement
 
@@ -284,7 +284,7 @@ scales — a phantom cliff in the timeline with no cause in the hardware.
 
 ### History
 
-- Appended to `~/Library/Application Support/MacTweak/benchmark-history.json` —
+- Appended to `~/Library/Application Support/tweakd/benchmark-history.json` —
   pretty-printed, `sortedKeys`, ISO-8601 dates, so it reads and greps by hand like the
   audit trail. Written atomically, off the main actor, capped at **400 records**.
 - A corrupt or half-written file decodes to an **empty history**, never a crash. Losing
@@ -334,9 +334,9 @@ peg `coreaudiod` — the driver runs **inside** `coreaudiod`, so the cost bills 
 
 ## Log
 
-- Writes to the **unified log** (`subsystem == "com.tanguy.MacTweak"`, query with
+- Writes to the **unified log** (`subsystem == "app.tweakd"`, query with
   `log show --predicate …`) **and** a plain file at
-  `~/Library/Logs/MacTweak/MacTweak.log`.
+  `~/Library/Logs/tweakd/tweakd.log`.
 - Instruments the escalation path (`admin start/done`, action results, unlock/lock)
   so failures aren't a blind spot.
 - Installs **async-signal-safe crash handlers**: the file descriptor is force-opened
@@ -361,7 +361,7 @@ excluded): **Balanced · Performance · Snappy UI · Battery · Privacy · AI / 
 
 ## Build
 
-`Scripts/build.sh` compiles, bundles into `build/MacTweak.app`, generates the
+`Scripts/build.sh` compiles, bundles into `build/tweakd.app`, generates the
 `Info.plist` (stamping `CFBundleVersion` with the git commit), builds the `.icns`,
-ad-hoc signs with `MacTweak.entitlements`, and launches. Flags: `--no-launch`,
+ad-hoc signs with `tweakd.entitlements`, and launches. Flags: `--no-launch`,
 `--debug`, `--help`. See [CONTRIBUTING.md](../CONTRIBUTING.md).

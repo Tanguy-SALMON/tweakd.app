@@ -109,7 +109,7 @@ Read the three columns as **`PID  last-exit  label`**. Real output from this Mac
 		       0     78 	homebrew.mxcl.php
 		       0     78 	homebrew.mxcl.mariadb
 		       0      - 	com.openssh.ssh-agent
-		       0      - 	com.mactweak.adblock
+		       0      - 	app.tweakd.adblock
 	}
 ```
 
