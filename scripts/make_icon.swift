@@ -1,7 +1,7 @@
 //
 //  make_icon.swift
 //  Renders the tweakd app icon (a rounded square with a brand gradient and
-//  the slider glyph) to a 1024×1024 PNG. Run:  swift Scripts/make_icon.swift <out.png>
+//  the slider glyph) to a 1024×1024 PNG. Run:  swift scripts/make_icon.swift <out.png>
 //
 //  Rendering model: a soft directional light from the top, a multi-stop
 //  orange→red gradient, a feathered radial highlight, an edge vignette,
@@ -12,7 +12,7 @@
 
 import AppKit
 
-let outPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "Resources/AppIcon.png"
+let outPath = CommandLine.arguments.count > 1 ? CommandLine.arguments[1] : "app/Resources/AppIcon.png"
 let S = 1024
 let sz = CGFloat(S)
 

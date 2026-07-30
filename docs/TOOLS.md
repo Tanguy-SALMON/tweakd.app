@@ -347,7 +347,7 @@ There's also a plain file, which survives a crash the unified log wouldn't recor
 ```
 
 > **This is the answer to "what is actually applied right now?"** — not
-> [SYSTEM-CHANGES.md](../SYSTEM-CHANGES.md), which is a frozen record of one 2026-07-22
+> [SYSTEM-CHANGES.md](SYSTEM-CHANGES.md), which is a frozen record of one 2026-07-22
 > testing session. Use the app's **Re-scan**, or read the trail.
 
 Note the `log` shell alias trap: many setups alias `log` to a `git log` command, which

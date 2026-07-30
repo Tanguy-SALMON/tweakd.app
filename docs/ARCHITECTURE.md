@@ -15,7 +15,7 @@ How the app is built, for anyone reading or extending the code.
 ## Layout
 
 ```
-Sources/Tweakd/
+app/Sources/Tweakd/
   App/        TweakdApp (scenes), AppModel (+ wizard), Theme (design system)
   Core/       CommandRunner, TweakEngine, SystemInfo, CoreAudioWatchdog, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
@@ -23,14 +23,16 @@ Sources/Tweakd/
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               ScanSheet, MainWindow, Components (HeroHeader, RingGauge, gauges)
   Onboarding/ OnboardingView
-Scripts/      build.sh, make_icon.swift
-docs/         index.html, TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md
+app/build.sh  build, bundle, ad-hoc sign, launch
+scripts/      make_icon.swift, release-website.sh
+web/          index.html — the page published at tweakd.app
+docs/         TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md, backlog/
 ```
 
 ## Data model — the tweak catalog is the source of truth
 
 Everything is data-driven. `TweakCatalog.all` is an array of `Tweak` values; adding
-a tweak = adding one entry (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
+a tweak = adding one entry (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ```swift
 struct Tweak {
@@ -245,7 +247,7 @@ first**, so a security agent can never fall through into a controllable group:
 An unrecognised custom service is **still listed and still controllable**; it just lands
 in **Other**. Misclassification never hides a service — it only changes which heading it
 sits under. To teach it a new name, add a substring to the relevant array in
-`Sources/Tweakd/Core/ServicesManager.swift`; adding to the `security` list is how you
+`app/Sources/Tweakd/Core/ServicesManager.swift`; adding to the `security` list is how you
 make something *protected* from tweakd's own controls.
 
 ### Cost measurement
@@ -361,7 +363,7 @@ excluded): **Balanced · Performance · Snappy UI · Battery · Privacy · AI / 
 
 ## Build
 
-`Scripts/build.sh` compiles, bundles into `build/tweakd.app`, generates the
+`app/build.sh` compiles, bundles into `app/build/tweakd.app`, generates the
 `Info.plist` (stamping `CFBundleVersion` with the git commit), builds the `.icns`,
-ad-hoc signs with `tweakd.entitlements`, and launches. Flags: `--no-launch`,
-`--debug`, `--help`. See [CONTRIBUTING.md](../CONTRIBUTING.md).
+ad-hoc signs with `app/tweakd.entitlements`, and launches. Flags: `--no-launch`,
+`--debug`, `--help`. See [CONTRIBUTING.md](CONTRIBUTING.md).

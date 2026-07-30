@@ -2,7 +2,7 @@
 
 Every optimization tweakd can apply, with the **exact Terminal command** to
 apply and revert it **by hand** — no app required. This is the plain-text twin
-of [`index.html`](index.html).
+of [`web/index.html`](../web/index.html).
 
 > **How to use this by hand:** open **Terminal** (Applications → Utilities), paste
 > the **Apply** line, press Return. To undo, paste the **Revert** line. tweakd

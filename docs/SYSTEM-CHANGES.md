@@ -21,7 +21,7 @@ with the exact command used, what it does, and its current status.
 > ```
 > Known intentional exception, applied 2026-07-26 and left on at the owner's request:
 > **Stop Accidental VoiceOver** (symbolic hotkey 59 / ⌘F5 disabled). Revert it from the
-> Snappiness tab or with the command in [docs/TWEAKS.md](docs/TWEAKS.md).
+> Snappiness tab or with the command in [TWEAKS.md](TWEAKS.md).
 
 ---
 

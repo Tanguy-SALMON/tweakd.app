@@ -11,7 +11,7 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 > `pmset`, `mdutil`, `launchctl`, and `defaults` and escalates through the native
 > macOS password prompt — none of which is possible inside the App Sandbox.
 
-![icon](Resources/AppIcon.png)
+![icon](app/Resources/AppIcon.png)
 
 ## Features
 
@@ -71,8 +71,9 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 
 Full docs live in [`docs/`](docs/):
 
-- **[docs/index.html](docs/index.html)** — web docs: every tweak with its exact
-  Terminal command and **click-to-copy** (works offline).
+- **[web/index.html](web/index.html)** — web docs: every tweak with its exact
+  Terminal command and **click-to-copy** (works offline). This is also the page
+  published at [tweakd.app](https://tweakd.app).
 - **[docs/TWEAKS.md](docs/TWEAKS.md)** — every tweak + one-shot action with manual
   apply/revert commands. **You can do everything by hand — no app required.**
 - **[docs/SERVICES.md](docs/SERVICES.md)** — background services: a tutorial plus the
@@ -82,7 +83,7 @@ Full docs live in [`docs/`](docs/):
 - **[docs/SAFETY.md](docs/SAFETY.md)** — `sudo`, SIP, reversibility, verification.
 - **[docs/FAQ.md](docs/FAQ.md)** — high CPU, `coreaudiod`, "the app disappeared", more.
 - **[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)** — how the app is built.
-- **[CONTRIBUTING.md](CONTRIBUTING.md)** · **[CHANGELOG.md](CHANGELOG.md)**
+- **[docs/CONTRIBUTING.md](docs/CONTRIBUTING.md)** · **[docs/CHANGELOG.md](docs/CHANGELOG.md)**
 
 ## Naming
 
@@ -104,22 +105,22 @@ See [docs/FAQ.md](docs/FAQ.md#it-used-to-be-called-mactweak).
 Requirements: **macOS 15+** and **Xcode 16+** (uses Swift 6 / Swift Charts).
 
 ```bash
-# compile, bundle into build/tweakd.app, and launch (default)
-Scripts/build.sh
+# compile, bundle into app/build/tweakd.app, and launch (default)
+app/build.sh
 
 # build + bundle without launching
-Scripts/build.sh --no-launch
+app/build.sh --no-launch
 
 # debug build
-Scripts/build.sh --debug
+app/build.sh --debug
 ```
 
 The script kills any running instance first, compiles the `.icns` from
-`Resources/AppIcon.iconset`, ad-hoc signs with `tweakd.entitlements`, stamps
+`app/Resources/AppIcon.iconset`, ad-hoc signs with `app/tweakd.entitlements`, stamps
 the bundle version with the short git commit, and hides the `.app` extension in
-Finder. Run `Scripts/build.sh --help` for all flags.
+Finder. Run `app/build.sh --help` for all flags.
 
-Or open `Package.swift` in Xcode and hit Run (note: running the bare SPM executable
+Or open `app/Package.swift` in Xcode and hit Run (note: running the bare SPM executable
 skips the `Info.plist`, so use the script for the real menu-bar experience).
 
 The app lives in the **menu bar** (no Dock icon). The main window opens on first launch
@@ -132,7 +133,7 @@ tweaks run root either through `osascript … with administrator privileges` (na
 dialog — no helper tool, no stored password, no deprecated API) or, once you've unlocked
 passwordless admin (below), silently via `sudo -n`. The engine re-probes the real state
 after every change, so a tweak is only shown *Applied* if the system actually changed —
-it never trusts an exit code. See `Sources/Tweakd/Core/CommandRunner.swift` and
+it never trusts an exit code. See `app/Sources/Tweakd/Core/CommandRunner.swift` and
 `TweakEngine.swift`.
 
 ## Passwordless admin (authenticate once)
@@ -152,7 +153,7 @@ a sudoers rule and every later admin tweak applies via `sudo -n` with no prompt.
 ## Adding a tweak
 
 Add one entry to `TweakCatalog.all` in
-`Sources/Tweakd/Models/TweakCatalog.swift`:
+`app/Sources/Tweakd/Models/TweakCatalog.swift`:
 
 ```swift
 Tweak(
@@ -183,14 +184,26 @@ sysctls/keys that don't exist rather than shipping dead toggles.
 ## Regenerating the icon
 
 ```bash
-swift Scripts/make_icon.swift Resources/AppIcon.png
-# then rebuild the .icns (see the iconset steps) and run build.sh
+swift scripts/make_icon.swift app/Resources/AppIcon.png
+# then rebuild the .icns (see the iconset steps) and run app/build.sh
 ```
 
-## Layout
+## Project layout
+
+Top level follows one convention shared across these projects, so the same kind
+of thing is always in the same place:
+
+| Directory | Holds |
+|---|---|
+| `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, `build.sh`, entitlements |
+| `web/` | the website: `index.html` — the page published at tweakd.app |
+| `docs/` | all markdown — the tweak/service references, `backlog/`, `CHANGELOG.md`, `CONTRIBUTING.md` |
+| `scripts/` | release and icon tooling |
+
+Inside the app, all paths from the repo root:
 
 ```
-Sources/Tweakd/
+app/Sources/Tweakd/
   App/        TweakdApp, AppModel (+ wizard logic), Theme (design system)
   Core/       CommandRunner (user/admin/passwordless), SystemInfo, TweakEngine
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
@@ -198,5 +211,7 @@ Sources/Tweakd/
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               Components (HeroHeader, RingGauge/StatTile, cpuHistoryMarks)
   Onboarding/ OnboardingView
-Scripts/      build.sh, make_icon.swift
+app/build.sh              build, bundle, ad-hoc sign, launch
+scripts/make_icon.swift   regenerate AppIcon.png
+scripts/release-website.sh  deploy web/ to Cloudflare Pages
 ```

@@ -9,30 +9,30 @@ conventions the code follows.
 Requirements: **macOS 15+**, **Xcode 16+** (Swift 6 / Swift Charts).
 
 ```bash
-# compile, bundle into build/tweakd.app, and launch (default)
-Scripts/build.sh
+# compile, bundle into app/build/tweakd.app, and launch (default)
+app/build.sh
 
 # build + bundle without launching
-Scripts/build.sh --no-launch
+app/build.sh --no-launch
 
 # debug build
-Scripts/build.sh --debug
+app/build.sh --debug
 
 # all flags
-Scripts/build.sh --help
+app/build.sh --help
 ```
 
 The script kills any running instance, compiles the `.icns` from
-`Resources/AppIcon.iconset`, generates the `Info.plist` (stamping `CFBundleVersion`
-with the short git commit), ad-hoc signs with `tweakd.entitlements`, and hides the
+`app/Resources/AppIcon.iconset`, generates the `Info.plist` (stamping `CFBundleVersion`
+with the short git commit), ad-hoc signs with `app/tweakd.entitlements`, and hides the
 `.app` extension in Finder.
 
-You can also `open Package.swift` in Xcode and Run — but the bare SPM executable skips
+You can also `open app/Package.swift` in Xcode and Run — but the bare SPM executable skips
 the `Info.plist`, so use the script for the real menu-bar experience.
 
 ## Adding a tweak
 
-Add one entry to `TweakCatalog.all` in `Sources/Tweakd/Models/TweakCatalog.swift`:
+Add one entry to `TweakCatalog.all` in `app/Sources/Tweakd/Models/TweakCatalog.swift`:
 
 ```swift
 Tweak(
@@ -88,7 +88,7 @@ daemon…). Same command style; no `revert`/`status`.
 - **Everything routes through `CommandRunner`** — never build your own `Process`. Use
   `CommandRunner.user` / `.admin`; they handle escalation, pipe draining, and the
   non-`waitUntilExit` wait that avoids SwiftUI re-entrancy. See
-  [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
+  [ARCHITECTURE.md](ARCHITECTURE.md).
 - **Colors come from `Theme`** — `Theme.accent`, `Theme.accentDeep`,
   `Theme.accentGradient`. No hardcoded oranges.
 - **Icons/tiles use `GlyphTile`**, buttons use `.buttonStyle(.gradient)` /
@@ -100,9 +100,9 @@ daemon…). Same command style; no `revert`/`status`.
 ## Documentation
 
 When you add a tweak, mirror it in:
-- [`docs/TWEAKS.md`](docs/TWEAKS.md) — the manual apply/revert reference.
-- [`docs/index.html`](docs/index.html) — the web docs (same content, copy buttons).
-- [`README.md`](README.md) — bump the tweak count if you cite it.
+- [`TWEAKS.md`](TWEAKS.md) — the manual apply/revert reference.
+- [`web/index.html`](../web/index.html) — the web docs (same content, copy buttons).
+- [`README.md`](../README.md) — bump the tweak count if you cite it.
 
 ## Reviewing changes
 

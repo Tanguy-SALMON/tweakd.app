@@ -9,23 +9,26 @@
 # machinery tweakd doesn't have.
 #
 # Usage:
-#   Scripts/build.sh               # release build, then auto-launch
-#   Scripts/build.sh --debug       # debug build, then auto-launch
-#   Scripts/build.sh --no-launch   # release build, do NOT launch
-#   Scripts/build.sh run           # alias for the default (build + launch)
-#   Scripts/build.sh --help        # show this header
+#   app/build.sh               # release build, then auto-launch
+#   app/build.sh --debug       # debug build, then auto-launch
+#   app/build.sh --no-launch   # release build, do NOT launch
+#   app/build.sh run           # alias for the default (build + launch)
+#   app/build.sh --help        # show this header
 #
 # Flags can combine; order does not matter.
 #
 # Output:
-#   build/tweakd.app                 # open with `open build/tweakd.app`
+#   app/build/tweakd.app             # open with `open app/build/tweakd.app`
 #                                      # drag to /Applications to install
 #
 set -euo pipefail
 
-# Run from the repo root so `swift build` finds Package.swift regardless of
-# where the user invoked us from.
-cd "$(dirname "$0")/.."
+# Run from app/ — this script's own directory — so `swift build` finds
+# Package.swift, and Resources/, VERSION and tweakd.entitlements resolve,
+# regardless of where the user invoked us from. (Before the repo adopted the
+# shared app/ web/ docs/ layout this was `dirname "$0"/..`, because the script
+# lived in Scripts/ and the package sat at the repo root; now both are in app/.)
+cd "$(dirname "$0")"
 
 # ----- flags -----------------------------------------------------------------
 CONFIG="release"
@@ -110,7 +113,7 @@ PLIST
 
 # ----- icon: compile iconset → .icns ---------------------------------------
 # Source of truth is the 10-PNG iconset (regenerate the PNGs with
-# `swift Scripts/make_icon.swift`). Compiling on every build means the icon
+# `swift scripts/make_icon.swift` from the repo root). Compiling on every build means the icon
 # is a derived artifact — editing the PNGs auto-propagates. `iconutil` ships
 # with macOS. Fall back to the committed .icns if the iconset is missing.
 if [[ -d "${ICON_ICONSET}" ]]; then
@@ -153,10 +156,13 @@ if [[ "${NO_LAUNCH}" != "true" ]]; then
 fi
 
 # ----- 7. report -----------------------------------------------------------
+# We run with cwd=app/, but the reader is almost certainly sitting at the repo
+# root — so print copy-pasteable root-relative paths, not our own cwd-relative ones.
+APP_FROM_ROOT="app/${APP_BUNDLE}"
 SIZE=$(du -sh "${APP_BUNDLE}" | awk '{print $1}')
 echo
-echo "==> built ${APP_BUNDLE} (${SIZE}, v${VERSION}+${COMMIT_HASH})"
+echo "==> built ${APP_FROM_ROOT} (${SIZE}, v${VERSION}+${COMMIT_HASH})"
 echo
-echo "Install:        cp -R ${APP_BUNDLE} /Applications/"
-echo "Verify bundle:  plutil -lint ${APP_BUNDLE}/Contents/Info.plist"
+echo "Install:        cp -R ${APP_FROM_ROOT} /Applications/"
+echo "Verify bundle:  plutil -lint ${APP_FROM_ROOT}/Contents/Info.plist"
 echo
