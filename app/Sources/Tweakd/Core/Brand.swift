@@ -19,8 +19,15 @@
 import Foundation
 
 enum Brand {
-    /// User-visible name. Lowercase on purpose — it matches the domain.
+    /// Name used to build paths and on-disk artifacts. Lowercase on purpose —
+    /// it matches the domain, and every directory, log file, revert script and
+    /// sudoers rule already on disk is named with it. Capitalising this would
+    /// orphan all of them; use `displayName` for anything the user reads.
     static let name = "tweakd"
+
+    /// User-visible name, shown in the UI. Capitalised — the brand reads
+    /// "Tweakd" in the window title, sidebar, menu bar and website.
+    static let displayName = "Tweakd"
     static let domain = "tweakd.app"
     /// Reverse-DNS of the domain. Bundle ID, log subsystem, LaunchAgent prefix.
     static let bundleID = "app.tweakd"

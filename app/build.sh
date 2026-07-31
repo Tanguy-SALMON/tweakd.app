@@ -48,7 +48,9 @@ for arg in "$@"; do
 done
 
 # ----- config ----------------------------------------------------------------
-APP_NAME="tweakd"
+APP_NAME="tweakd"                # bundle + executable filename; stays lowercase
+                                 # so the .app path and on-disk artifacts don't move
+DISPLAY_NAME="Tweakd"            # what the user reads: menu bar, Finder, About
 PRODUCT_NAME="Tweakd"            # SPM target/product name (see Package.swift)
 BUNDLE_ID="app.tweakd"          # reverse-DNS of tweakd.app
 APP_BUNDLE="build/${APP_NAME}.app"
@@ -95,8 +97,8 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>CFBundleName</key><string>${APP_NAME}</string>
-	<key>CFBundleDisplayName</key><string>${APP_NAME}</string>
+	<key>CFBundleName</key><string>${DISPLAY_NAME}</string>
+	<key>CFBundleDisplayName</key><string>${DISPLAY_NAME}</string>
 	<key>CFBundleIdentifier</key><string>${BUNDLE_ID}</string>
 	<key>CFBundleExecutable</key><string>${APP_NAME}</string>
 	<key>CFBundlePackageType</key><string>APPL</string>

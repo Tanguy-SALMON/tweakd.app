@@ -51,7 +51,7 @@ struct OnboardingView: View {
                 .shadow(color: Theme.accent.opacity(0.25), radius: 18, y: 8)
             Text("Let's tune your Mac")
                 .font(.system(size: 30, weight: .bold))
-            Text("Answer a few quick questions and \(Brand.name) will build a setup\ntailored to how you work — nothing you rely on gets disabled.")
+            Text("Answer a few quick questions and \(Brand.displayName) will build a setup\ntailored to how you work — nothing you rely on gets disabled.")
                 .font(.system(size: 15))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(.secondary)

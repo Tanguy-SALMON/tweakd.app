@@ -59,7 +59,7 @@ struct SidebarView: View {
                     .overlay(Image(systemName: "slider.horizontal.3")
                         .font(.system(size: 13, weight: .bold)).foregroundStyle(.white))
                 VStack(alignment: .leading, spacing: 0) {
-                    Text(Brand.name).font(.system(size: 14, weight: .semibold))
+                    Text(Brand.displayName).font(.system(size: 14, weight: .semibold))
                     Text("v\(appVersion)").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
                 .textSelection(.enabled)

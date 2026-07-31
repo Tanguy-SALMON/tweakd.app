@@ -50,7 +50,7 @@ enum ServiceKind: String, Sendable, CaseIterable {
         case .updater:   return "Auto-updaters"
         case .vendor:    return "App helpers"
         case .security:  return "Security & management"
-        case .own:       return Brand.name
+        case .own:       return Brand.displayName
         case .other:     return "Other"
         }
     }
@@ -60,8 +60,8 @@ enum ServiceKind: String, Sendable, CaseIterable {
         case .developer: return "Databases, web servers and model runners you installed. Safe to stop when you're not developing — nothing else depends on them."
         case .updater:   return "Vendor update checkers. Disabling one means you update that app manually; it breaks nothing else."
         case .vendor:    return "Helper daemons installed by apps. Stopping one usually just means the app starts it again, or loses a background feature."
-        case .security:  return "Endpoint protection and device management. Shown for transparency — \(Brand.name) won't switch these off."
-        case .own:       return "Agents \(Brand.name) installed itself."
+        case .security:  return "Endpoint protection and device management. Shown for transparency — \(Brand.displayName) won't switch these off."
+        case .own:       return "Agents \(Brand.displayName) installed itself."
         case .other:     return "Everything else that isn't Apple's."
         }
     }
@@ -634,7 +634,7 @@ final class ServicesManager: ObservableObject {
     /// Refuse to touch the protected group, loudly rather than silently.
     private func guardControllable(_ s: LaunchService) -> Bool {
         guard s.kind.controllable else {
-            lastMessage = "\(s.displayName) is a security/management agent — \(Brand.name) won't change it."
+            lastMessage = "\(s.displayName) is a security/management agent — \(Brand.displayName) won't change it."
             Log.audit("service.blocked", ["label": s.label, "kind": s.kind.rawValue], result: .skipped)
             return false
         }

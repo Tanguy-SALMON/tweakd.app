@@ -34,7 +34,7 @@ struct MenuView: View {
 
             Divider().overlay(Theme.hairline)
 
-            menuButton("Open \(Brand.name)", "macwindow") {
+            menuButton("Open \(Brand.displayName)", "macwindow") {
                 NSApp.activate(ignoringOtherApps: true)
                 openWindow(id: "main")
             }
@@ -86,7 +86,7 @@ struct MenuView: View {
                 .fill(Theme.accentGradient).frame(width: 22, height: 22)
                 .overlay(Image(systemName: "slider.horizontal.3")
                     .font(.system(size: 11, weight: .bold)).foregroundStyle(.white))
-            Text(Brand.name).font(.system(size: 14, weight: .semibold))
+            Text(Brand.displayName).font(.system(size: 14, weight: .semibold))
             Spacer()
         }
     }
@@ -102,7 +102,7 @@ struct MenuView: View {
             } else if model.engine.state(of: tweak) == .unavailable {
                 Image(systemName: "nosign")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
-                    .help("Unavailable — needs SIP disabled. Open \(Brand.name) for details.")
+                    .help("Unavailable — needs SIP disabled. Open \(Brand.displayName) for details.")
             } else {
                 Toggle("", isOn: Binding(
                     get: { model.engine.state(of: tweak) == .applied },
