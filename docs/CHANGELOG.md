@@ -6,6 +6,53 @@ All notable changes to tweakd. Dates are `YYYY-MM-DD`.
 
 _Nothing yet._
 
+## [0.8.0] — 2026-07-31
+
+### Added — selectable text everywhere it's worth copying
+
+Text in a SwiftUI view isn't selectable by default, so a process name, a service
+label, a tweak description or an error message could be read but never copied —
+awkward when the natural next step is to paste it into a search.
+
+`.textSelection(.enabled)` now applies across every pane, scoped **narrowly** — to
+individual `Text` views or small text-only groups, never to a whole page. A
+page-level scope turns the entire pane into one selection region and swallows
+clicks on the `Button`s, `Toggle`s, `Slider`s and `Picker`s inside it.
+
+Where a header and the card beneath it read as one block (Process Priority,
+Services), they share a single scope so a drag selects continuously across both.
+The Refresh/Rescan button in those headers is restructured as a sibling outside
+that scope rather than a descendant, so it stays a button.
+
+### Removed — drag-to-reorder in the tweaks list
+
+The `List`'s `.onMove` drag gesture competed with text selection on the same rows.
+Reordering went, and `TweakEngine.move(in:from:to:)` with it; the persisted
+`order` array still drives display order.
+
+### Changed — the app now shows a Dock icon
+
+`LSUIElement` is `false` in the generated `Info.plist`, so tweakd appears in the
+Dock **and** the menu bar instead of menu-bar-only.
+
+### Changed — the website capitalises the brand as "Tweakd"
+
+0.7.0 made everything user-visible lowercase `tweakd`. The site now reads
+**Tweakd** in prose, titles and nav. This is a website-only change — the app's
+`Brand.name`, and every identifier derived from it, stays lowercase.
+
+Identifiers deliberately left lowercase on the site too: the `tweakd.app` domain,
+`app.tweakd.priority.*` LaunchAgent labels, and the `// tweakd privacy` marker —
+that last one is matched byte-for-byte by the Firefox revert command, so
+capitalising it would strand the file it's meant to delete.
+
+### Added — Privacy Policy and Terms of Service pages
+
+`web/privacy.html` and `web/terms.html`, styled to match the site and linked from
+every footer alongside the GitHub repo. The footer also drops its
+"verified against macOS output formats" line (internal jargon) and the author's
+name from the copyright.
+
 ## [0.7.0] — 2026-07-30
 
 ### Changed — renamed MacTweak → tweakd (`tweakd.app`)
