@@ -43,11 +43,16 @@ struct TweakdApp: App {
         }
         .menuBarExtraStyle(.window)
 
-        Window(Brand.name, id: "main") {
+        Window(Brand.displayName, id: "main") {
             MainWindowView()
                 .environmentObject(model)
                 .frame(minWidth: Self.minWidth, minHeight: Self.minHeight)
                 .focusEffectDisabled()   // the blue focus ring doesn't fit the design
+                // The sidebar header already shows the brand and version, and
+                // NavigationSplitView draws the window title right beside it —
+                // so the title is dropped from the toolbar. The scene keeps its
+                // title for the Window menu and Mission Control.
+                .toolbar(removing: .title)
                 .background(LaunchFrameSetter())
                 .task { model.boot() }
         }
