@@ -48,6 +48,7 @@ struct ActionsView: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.xs)
             Button("Create") {
                 Task { await model.engine.writeEmergencyRevertScript() }
@@ -73,6 +74,7 @@ struct ActionsView: View {
                 Text(action.summary).font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.xs)
             if model.engine.busy.contains(action.key) {
                 ProgressView().controlSize(.small)

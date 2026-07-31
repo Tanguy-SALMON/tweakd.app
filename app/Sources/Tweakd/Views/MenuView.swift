@@ -64,6 +64,7 @@ struct MenuView: View {
                     Image(systemName: "info.circle").foregroundStyle(Theme.accent)
                     Text(msg).font(.system(size: 11)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .transition(.opacity)
@@ -94,6 +95,7 @@ struct MenuView: View {
         HStack(spacing: Space.xs) {
             Image(systemName: tweak.icon).foregroundStyle(.secondary).frame(width: 18)
             Text(tweak.title).font(.system(size: 13)).lineLimit(1)
+                .textSelection(.enabled)
             Spacer()
             if model.engine.busy.contains(tweak.key) {
                 ProgressView().controlSize(.small)

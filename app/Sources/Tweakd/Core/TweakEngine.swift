@@ -105,24 +105,7 @@ final class TweakEngine: ObservableObject {
         tweaks.reduce(0) { $0 + ($1.category == category && state(of: $1) == .applied ? 1 : 0) }
     }
 
-    // MARK: - Ordering & favorites
-
-    func move(in category: TweakCategory, from source: IndexSet, to destination: Int) {
-        var group = tweaks(in: category).map(\.key)
-        group.move(fromOffsets: source, toOffset: destination)
-        // Rebuild global order: keep everything, but re-sequence this category's keys.
-        var newOrder: [String] = []
-        var groupIter = group.makeIterator()
-        let groupSet = Set(group)
-        for key in order {
-            if groupSet.contains(key) {
-                if let next = groupIter.next() { newOrder.append(next) }
-            } else {
-                newOrder.append(key)
-            }
-        }
-        order = newOrder
-    }
+    // MARK: - Favorites
 
     func toggleFavorite(_ tweak: Tweak) {
         if favorites.contains(tweak.key) { favorites.remove(tweak.key) }

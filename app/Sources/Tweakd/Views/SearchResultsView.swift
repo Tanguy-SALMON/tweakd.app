@@ -55,6 +55,7 @@ struct SearchResultsView: View {
         VStack(alignment: .leading, spacing: Space.xxs) {
             HStack(spacing: Space.xs) {
                 Text("Search").font(.system(size: 34, weight: .bold))
+                    .textSelection(.enabled)
                 Spacer()
                 Button { model.clearSearch() } label: {
                     Label("Clear", systemImage: "xmark")
@@ -65,6 +66,7 @@ struct SearchResultsView: View {
             Text(total == 0 ? "No matches for “\(model.searchQuery)”"
                             : "\(total) result\(total == 1 ? "" : "s") for “\(model.searchQuery)” · ↑↓ to browse, ⏎ to open")
                 .font(.system(size: 15)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -127,6 +129,7 @@ struct SearchResultsView: View {
                         Text(action.summary).font(.system(size: 12)).foregroundStyle(.secondary)
                             .fixedSize(horizontal: false, vertical: true)
                     }
+                    .textSelection(.enabled)
                     .accessibilityElement(children: .combine)
                     Spacer(minLength: Space.xs)
                     Button(action.destructive ? "Run…" : "Run") {

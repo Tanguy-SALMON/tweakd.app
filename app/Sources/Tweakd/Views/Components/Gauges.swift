@@ -20,6 +20,7 @@ struct HeroHeader: View {
                 Text(title).font(.system(size: 26, weight: .bold))
                 Text(blurb).font(.system(size: 14)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
             Spacer()
         }
         .accessibilityElement(children: .combine)
@@ -90,6 +91,7 @@ struct RingGauge: View {
                 Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
+            .textSelection(.enabled)
             .accessibilityHidden(true)   // already conveyed by the gauge element above
 
             if let action { actionButton(action) }
@@ -133,6 +135,7 @@ struct StatTile: View {
                 Text(value).font(.system(size: 17, weight: .semibold))
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
+            .textSelection(.enabled)
             Spacer()
         }
         .card(padding: Space.s)

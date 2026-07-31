@@ -80,6 +80,7 @@ struct MainWindowView: View {
         if let msg = model.engine.lastMessage {
             Text(msg)
                 .font(.system(size: 13, weight: .medium))
+                .textSelection(.enabled)
                 .padding(.horizontal, Space.m).padding(.vertical, Space.s)
                 .background {
                     if reduceTransparency { Capsule().fill(Theme.surface) }

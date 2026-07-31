@@ -81,30 +81,31 @@ struct ServicesView: View {
     // MARK: - Header
 
     private var header: some View {
-        VStack(alignment: .leading, spacing: Space.s) {
-            HStack(alignment: .top, spacing: Space.s) {
+        HStack(alignment: .top, spacing: Space.s) {
+            VStack(alignment: .leading, spacing: Space.s) {
                 HeroHeader(icon: "square.stack.3d.up.fill", title: "Services",
                            blurb: "Background jobs launchd starts for you — what's running, what it costs, and how to stop it.")
-                Spacer(minLength: Space.xs)
-                Button {
-                    Task { await services.scan() }
-                } label: {
-                    Label(services.scanning ? "Scanning…" : "Rescan", systemImage: "arrow.clockwise")
-                        .font(.system(size: 12, weight: .medium))
-                }
-                .buttonStyle(.gradientOutline)
-                .controlSize(.small)
-                .disabled(services.scanning)
-                .padding(.top, Space.xs)
-            }
-            HStack(spacing: Space.xs) {
-                Pill(text: "\(services.runningCount) running", prominent: true, systemImage: "bolt.fill")
-                Pill(text: "\(services.services.count) total")
-                if services.totalMemoryMB >= 1 {
-                    Pill(text: String(format: "%.0f MB held", services.totalMemoryMB),
-                         systemImage: "memorychip")
+                HStack(spacing: Space.xs) {
+                    Pill(text: "\(services.runningCount) running", prominent: true, systemImage: "bolt.fill")
+                    Pill(text: "\(services.services.count) total")
+                    if services.totalMemoryMB >= 1 {
+                        Pill(text: String(format: "%.0f MB held", services.totalMemoryMB),
+                             systemImage: "memorychip")
+                    }
                 }
             }
+            .textSelection(.enabled)
+            Spacer(minLength: Space.xs)
+            Button {
+                Task { await services.scan() }
+            } label: {
+                Label(services.scanning ? "Scanning…" : "Rescan", systemImage: "arrow.clockwise")
+                    .font(.system(size: 12, weight: .medium))
+            }
+            .buttonStyle(.gradientOutline)
+            .controlSize(.small)
+            .disabled(services.scanning)
+            .padding(.top, Space.xs)
         }
     }
 
@@ -115,6 +116,7 @@ struct ServicesView: View {
             ProgressView().controlSize(.small)
             Text("Scanning launchd domains…")
                 .font(.system(size: 13)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
         }
         .frame(maxWidth: .infinity).padding(.vertical, Space.m)
         .card(padding: Space.s)
@@ -129,6 +131,7 @@ struct ServicesView: View {
                 Text("No third-party background services are installed on this Mac.")
                     .font(.system(size: 12)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
             Spacer(minLength: 0)
         }
         .card()
@@ -144,6 +147,7 @@ struct ServicesView: View {
                     .font(.system(size: 12)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: 0)
         }
         .card()
@@ -152,6 +156,7 @@ struct ServicesView: View {
     private func messageCard(_ msg: String) -> some View {
         Text(msg).font(.system(size: 12)).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.enabled)
             .frame(maxWidth: .infinity, alignment: .leading)
             .card(padding: Space.s)
     }
@@ -214,6 +219,7 @@ struct ServicesView: View {
                 Text(subtitle(s))
                     .font(.system(size: 11)).foregroundStyle(.secondary).lineLimit(1)
             }
+            .textSelection(.enabled)
 
             Spacer(minLength: Space.xs)
 
@@ -224,6 +230,7 @@ struct ServicesView: View {
                     .font(.system(size: 11, weight: .medium, design: .monospaced))
                     .foregroundStyle(s.cpu >= 20 ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
                     .frame(width: 104, alignment: .trailing)
+                    .textSelection(.enabled)
             }
 
             trailing(s)
@@ -280,6 +287,7 @@ struct ServicesView: View {
         }
         .font(.system(size: 11)).foregroundStyle(.secondary)
         .fixedSize(horizontal: false, vertical: true)
+        .textSelection(.enabled)
         .padding(.top, Space.xs)
     }
 }

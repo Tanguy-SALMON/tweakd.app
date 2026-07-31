@@ -14,11 +14,6 @@ struct TweakListView: View {
     @EnvironmentObject var model: AppModel
     let section: TweakSection
 
-    private var category: TweakCategory? {
-        if case .category(let c) = section { return c }
-        return nil
-    }
-
     private var items: [Tweak] {
         switch section {
         case .favorites: return model.engine.favoriteTweaks
@@ -46,9 +41,6 @@ struct TweakListView: View {
                                                       bottom: Space.xxs, trailing: Space.l))
                             .listRowSeparator(.hidden)
                             .listRowBackground(Color.clear)
-                    }
-                    .onMove { source, dest in
-                        if let category { model.engine.move(in: category, from: source, to: dest) }
                     }
                     Spacer(minLength: Space.m)
                         .listRowSeparator(.hidden)

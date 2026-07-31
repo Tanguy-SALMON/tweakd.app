@@ -62,6 +62,7 @@ struct SidebarView: View {
                     Text(Brand.name).font(.system(size: 14, weight: .semibold))
                     Text("v\(appVersion)").font(.system(size: 10)).foregroundStyle(.secondary)
                 }
+                .textSelection(.enabled)
                 Spacer()
             }
             SearchField()

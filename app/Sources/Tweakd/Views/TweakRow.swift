@@ -40,6 +40,7 @@ struct TweakRow: View {
                 }
                 .padding(.top, 1)
             }
+            .textSelection(.enabled)
             // Collapse title + summary + state + risk into one spoken element so
             // VoiceOver reads the row as a unit, not a dozen fragments.
             .accessibilityElement(children: .ignore)

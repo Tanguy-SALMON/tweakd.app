@@ -47,6 +47,7 @@ struct DashboardView: View {
                 .font(.system(size: 15))
                 .foregroundStyle(.secondary)
         }
+        .textSelection(.enabled)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
@@ -65,6 +66,7 @@ struct DashboardView: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.s)
             if unlocked {
                 Button("Lock") { Task { await model.engine.lockAdmin() } }
@@ -79,9 +81,12 @@ struct DashboardView: View {
 
     private var presetsCard: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("Presets").sectionTitle()
-            Text("Apply a curated bundle in one tap.")
-                .font(.system(size: 13)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: Space.s) {
+                Text("Presets").sectionTitle()
+                Text("Apply a curated bundle in one tap.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+            }
+            .textSelection(.enabled)
             HStack(spacing: Space.xs) {
                 ForEach(Presets.all) { p in
                     Button {
@@ -111,9 +116,12 @@ struct DashboardView: View {
 
     private var quickTune: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("One-Click Tune").sectionTitle()
-            Text("Apply the recommended safe set, or revert everything to stock.")
-                .font(.system(size: 13)).foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: Space.s) {
+                Text("One-Click Tune").sectionTitle()
+                Text("Apply the recommended safe set, or revert everything to stock.")
+                    .font(.system(size: 13)).foregroundStyle(.secondary)
+            }
+            .textSelection(.enabled)
             HStack(spacing: Space.s) {
                 Button {
                     Task { await model.engine.applyRecommended() }
@@ -154,6 +162,7 @@ private struct AudioWatchdogCard: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.s)
             Toggle("", isOn: $watchdog.enabled).labelsHidden()
         }
@@ -217,6 +226,7 @@ private struct LiveMetrics: View {
     private var chart: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             Text("CPU · last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
             Chart { cpuHistoryMarks(metrics.history) }
             .chartXScale(domain: xWindow)
             .chartYScale(domain: 0...100)

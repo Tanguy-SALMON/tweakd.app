@@ -22,6 +22,7 @@ struct ThermalCard: View {
                 footnote
             } else if let err = monitor.sampleError {
                 Text(err).font(.system(size: 12)).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
 
             if ThermalMonitor.isPassivelyCooled {
@@ -54,6 +55,7 @@ struct ThermalCard: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
 
             Spacer(minLength: Space.xs)
 
@@ -92,6 +94,7 @@ struct ThermalCard: View {
                         .frame(width: 40, alignment: .trailing)
                 }
             }
+            .textSelection(.enabled)
             if let f = c.fractionOfMax {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
@@ -113,6 +116,7 @@ struct ThermalCard: View {
         Text("This is a one-off sample. Cores sit well below maximum whenever the Mac is idle — that's normal, not throttling. Only the pressure level above tells you whether the ceiling has actually been lowered.")
             .font(.system(size: 11)).foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+            .textSelection(.enabled)
     }
 
     private var fanlessNote: some View {
@@ -122,6 +126,7 @@ struct ThermalCard: View {
             Text("This Mac is fanless, so it sheds heat by slowing down. Expect throttling under long sustained loads (big builds, exports) — brief bursts stay at full speed.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
+                .textSelection(.enabled)
         }
     }
 }

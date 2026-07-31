@@ -92,6 +92,7 @@ struct DiskCleanupView: View {
                 .foregroundStyle(Theme.accentGradient)
             Text("~\(formattedGB(cleanup.totalReclaimableBytes)) reclaimable right now.")
                 .font(.system(size: 13, weight: .semibold))
+                .textSelection(.enabled)
             Spacer()
         }
         .card(padding: Space.s)
@@ -121,6 +122,7 @@ struct DiskCleanupView: View {
                     .font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.xs)
             if busy {
                 ProgressView().controlSize(.small)
@@ -156,6 +158,7 @@ struct DiskCleanupView: View {
                 Text(item.blurb).font(.system(size: 13)).foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
+            .textSelection(.enabled)
             Spacer(minLength: Space.xs)
             trailing(item, isAvailable: isAvailable, busy: busy)
         }
@@ -171,6 +174,7 @@ struct DiskCleanupView: View {
             ProgressView().controlSize(.small)
         } else if !isAvailable {
             Text("Not installed").font(.system(size: 12)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
         } else if busy {
             ProgressView().controlSize(.small)
         } else {

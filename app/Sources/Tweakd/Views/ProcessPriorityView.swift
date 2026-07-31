@@ -21,8 +21,7 @@ struct ProcessPriorityView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Space.m) {
-                header
-                warningCallout
+                headerSection
 
                 ForEach(PriorityManager.targets) { target in
                     targetCard(target)
@@ -44,10 +43,17 @@ struct ProcessPriorityView: View {
 
     // MARK: - Header
 
-    private var header: some View {
+    /// HeroHeader + warning callout share one text-selection scope (dragging
+    /// from the title through the callout body selects continuously) while the
+    /// Refresh button sits outside it as a plain sibling, not a descendant.
+    private var headerSection: some View {
         HStack(alignment: .top, spacing: Space.s) {
-            HeroHeader(icon: "cpu", title: "Process Priority",
-                       blurb: "Give network and UI processes more CPU under load — or make background daemons yield.")
+            VStack(alignment: .leading, spacing: Space.m) {
+                HeroHeader(icon: "cpu", title: "Process Priority",
+                           blurb: "Give network and UI processes more CPU under load — or make background daemons yield.")
+                warningCallout
+            }
+            .textSelection(.enabled)
             Spacer(minLength: Space.xs)
             Button {
                 Task { await priority.refresh() }
@@ -101,6 +107,7 @@ struct ProcessPriorityView: View {
                     Text(target.blurb).font(.system(size: 13)).foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }
+                .textSelection(.enabled)
                 Spacer(minLength: Space.xs)
                 if busy {
                     ProgressView().controlSize(.small)
@@ -122,6 +129,7 @@ struct ProcessPriorityView: View {
                     .frame(width: 32, alignment: .trailing)
                     .contentTransition(.numericText())
                     .animation(.easeOut(duration: 0.15), value: value)
+                    .textSelection(.enabled)
             }
 
             if value < -5 {
@@ -204,6 +212,7 @@ struct ProcessPriorityView: View {
 
             Text("Sorted by CPU. Lower nice = higher priority (needs admin); higher nice makes a process yield.")
                 .font(.system(size: 12)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
 
             if priority.liveProcesses.isEmpty {
                 Text(priority.refreshingLive ? "Scanning…" : "No processes found.")
@@ -233,6 +242,7 @@ struct ProcessPriorityView: View {
                 Text(proc.name).font(.system(size: 13, weight: .medium)).lineLimit(1)
                 Text("pid \(proc.id)").font(.system(size: 10)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
 
             Spacer(minLength: Space.xxs)
 

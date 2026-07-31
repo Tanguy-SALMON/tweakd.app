@@ -65,10 +65,12 @@ struct BenchmarkView: View {
                 VStack(alignment: .leading, spacing: Space.xs) {
                     ProgressView(value: bench.progress)
                     Text(bench.currentTask).font(.system(size: 11)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
             } else if bench.results.count < 2 {
                 Text("Run a Baseline, apply some tweaks, then run After tweaks to see the delta.")
                     .font(.system(size: 13)).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
         }
         .card(padding: Space.m)
@@ -84,6 +86,7 @@ struct BenchmarkView: View {
                     Text("Runs once a day on its own and saves the score to the timeline below.")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
                 }
+                .textSelection(.enabled)
                 Spacer()
                 Toggle("", isOn: Binding(get: { bench.dailyEnabled },
                                          set: { bench.dailyEnabled = $0 }))
@@ -107,14 +110,17 @@ struct BenchmarkView: View {
                     if let next = bench.nextDueDate {
                         Text("Next: \(next.formatted(.dateTime.weekday(.abbreviated).hour().minute()))")
                             .font(.system(size: 12)).foregroundStyle(.secondary).monospacedDigit()
+                            .textSelection(.enabled)
                     }
                 }
                 if let note = bench.scheduleNote {
                     Label(note, systemImage: "clock.badge.exclamationmark")
                         .font(.system(size: 12)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
                 }
                 Text("A run pegs every core for a few seconds. It's postponed while the Mac is warm or busy, so a build or a call never lands in the numbers.")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
             }
         }
         .card(padding: Space.m)
@@ -128,7 +134,7 @@ struct BenchmarkView: View {
     private var timeline: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             HStack {
-                Text("Timeline").sectionTitle()
+                Text("Timeline").sectionTitle().textSelection(.enabled)
                 Spacer()
                 Button("Clear history") { bench.clearHistory() }
                     .buttonStyle(.link)
@@ -157,6 +163,7 @@ struct BenchmarkView: View {
 
             Text("◆ manual · ● scheduled — run-to-run variance is normally a few percent, so read the trend rather than a single point.")
                 .font(.system(size: 11)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
 
             Divider().overlay(Theme.hairline)
             ForEach(recentRows, id: \.record.id) { row in
@@ -191,9 +198,11 @@ struct BenchmarkView: View {
                 Text(row.record.trigger.label)
                     .font(.system(size: 10)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
             Spacer()
             Text("\(Int(row.record.overall))")
                 .font(.system(size: 15, weight: .semibold)).monospacedDigit()
+                .textSelection(.enabled)
             if let pct = row.deltaPct {
                 Pill(text: String(format: "%+.0f%%", pct), prominent: pct >= 0,
                      systemImage: pct >= 0 ? "arrow.up" : "arrow.down")
@@ -207,7 +216,7 @@ struct BenchmarkView: View {
 
     private var overallChart: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("Overall Score").sectionTitle()
+            Text("Overall Score").sectionTitle().textSelection(.enabled)
             Chart(bench.results) { r in
                 BarMark(
                     x: .value("Run", r.label),
@@ -229,6 +238,7 @@ struct BenchmarkView: View {
                 Label(gain.text, systemImage: gain.up ? "arrow.up.right" : "arrow.down.right")
                     .font(.system(size: 15, weight: .semibold))
                     .foregroundStyle(gain.up ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.secondary))
+                    .textSelection(.enabled)
             }
         }
         .card()
@@ -236,7 +246,7 @@ struct BenchmarkView: View {
 
     private var breakdown: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            Text("Breakdown").sectionTitle()
+            Text("Breakdown").sectionTitle().textSelection(.enabled)
             grid("Single-core", \.singleCore)
             Divider().overlay(Theme.hairline)
             grid("Multi-core", \.multiCore)
@@ -251,6 +261,7 @@ struct BenchmarkView: View {
     private func grid(_ name: String, _ key: KeyPath<BenchmarkResult, Double>) -> some View {
         HStack {
             Text(name).font(.system(size: 13, weight: .medium)).frame(width: 110, alignment: .leading)
+                .textSelection(.enabled)
             Spacer()
             ForEach(bench.results) { r in
                 VStack(spacing: 1) {
@@ -258,6 +269,7 @@ struct BenchmarkView: View {
                         .font(.system(size: 15, weight: .semibold)).monospacedDigit()
                     Text(r.label).font(.system(size: 10)).foregroundStyle(.secondary)
                 }
+                .textSelection(.enabled)
                 .frame(minWidth: 74)
             }
             if let d = metricDelta(key) {

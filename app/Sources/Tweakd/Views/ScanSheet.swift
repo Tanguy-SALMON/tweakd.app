@@ -39,6 +39,7 @@ struct ScanSheet: View {
                 Text("Reading the live state of every tweak")
                     .font(.system(size: 13)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
 
             ProgressView(value: p.fraction)
                 .progressViewStyle(.linear)
@@ -52,6 +53,7 @@ struct ScanSheet: View {
                     .font(.system(size: 12, weight: .medium)).monospacedDigit()
                     .foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
         }
     }
 
@@ -68,6 +70,7 @@ struct ScanSheet: View {
                 Text("^[\(s.checked) tweak](inflect: true) checked against the live system")
                     .font(.system(size: 13)).foregroundStyle(.secondary)
             }
+            .textSelection(.enabled)
 
             HStack(spacing: Space.xs) {
                 statChip("\(s.applied)", "Applied", prominent: true)
@@ -110,6 +113,7 @@ struct ScanSheet: View {
                 .foregroundStyle(prominent ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.primary))
             Text(label).font(.system(size: 11)).foregroundStyle(.secondary)
         }
+        .textSelection(.enabled)
         .frame(maxWidth: .infinity)
         .card(padding: Space.s)
     }
@@ -124,6 +128,7 @@ struct ScanSheet: View {
             Text(stateLabel(c.to)).font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(c.to == .applied ? AnyShapeStyle(Theme.accent) : AnyShapeStyle(.primary))
         }
+        .textSelection(.enabled)
         .padding(.horizontal, Space.s).padding(.vertical, Space.xs)
         .background(Color.secondary.opacity(0.06), in: RoundedRectangle(cornerRadius: Radius.control))
     }
