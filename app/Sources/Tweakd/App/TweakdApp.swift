@@ -2,8 +2,8 @@
 //  TweakdApp.swift
 //  tweakd
 //
-//  Menu-bar app with a full main window. LSUIElement is set in the bundle's
-//  Info.plist so there's no Dock icon — the whole thing lives in the menu bar.
+//  Menu-bar app with a full main window. Also shows a Dock icon (LSUIElement
+//  is false in the bundle's Info.plist), so it appears in both places.
 //
 
 import SwiftUI

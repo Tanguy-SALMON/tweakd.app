@@ -88,8 +88,8 @@ cp "${BIN_PATH}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 
 # Info.plist is generated (not a checked-in file) so VERSION and the git
-# commit flow straight into the bundle. LSUIElement makes it menu-bar-only
-# (no Dock icon), which is the whole point of tweakd.
+# commit flow straight into the bundle. LSUIElement is false so the app
+# also shows a Dock icon while running, alongside the menu-bar item.
 cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -104,7 +104,7 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 	<key>CFBundleVersion</key><string>${VERSION}+${COMMIT_HASH}</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
 	<key>LSMinimumSystemVersion</key><string>14.0</string>
-	<key>LSUIElement</key><true/>
+	<key>LSUIElement</key><false/>
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
 </dict>
