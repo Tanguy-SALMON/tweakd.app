@@ -128,6 +128,41 @@ struct Tweak: Identifiable, Sendable {
     /// Recommended as part of the default "one-click tune" set.
     let recommended: Bool
 
+    /// Unverified/experimental tweak — ship off by default, gated behind a beta warning.
+    let isBeta: Bool
+
+    init(
+        key: String,
+        title: String,
+        summary: String,
+        category: TweakCategory,
+        privilege: Privilege,
+        risk: Risk,
+        sipRequired: Bool,
+        applyCommand: String,
+        revertCommand: String,
+        statusCommand: String,
+        appliedWhenOutputContains: String,
+        tags: Set<TweakTag>,
+        recommended: Bool,
+        isBeta: Bool = false
+    ) {
+        self.key = key
+        self.title = title
+        self.summary = summary
+        self.category = category
+        self.privilege = privilege
+        self.risk = risk
+        self.sipRequired = sipRequired
+        self.applyCommand = applyCommand
+        self.revertCommand = revertCommand
+        self.statusCommand = statusCommand
+        self.appliedWhenOutputContains = appliedWhenOutputContains
+        self.tags = tags
+        self.recommended = recommended
+        self.isBeta = isBeta
+    }
+
     var id: String { key }
 
     /// Per-tweak SF Symbol, falling back to the category glyph.

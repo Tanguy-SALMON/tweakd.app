@@ -19,7 +19,7 @@ struct Preset: Identifiable {
     /// Resolve to concrete tweak keys, skipping anything unavailable or advanced.
     func keys() -> Set<String> {
         Set(TweakCatalog.all
-            .filter { !($0.sipRequired && SystemInfo.sipEnabled) && $0.risk != .advanced && matches($0) }
+            .filter { !($0.sipRequired && SystemInfo.sipEnabled) && $0.risk != .advanced && !$0.isBeta && matches($0) }
             .map(\.key))
     }
 }
@@ -43,6 +43,15 @@ enum Presets {
                matches: { $0.risk <= .moderate && $0.tags.contains(.privacyFocused) }),
         Preset(id: "server", name: "AI / Server", icon: "server.rack",
                blurb: "Throughput for local LLM & dev servers.",
+               matches: { $0.risk <= .moderate && $0.tags.contains(.serverWorkload) }),
+        Preset(id: "ai-dev", name: "AI Development", icon: "brain",
+               blurb: "Tuned for local model inference and AI dev tools.",
+               matches: { $0.risk <= .moderate && ($0.tags.contains(.usesAI) || $0.tags.contains(.serverWorkload)) }),
+        Preset(id: "local-llm", name: "Local LLM Server", icon: "memorychip",
+               blurb: "Throughput and memory headroom for local LLM inference servers.",
+               matches: { $0.risk <= .moderate && $0.tags.contains(.serverWorkload) && ($0.tags.contains(.usesAI) || $0.tags.contains(.lowLatency)) }),
+        Preset(id: "container-web", name: "Containerised Web", icon: "shippingbox",
+               blurb: "Resource headroom for Docker/container-based dev environments.",
                matches: { $0.risk <= .moderate && $0.tags.contains(.serverWorkload) }),
         Preset(id: "hardened", name: "Hardened Security", icon: "lock.shield.fill",
                blurb: "Firewall, stealth & privacy DNS.",

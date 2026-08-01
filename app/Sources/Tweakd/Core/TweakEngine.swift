@@ -427,7 +427,12 @@ final class TweakEngine: ObservableObject {
             Log.audit("action.run", fields, result: .cancelled)
             return
         }
-        lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
+        let trimmedOutput = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+        if result.ok && action.showsOutput && !trimmedOutput.isEmpty {
+            lastMessage = trimmedOutput
+        } else {
+            lastMessage = result.ok ? "\(action.title) — done." : "\(action.title) failed: \(result.error)"
+        }
         var audited = fields
         audited["exit"] = "\(result.exitCode)"
         if !result.ok { audited["error"] = result.error }

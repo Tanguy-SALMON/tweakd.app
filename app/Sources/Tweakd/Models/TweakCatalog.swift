@@ -18,7 +18,22 @@ struct SystemAction: Identifiable, Sendable {
     let privilege: Privilege
     let command: String
     let destructive: Bool
+    /// Info-only actions (e.g. reporting Docker's current resource limits) show
+    /// their stdout as the result toast instead of a generic "— done." message.
+    let showsOutput: Bool
     var id: String { key }
+
+    init(key: String, title: String, summary: String, icon: String, privilege: Privilege,
+         command: String, destructive: Bool, showsOutput: Bool = false) {
+        self.key = key
+        self.title = title
+        self.summary = summary
+        self.icon = icon
+        self.privilege = privilege
+        self.command = command
+        self.destructive = destructive
+        self.showsOutput = showsOutput
+    }
     var runner: (String) -> CommandResult {
         privilege == .admin ? CommandRunner.admin : CommandRunner.user
     }
@@ -88,6 +103,31 @@ enum TweakCatalog {
             statusCommand: "pmset -g | awk '/hibernatemode/{print $2}'",
             appliedWhenOutputContains: "0",
             tags: [.prioritizePerformance], recommended: false
+        ),
+        // Beta — unverified/planning-notes ideas. Off by default, gated behind a beta warning.
+        Tweak(
+            key: "touchbar-disable",
+            title: "Disable Touch Bar",
+            summary: "Unloads the Touch Bar agent to save a bit of power/CPU on Touch Bar Macs.",
+            category: .power, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "launchctl unload -w /System/Library/LaunchAgents/com.apple.touchbar.agent.plist 2>/dev/null || true",
+            revertCommand: "launchctl load -w /System/Library/LaunchAgents/com.apple.touchbar.agent.plist 2>/dev/null || true",
+            statusCommand: "launchctl list | grep -q com.apple.touchbar.agent && echo OFF || echo ON",
+            appliedWhenOutputContains: "ON",
+            tags: [.prioritizeBattery], recommended: false, isBeta: true
+        ),
+        // Beta — plausible defaults key for widget background refresh; not independently
+        // verified against a shipping macOS build. Off by default, gated behind a beta warning.
+        Tweak(
+            key: "notification-center-refresh-off",
+            title: "Stop Widget Background Refresh",
+            summary: "Stops the Notification Center widget gallery from refreshing widgets in the background.",
+            category: .power, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "defaults write com.apple.notificationcenterui bulletinBoardIsBackgroundRefreshEnabled -bool false; killall NotificationCenter 2>/dev/null; true",
+            revertCommand: "defaults delete com.apple.notificationcenterui bulletinBoardIsBackgroundRefreshEnabled 2>/dev/null; killall NotificationCenter 2>/dev/null; true",
+            statusCommand: "defaults read com.apple.notificationcenterui bulletinBoardIsBackgroundRefreshEnabled 2>/dev/null",
+            appliedWhenOutputContains: "0",
+            tags: [.prioritizeBattery], recommended: false, isBeta: true
         ),
 
         // MARK: Snappiness (all safe, user-level, reversible)
@@ -243,6 +283,20 @@ enum TweakCatalog {
             statusCommand: "mdutil -s /",
             appliedWhenOutputContains: "disabled",
             tags: [.usesSpotlight], recommended: false
+        ),
+        // Beta — best-known agent identifier for Dictionary/Lookup background indexing;
+        // not independently verified against a shipping macOS build. Off by default,
+        // gated behind a beta warning.
+        Tweak(
+            key: "dictionary-indexing-off",
+            title: "Disable Dictionary Background Indexing",
+            summary: "Unloads the Dictionary/Lookup background indexing agent.",
+            category: .services, privilege: .user, risk: .moderate, sipRequired: false,
+            applyCommand: "launchctl unload -w /System/Library/LaunchAgents/com.apple.dictionaryd.plist 2>/dev/null || true",
+            revertCommand: "launchctl load -w /System/Library/LaunchAgents/com.apple.dictionaryd.plist 2>/dev/null || true",
+            statusCommand: "launchctl list | grep -q com.apple.dictionaryd && echo OFF || echo ON",
+            appliedWhenOutputContains: "ON",
+            tags: [.prioritizeBattery], recommended: false, isBeta: true
         ),
 
         // MARK: Network
@@ -409,6 +463,18 @@ enum TweakCatalog {
             statusCommand: "defaults read com.apple.lookup.shared LookupSuggestionsDisabled 2>/dev/null",
             appliedWhenOutputContains: "1",
             tags: [.usesAI, .privacyFocused], recommended: true
+        ),
+        // Beta — unverified/planning-notes idea. Off by default, gated behind a beta warning.
+        Tweak(
+            key: "ollama-tuning",
+            title: "Tune Ollama for GPU & Keep-Alive",
+            summary: "Sets OLLAMA_NUM_GPU and OLLAMA_KEEP_ALIVE so local LLM workloads use more GPU layers and keep models loaded longer.",
+            category: .ai, privilege: .user, risk: .safe, sipRequired: false,
+            applyCommand: "launchctl setenv OLLAMA_NUM_GPU 999 && launchctl setenv OLLAMA_KEEP_ALIVE 30m",
+            revertCommand: "launchctl unsetenv OLLAMA_NUM_GPU && launchctl unsetenv OLLAMA_KEEP_ALIVE",
+            statusCommand: "launchctl getenv OLLAMA_KEEP_ALIVE 2>/dev/null | grep -q 30m && echo ON || echo OFF",
+            appliedWhenOutputContains: "ON",
+            tags: [.usesAI, .serverWorkload], recommended: false, isBeta: true
         ),
 
         // MARK: CPU & GPU speed (verified on Apple Silicon / macOS 26)
@@ -689,6 +755,27 @@ enum TweakCatalog {
             summary: "Erases and rebuilds the Spotlight index for the boot volume.",
             icon: "magnifyingglass", privilege: .admin,
             command: "mdutil -E /", destructive: true
+        ),
+
+        // Docker's VM resource limits (CPU/RAM/swap/disk) live in a JSON file whose
+        // key names have changed across Docker Desktop versions — editing it directly
+        // is too risky to automate. `docker info` is Docker's own read-only CLI, so
+        // it's safe to report what the daemon currently sees; changing the limits is
+        // left to Docker Desktop's own Settings > Resources pane.
+        SystemAction(
+            key: "docker-resources-info",
+            title: "Docker Resource Allocation",
+            summary: "Reports the CPU/RAM Docker Desktop's VM is currently allowed to use. To change CPU, RAM, swap, or disk limits, use Docker's own Settings \u{2192} Resources pane.",
+            icon: "cpu", privilege: .user,
+            command: "if command -v docker >/dev/null 2>&1 && docker info >/dev/null 2>&1; then docker info --format '{{.NCPU}}|{{.MemTotal}}' | awk -F'|' '{printf \"Docker Desktop: %s CPUs, %.1f GB RAM allocated. Change it in Docker > Settings > Resources.\", $1, $2/1073741824}'; else echo \"Docker Desktop isn't running. Launching it — once it opens, go to Settings > Resources to view or change CPU, RAM, swap, and disk limits.\"; open -a Docker >/dev/null 2>&1; fi",
+            destructive: false, showsOutput: true
+        ),
+        SystemAction(
+            key: "docker-open-settings",
+            title: "Open Docker Desktop Settings",
+            summary: "Launches Docker Desktop so you can adjust CPU, memory, swap, and disk allocation yourself in Settings \u{2192} Resources — the safest way to change them.",
+            icon: "shippingbox", privilege: .user,
+            command: "open -a Docker", destructive: false
         ),
     ]
 }

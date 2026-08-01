@@ -11,6 +11,12 @@ import Charts
 struct MenuView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.openWindow) private var openWindow
+    @State private var betaAlertTweak: Tweak?
+    @State private var securityPresetsExpanded = false
+
+    private var securityPresets: [Preset] {
+        Presets.all.filter { $0.id == "hardened" || $0.id == "lowlatency" }
+    }
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
@@ -53,6 +59,8 @@ struct MenuView: View {
             .font(.system(size: 13))
             .disabled(model.engine.batchRunning)
             .clickCursor()
+
+            securityPresetsDisclosure
 
             Divider().overlay(Theme.hairline)
 
@@ -106,11 +114,61 @@ struct MenuView: View {
             } else {
                 Toggle("", isOn: Binding(
                     get: { model.engine.state(of: tweak) == .applied },
-                    set: { want in Task { await model.engine.set(tweak, to: want ? .applied : .notApplied) } }
+                    set: { want in
+                        if want && tweak.isBeta {
+                            betaAlertTweak = tweak      // confirm before enabling beta tweaks
+                        } else {
+                            Task { await model.engine.set(tweak, to: want ? .applied : .notApplied) }
+                        }
+                    }
                 ))
                 .labelsHidden().toggleStyle(.switch).controlSize(.mini)
             }
         }
+        .betaWarningDialog(
+            isPresented: Binding(
+                get: { betaAlertTweak?.key == tweak.key },
+                set: { if !$0 { betaAlertTweak = nil } }
+            ),
+            tweakTitle: tweak.title
+        ) {
+            Task { await model.engine.set(tweak, to: .applied) }
+        }
+    }
+
+    /// Collapsed-by-default expander revealing one-click security/network presets.
+    private var securityPresetsDisclosure: some View {
+        DisclosureGroup(isExpanded: $securityPresetsExpanded) {
+            VStack(spacing: Space.xs) {
+                ForEach(securityPresets) { preset in
+                    presetRow(preset)
+                }
+            }
+            .padding(.top, Space.xs)
+        } label: {
+            Label("Security & Network Presets", systemImage: "shield.lefthalf.filled")
+                .font(.system(size: 13))
+        }
+        .tint(.primary)
+    }
+
+    private func presetRow(_ preset: Preset) -> some View {
+        Button {
+            Task { await model.engine.applyPreset(id: preset.id) }
+        } label: {
+            HStack {
+                Label(preset.name, systemImage: preset.icon)
+                Spacer()
+                if model.engine.batchRunning { ProgressView().controlSize(.small) }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .buttonStyle(.plain)
+        .font(.system(size: 13))
+        .disabled(model.engine.batchRunning)
+        .clickCursor()
+        .padding(.leading, Space.s)
+        .help(preset.blurb)
     }
 
     private func menuButton(_ title: String, _ icon: String, _ action: @escaping () -> Void) -> some View {

@@ -9,6 +9,10 @@ struct TweakRow: View {
     @EnvironmentObject var model: AppModel
     let tweak: Tweak
     @State private var showRiskAlert = false
+    // Kept apart from the risk alert: "beta" is about our confidence in the
+    // tweak, "advanced" is about what it does to the Mac. A tweak can be both,
+    // and folding them together would hide one warning behind the other.
+    @State private var showBetaAlert = false
 
     private var state: TweakState { model.engine.state(of: tweak) }
     private var busy: Bool { model.engine.busy.contains(tweak.key) }
@@ -33,6 +37,12 @@ struct TweakRow: View {
                 HStack(spacing: Space.xxs) {
                     stateBadge
                     Pill(text: tweak.risk.label)
+                    if tweak.isBeta {
+                        // Surfaced next to the risk badge so the "experimental"
+                        // warning is readable *before* the toggle, not only in
+                        // the confirm alert that fires after the click.
+                        Pill(text: "Beta", systemImage: "testtube.2")
+                    }
                     if tweak.sipRequired {
                         Pill(text: "Needs SIP off", systemImage: "exclamationmark.shield")
                     }
@@ -73,6 +83,9 @@ struct TweakRow: View {
         } message: {
             Text("This is an advanced tweak. It can affect stability, battery, or need a reboot to fully revert. Continue only if you understand the risk.")
         }
+        .betaWarningDialog(isPresented: $showBetaAlert, tweakTitle: tweak.title) {
+            Task { await model.engine.set(tweak, to: .applied) }
+        }
     }
 
     private var stateWord: String {
@@ -86,6 +99,7 @@ struct TweakRow: View {
 
     private var accessibilityDescription: String {
         var parts = [tweak.title, tweak.summary, "Status: \(stateWord)", "Risk: \(tweak.risk.label)"]
+        if tweak.isBeta { parts.append("Beta — experimental and unverified") }
         if tweak.privilege == .admin { parts.append("Requires administrator") }
         return parts.joined(separator: ". ")
     }
@@ -116,7 +130,9 @@ struct TweakRow: View {
             Toggle("", isOn: Binding(
                 get: { isOn },
                 set: { want in
-                    if want && tweak.risk == .advanced {
+                    if want && tweak.isBeta {
+                        showBetaAlert = true            // confirm before enabling beta tweaks
+                    } else if want && tweak.risk == .advanced {
                         showRiskAlert = true            // confirm before enabling advanced tweaks
                     } else {
                         Task { await model.engine.set(tweak, to: want ? .applied : .notApplied) }

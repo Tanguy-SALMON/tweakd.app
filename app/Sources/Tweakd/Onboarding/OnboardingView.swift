@@ -80,8 +80,7 @@ struct OnboardingView: View {
                     Divider().overlay(Theme.hairline).padding(.vertical, 2)
                     questionToggle("Run network services", "Web servers, SSH, or containers",
                                    "server.rack", $model.wizard.runsNetworkServices)
-                    questionToggle("Prioritize security", "Firewall, stealth mode, and privacy DNS",
-                                   "lock.shield", $model.wizard.hardenSecurity)
+                    questionSecurityPosture()
                     questionToggle("Need low latency", "Gaming or remote desktop",
                                    "gauge.with.dots.needle.67percent", $model.wizard.needsLowLatency)
                 }
@@ -194,6 +193,28 @@ struct OnboardingView: View {
             }
         }
         .toggleStyle(.switch)
+        .padding(Space.s)
+        .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Theme.hairline))
+    }
+
+    private func questionSecurityPosture() -> some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            HStack(spacing: Space.s) {
+                Image(systemName: "lock.shield").font(.system(size: 16)).frame(width: 26).foregroundStyle(.secondary)
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Security posture").font(.system(size: 13, weight: .semibold))
+                    Text("Firewall, stealth mode, and privacy DNS").font(.system(size: 11)).foregroundStyle(.secondary)
+                }
+            }
+            Picker("Security posture", selection: $model.wizard.securityPosture) {
+                ForEach(SecurityPosture.allCases) { posture in
+                    Text(posture.label).tag(posture)
+                }
+            }
+            .labelsHidden()
+            .pickerStyle(.segmented)
+        }
         .padding(Space.s)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Theme.hairline))

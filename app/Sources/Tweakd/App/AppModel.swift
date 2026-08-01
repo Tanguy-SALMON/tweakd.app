@@ -222,6 +222,20 @@ enum Priority: String, CaseIterable, Identifiable {
     }
 }
 
+enum SecurityPosture: String, CaseIterable, Identifiable {
+    case hardened
+    case balanced
+    case performanceFirst
+    var id: String { rawValue }
+    var label: String {
+        switch self {
+        case .hardened: return "Security-Hardened"
+        case .balanced: return "Balanced"
+        case .performanceFirst: return "Performance-First"
+        }
+    }
+}
+
 struct WizardAnswers {
     var usesAI = true
     var usesSpotlight = true
@@ -231,7 +245,10 @@ struct WizardAnswers {
     var wantsSnappyUI = true
     var priority: Priority = .balanced
     var runsNetworkServices = false   // web servers, SSH, containers → server/low-latency tuning
-    var hardenSecurity = false        // prefers security over convenience → firewall/stealth
+    // Old `hardenSecurity: Bool` defaulted to false (opt-in hardening); `.balanced` is the
+    // closest equivalent since it still gets a light touch of .safe security tweaks rather
+    // than none at all, but never forces every security tweak the way `.hardened` now does.
+    var securityPosture: SecurityPosture = .balanced
     var needsLowLatency = false       // gaming / remote desktop → network + priority boosts
 
     /// Turn the answers into a tailored set of tweak keys.
@@ -257,7 +274,17 @@ struct WizardAnswers {
             if privacyFocused && t.tags.contains(.privacyFocused) { include = true }
             if priority == .performance && t.tags.contains(.prioritizePerformance) { include = true }
             if priority == .battery && t.tags.contains(.prioritizeBattery) { include = true }
-            if hardenSecurity && t.tags.contains(.security) { include = true }
+            switch securityPosture {
+            case .hardened:
+                // Full hardening: every security-tagged tweak, not just the safe ones.
+                if t.tags.contains(.security) { include = true }
+            case .balanced:
+                // Light touch: only the reversible, no-functional-loss security tweaks.
+                if t.tags.contains(.security) && t.risk == .safe { include = true }
+            case .performanceFirst:
+                // Skip security-driven inclusion entirely; let performance tags win.
+                if t.tags.contains(.prioritizePerformance) { include = true }
+            }
             if runsNetworkServices && t.tags.contains(.serverWorkload) { include = true }
             if needsLowLatency && t.tags.contains(.lowLatency) { include = true }
 
