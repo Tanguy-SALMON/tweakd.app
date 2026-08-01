@@ -1,10 +1,41 @@
 # Changelog
 
-All notable changes to tweakd. Dates are `YYYY-MM-DD`.
+All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
-_Nothing yet._
+### Changed — the main window opens at 80% of the screen
+
+Sized against the screen's *visible* frame rather than its full frame, so the
+window never opens partly under the menu bar or the Dock, and clamped to the
+existing 880×620 minimum for small displays.
+
+`.defaultSize` can't do this alone — it only applies when AppKit has no saved
+frame to restore, so on any install that had run before, the window came back at
+whatever size it was last left at.
+
+### Changed — the brand reads "Tweakd" in the UI
+
+The app said `tweakd` in the sidebar, menu bar and window title while the website
+already said **Tweakd**.
+
+`Brand.name` couldn't simply be capitalised: it builds the support directory, log
+file, revert script and sudoers rule, all of which already exist on disk under the
+lowercase name. Renaming it would orphan them — the sudoers rule being the one
+that matters, since it grants passwordless root and the UI would report admin as
+locked while the rule stayed behind.
+
+So `Brand.displayName` now covers everything the user reads and `Brand.name` keeps
+the paths. `build.sh` makes the same split: `CFBundleName` and
+`CFBundleDisplayName` are "Tweakd", while `CFBundleExecutable` and the `.app`
+filename stay lowercase.
+
+### Removed — the duplicated window title
+
+`NavigationSplitView` draws the window title in the toolbar strip above the detail
+pane, right beside a sidebar header already showing the brand and version. The
+title is dropped from the toolbar only; the scene keeps it, so the Window menu and
+Mission Control still identify the window.
 
 ## [0.8.0] — 2026-07-31
 
