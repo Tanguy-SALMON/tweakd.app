@@ -1,9 +1,11 @@
 // swift-tools-version:6.0
 import PackageDescription
 
-// The Swift module is `Tweakd` (capitalized, per Swift convention); everything
-// user-visible — the app bundle, the menu-bar item, the docs — is lowercase
-// `tweakd`, matching the domain tweakd.app.
+// The Swift module is `Tweakd`, per Swift convention. The brand reads "Tweakd"
+// everywhere the user sees it (see `Brand.displayName`), while the bundle
+// filename, executable and every on-disk path stay lowercase `tweakd` —
+// matching the domain tweakd.app, and matching the artifacts already on disk
+// under that name (see `Brand.name`).
 let package = Package(
     name: "Tweakd",
     platforms: [

@@ -1,6 +1,6 @@
 # Tools — the panes that aren't tweaks
 
-tweakd's toggle catalog is documented in [TWEAKS.md](TWEAKS.md) and the Services page
+Tweakd's toggle catalog is documented in [TWEAKS.md](TWEAKS.md) and the Services page
 has its own guide in [SERVICES.md](SERVICES.md). This page covers **everything else**:
 Dashboard, Disk Cleanup, Process Priority, Thermal, Benchmark, the audio watchdog, and
 the audit trail — with the exact Terminal command for each, so none of it needs the app.
@@ -149,7 +149,7 @@ no matter how much you prune. `du` counts blocks actually allocated. Compare the
 ```
 
 **Docker prune needs Docker running.** If Docker Desktop is stopped, `docker system
-prune` fails — tweakd deliberately does *not* mask that error, so a failed prune
+prune` fails — Tweakd deliberately does *not* mask that error, so a failed prune
 reports as failed rather than "done" while freeing nothing.
 
 **Clearing a cache does not remove work — it defers it.** Every wiped cache is rebuilt on
@@ -254,13 +254,13 @@ Plot or summarise it without the app:
 /usr/bin/time /usr/bin/openssl speed -seconds 1 sha256 2>/dev/null | /usr/bin/tail -3
 ```
 
-These are **not** comparable to tweakd's scores — different work, different scale. Use
+These are **not** comparable to Tweakd's scores — different work, different scale. Use
 them for "is the disk suddenly slow", not for tracking a trend.
 
 ### The daily run
 
 Configured in the app (**Benchmark → Daily Benchmark**, default 12:00, off until you
-enable it). It's an in-app timer, so it only fires while tweakd is running, and it is
+enable it). It's an in-app timer, so it only fires while Tweakd is running, and it is
 **postponed while the Mac is warm or busy** and **skipped entirely if more than 4 hours
 late** — a benchmark taken mid-build measures the build. Details and reasoning in
 [FAQ.md § Benchmark](FAQ.md#benchmark).
@@ -313,7 +313,7 @@ defaults read app.tweakd watchdog.coreaudio    # 1 = watching
 
 ## The audit trail
 
-**Every change tweakd makes** is recorded with its before state, its intended state,
+**Every change Tweakd makes** is recorded with its before state, its intended state,
 and the **verified actual** state afterwards — including the ones that failed.
 
 ```bash

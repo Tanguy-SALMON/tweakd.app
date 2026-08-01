@@ -1,6 +1,6 @@
-# Contributing to tweakd
+# Contributing to Tweakd
 
-tweakd is data-driven: the catalog is the source of truth, and adding a tweak is a
+Tweakd is data-driven: the catalog is the source of truth, and adding a tweak is a
 one-entry change. This guide covers how to build, add a tweak safely, and the
 conventions the code follows.
 

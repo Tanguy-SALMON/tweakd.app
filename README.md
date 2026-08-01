@@ -1,4 +1,4 @@
-# tweakd
+# Tweakd
 
 **[tweakd.app](https://tweakd.app)** · Tune macOS. Or do it by hand.
 
@@ -87,9 +87,11 @@ Full docs live in [`docs/`](docs/):
 
 ## Naming
 
-The app, the bundle and everything user-visible are lowercase **tweakd**, matching the
-domain. Two places differ on purpose:
+The bundle, the on-disk artifacts and every runtime identifier are lowercase `tweakd`,
+matching the domain. Three places differ on purpose:
 
+- **Display name:** **Tweakd** — capitalized, used for everything the user reads (window
+  title, menu bar, docs, marketing).
 - **Swift module / SPM target:** `Tweakd` — capitalized, per Swift convention. Invisible
   at runtime.
 - **Bundle identifier:** `app.tweakd` — reverse-DNS of `tweakd.app`. Also the unified-log
@@ -123,8 +125,8 @@ Finder. Run `app/build.sh --help` for all flags.
 Or open `app/Package.swift` in Xcode and hit Run (note: running the bare SPM executable
 skips the `Info.plist`, so use the script for the real menu-bar experience).
 
-The app lives in the **menu bar** (no Dock icon). The main window opens on first launch
-and via the menu-bar panel's *Open tweakd*.
+The app lives in the **menu bar** and the **Dock**. The main window opens on first launch
+and via the menu-bar panel's *Open Tweakd*.
 
 ## How privileges work
 
@@ -139,7 +141,7 @@ it never trusts an exit code. See `app/Sources/Tweakd/Core/CommandRunner.swift` 
 ## Passwordless admin (authenticate once)
 
 By default each admin tweak triggers the native password prompt. Click **Unlock**
-on the Dashboard's *Admin Access* card to authenticate **once** — tweakd installs
+on the Dashboard's *Admin Access* card to authenticate **once** — Tweakd installs
 a sudoers rule and every later admin tweak applies via `sudo -n` with no prompt.
 
 - The rule lives at `/etc/sudoers.d/tweakd` (root-owned, `0440`, validated with

@@ -1,6 +1,6 @@
-# tweakd — FAQ & Troubleshooting
+# Tweakd — FAQ & Troubleshooting
 
-Real questions that came up building and using tweakd, with honest answers.
+Real questions that came up building and using Tweakd, with honest answers.
 
 ## General
 
@@ -72,7 +72,7 @@ sudo powermetrics --samplers thermal -n 1         # "Current pressure level: Nom
 sudo powermetrics --samplers cpu_power -n 1 -i 300 | grep "HW active frequency"
 ```
 Note there is **no `hw.cpufrequency` on Apple Silicon** (it's Intel-only), which is
-why frequency needs `powermetrics` and root. tweakd derives each cluster's
+why frequency needs `powermetrics` and root. Tweakd derives each cluster's
 maximum from the frequency-residency histogram in that output.
 
 ### How do I stop MySQL / PHP / nginx starting at boot?
@@ -86,7 +86,7 @@ nothing — launchd restarts them. Two levels, both reversible:
 `~/Library/LaunchAgents` and once as a root daemon in `/Library/LaunchDaemons`. They are
 two separate jobs with the same name, and it's usually the **system** one actually
 running. Disable only the user copy and the process keeps running, which looks like the
-button did nothing. tweakd flags duplicated names and labels each row `User`/`System`.
+button did nothing. Tweakd flags duplicated names and labels each row `User`/`System`.
 
 Check which copy owns the process:
 ```bash
@@ -122,7 +122,7 @@ lot, which is the usual reason this dialog appears "out of nowhere".
 > can't be removed at all: they're Apple's, live in `/System/Library`, are SIP-protected,
 > and measure 0.0% CPU idle. They also aren't what shows the dialog.
 
-### How do I know tweakd found *all* my services, including custom ones?
+### How do I know Tweakd found *all* my services, including custom ones?
 Because it doesn't only look in the usual folders — **it asks launchd**, then adds
 anything the folder scan missed. If launchd is running your service, it's listed,
 however you installed it.
@@ -149,7 +149,7 @@ deliberately excluded classes: Apple's own (`com.apple.*`, plus unprefixed OS jo
 GUI apps, not services), and `NetworkExtension.*` (VPN/filter providers, managed in
 System Settings).
 
-**A service tweakd doesn't recognise is never hidden** — it's listed under **Other**
+**A service Tweakd doesn't recognise is never hidden** — it's listed under **Other**
 and is fully controllable. Classification only decides the heading.
 
 Trace any single job to its origin (no root needed):
@@ -164,14 +164,14 @@ check those separately: `crontab -l`, Docker containers with restart policies
 mechanism: [ARCHITECTURE.md](ARCHITECTURE.md#servicesmanager--detecting-every-background-service).
 
 ### Which background services are safe to disable?
-tweakd groups them by what they are:
+Tweakd groups them by what they are:
 
 | Group | Safe to disable? |
 |---|---|
 | **Developer services** (Homebrew databases, web servers, model runners) | **Yes** — nothing else depends on them. Start them when you need them |
 | **Auto-updaters** (Google Keystone, Microsoft AutoUpdate, TeamViewer) | **Yes** — you just update that app manually |
 | **App helpers** (Docker, vendor daemons) | Usually — the app may restart it or lose a background feature |
-| **Security & management** (Cortex XDR, Jamf, Defender…) | **No** — tweakd lists these read-only and won't switch them |
+| **Security & management** (Cortex XDR, Jamf, Defender…) | **No** — Tweakd lists these read-only and won't switch them |
 | **Apple daemons** | Not listed at all — SIP-protected and load-bearing |
 
 Security agents are deliberately **Protected**: on a managed Mac they're required by
@@ -240,7 +240,7 @@ F=~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw
 ls -lh "$F" | awk '{print $5}'   # 60G  <- logical ceiling, always looks huge
 du -h  "$F" | awk '{print $1}'   # 1.5G <- actually on disk
 ```
-tweakd reports the `du` figure. To see what a prune really freed, read its own last
+Tweakd reports the `du` figure. To see what a prune really freed, read its own last
 line — `Total reclaimed space: …` (the app now shows it):
 ```bash
 docker system prune -af --volumes
@@ -278,7 +278,7 @@ Those drivers run **inside** `coreaudiod`, so the cost bills there. Restart it:
 ```bash
 sudo killall coreaudiod
 ```
-It relaunches automatically (audio blips for a second). tweakd's **Core Audio
+It relaunches automatically (audio blips for a second). Tweakd's **Core Audio
 Watchdog** can do this for you when `coreaudiod` stays hot for ~30 s — enable it on the
 Dashboard (auto-restart is silent only if passwordless admin is unlocked).
 
@@ -297,7 +297,7 @@ CPU after giving up; re-toggle it to try restarting again.
 It's Apple's **performance/power telemetry** helper — it periodically samples thermal
 and power state to inform the scheduler and battery health. It's low-impact, bursty,
 and **part of the OS's power management**; there's no safe, meaningful tweak for it,
-so tweakd doesn't ship one. Leave it alone.
+so Tweakd doesn't ship one. Leave it alone.
 
 ### High CPU from `mlx`/Python processes?
 That's **legitimate local inference** (MLX-LM), not waste — the model is doing work.
@@ -326,7 +326,7 @@ timeline has its own **Clear history**.
 Yes — **Benchmark → Daily Benchmark**, with an hour picker that defaults to **12:00**.
 It's **off by default**, because a run pegs every core for a few seconds.
 
-It only fires while tweakd is running (it's a plain in-app timer, not a LaunchAgent),
+It only fires while Tweakd is running (it's a plain in-app timer, not a LaunchAgent),
 but it's checked every 5 minutes rather than at the exact minute, so a Mac that was
 asleep at noon still gets its run shortly after waking.
 
@@ -365,7 +365,7 @@ tweaks measured against *noon's run* instead of your baseline.
 ## The app "crashed" / disappeared
 
 ### I entered my admin password and the window vanished.
-It almost certainly **didn't crash**. tweakd is a menu-bar (accessory) app with no
+It almost certainly **didn't crash**. Tweakd is a menu-bar (accessory) app with no
 Dock icon; when the macOS password dialog appears it steals focus, and afterward the
 window can drop **behind** other windows — it *looks* gone but is alive in the menu
 bar. This is now handled: after any auth dialog the app reactivates and raises its
@@ -384,7 +384,7 @@ log show --predicate 'subsystem == "app.tweakd"' --last 30m
 
 ### Why does it ask for my password?
 Admin tweaks (`pmset`, `sysctl`, `mdutil`, system `launchctl`, `nvram`) need root.
-tweakd uses the **native macOS password dialog** — no helper tool, no stored
+Tweakd uses the **native macOS password dialog** — no helper tool, no stored
 password. See [SAFETY.md](SAFETY.md).
 
 ### What is "Unlock passwordless admin"?
@@ -417,8 +417,8 @@ rm -rf ~/Library/Application\ Support/tweakd ~/Library/Logs/tweakd
 
 ## It used to be called MacTweak
 
-### I updated and it's called tweakd now. Did I lose my settings?
-No. On first launch tweakd **migrates** what MacTweak left behind, because renaming an
+### I updated and it's called Tweakd now. Did I lose my settings?
+No. On first launch Tweakd **migrates** what MacTweak left behind, because renaming an
 app changes its bundle identifier and macOS keys preferences on that identifier. Without
 the migration the app would look brand new: onboarding again, no favorites, no tweak
 order, no window position, no benchmark history, and an audit log starting from zero.
@@ -439,7 +439,7 @@ Confirm it ran:
 
 ### Three things were deliberately *not* renamed on disk. Why?
 Because migrating them would mean a password prompt at launch, which is a bad trade for
-a cosmetic rename. Instead tweakd **recognises both names** wherever these are used, so
+a cosmetic rename. Instead Tweakd **recognises both names** wherever these are used, so
 nothing is stranded:
 
 - **`/etc/sudoers.d/mactweak`** — a rule installed before the rename keeps working, and

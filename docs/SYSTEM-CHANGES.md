@@ -1,6 +1,6 @@
 # System Changes Log
 
-Every macOS setting that was modified on this Mac while building & testing tweakd,
+Every macOS setting that was modified on this Mac while building & testing Tweakd,
 with the exact command used, what it does, and its current status.
 
 - **When:** 2026-07-22, during UI testing (the app's guided-setup wizard auto-applied
@@ -87,7 +87,7 @@ password prompt was ever approved). They remain at their original values:
 
 ## App's own preferences (not a system setting)
 
-tweakd stored its own state in the `app.tweakd` UserDefaults domain
+Tweakd stored its own state in the `app.tweakd` UserDefaults domain
 (`didOnboard`, `tweak.order`, `tweak.favorites`). This was also cleared with
 `defaults delete app.tweakd` so you get a clean first run.
 
