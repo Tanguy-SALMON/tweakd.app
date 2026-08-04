@@ -61,17 +61,22 @@ struct OnboardingView: View {
 
     private var usage: some View {
         VStack(alignment: .leading, spacing: Space.s) {
-            stepTitle("How do you use your Mac?", "We'll keep these features on if you need them.")
+            stepTitle("What should we turn off?", "Every switch you turn on applies a change. Anything left off stays exactly as it is.")
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.s) {
-                    questionToggle("Apple Intelligence & Siri", "On-device AI, Siri, Lookup suggestions",
-                                   "sparkles", $model.wizard.usesAI)
-                    questionToggle("Spotlight search", "Searching files and content with ⌘Space",
-                                   "magnifyingglass", $model.wizard.usesSpotlight)
-                    questionToggle("Photos memories & faces", "Face recognition and auto Memories",
-                                   "photo.stack", $model.wizard.usesPhotos)
-                    questionToggle("AirDrop & AirPlay", "Sharing and screen mirroring nearby",
-                                   "airplayvideo", $model.wizard.usesAirDrop)
+                    // These four bind to "do you *use* this feature?" flags, so the
+                    // switch is inverted: turning it on means "I don't use it, go
+                    // ahead and disable it". Every other row on this screen already
+                    // reads as on = apply, and one screen must not carry two opposite
+                    // meanings for the same control.
+                    questionToggle("Disable Apple Intelligence & Siri", "Turns off on-device AI, Siri and Lookup suggestions",
+                                   "sparkles", $model.wizard.usesAI.not)
+                    questionToggle("Disable Spotlight indexing", "Stops ⌘Space from searching file contents",
+                                   "magnifyingglass", $model.wizard.usesSpotlight.not)
+                    questionToggle("Disable Photos analysis", "Turns off face recognition and auto Memories",
+                                   "photo.stack", $model.wizard.usesPhotos.not)
+                    questionToggle("Disable AirDrop & AirPlay", "Stops nearby sharing and screen mirroring",
+                                   "airplayvideo", $model.wizard.usesAirDrop.not)
                     Divider().overlay(Theme.hairline).padding(.vertical, 2)
                     questionToggle("Prioritize privacy", "Also disable telemetry and suggestions",
                                    "hand.raised", $model.wizard.privacyFocused)
@@ -218,5 +223,14 @@ struct OnboardingView: View {
         .padding(Space.s)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: Radius.tile).strokeBorder(Theme.hairline))
+    }
+}
+
+extension Binding where Value == Bool {
+    /// Reads and writes the inverse. Lets a "do you use this?" flag drive a
+    /// switch phrased as "disable this", so every toggle on a step can mean the
+    /// same thing — on applies a change — without reshaping the wizard model.
+    var not: Binding<Bool> {
+        Binding(get: { !wrappedValue }, set: { wrappedValue = !$0 })
     }
 }
