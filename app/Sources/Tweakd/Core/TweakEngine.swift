@@ -166,8 +166,17 @@ final class TweakEngine: ObservableObject {
     }
 
     nonisolated static func probe(_ t: Tweak) -> TweakState {
-        if t.sipRequired && SystemInfo.sipEnabled { return .unavailable }
         let r = CommandRunner.user(t.statusCommand)
+        if t.sipRequired && SystemInfo.sipEnabled {
+            // Normally unavailable — but probe anyway rather than reporting
+            // `.unavailable` blind. A SIP tweak can have left real state behind
+            // (an earlier build, a bug, or SIP re-enabled after the fact), and
+            // reporting it unavailable hides that from the user *and* from
+            // `revertAll()`, which only reverts what reads as `.applied`. If the
+            // artifact is there, say so, so it can be cleaned up.
+            return r.output.localizedCaseInsensitiveContains(t.appliedWhenOutputContains)
+                ? .applied : .unavailable
+        }
         if r.output.isEmpty { return .notApplied }
         return r.output.localizedCaseInsensitiveContains(t.appliedWhenOutputContains)
             ? .applied : .notApplied
@@ -240,7 +249,15 @@ final class TweakEngine: ObservableObject {
         let fields = ["key": tweak.key, "from": before.auditName, "to": target.auditName,
                       "privilege": tweak.privilege == .admin ? "admin" : "user"]
 
-        guard before != .unavailable else {
+        // Check the requirement itself, not just the cached state. `before` is
+        // `.unknown` until the first probe lands, so a batch that runs at launch
+        // would otherwise sail past this guard and execute the command anyway —
+        // which is how `serverperfmode` wrote `boot-args` into NVRAM on a
+        // SIP-enabled Mac, where the kernel then ignores it at boot. Commands
+        // like that leave durable state behind that revert can't reach.
+        // Reverting stays allowed: that is how orphaned state gets cleaned up.
+        let sipBlocked = tweak.sipRequired && SystemInfo.sipEnabled && target == .applied
+        guard !sipBlocked, before != .unavailable else {
             lastMessage = "\(tweak.title) isn't available on this Mac (SIP is enabled)."
             Log.audit("tweak.set", fields.merging(["reason": "unavailable"]) { a, _ in a }, result: .skipped)
             return
