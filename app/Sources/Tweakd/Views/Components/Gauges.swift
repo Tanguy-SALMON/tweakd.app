@@ -2,7 +2,7 @@
 //  Gauges.swift
 //  tweakd
 //
-//  Monochrome dashboard primitives: a single-accent radial gauge and a stat tile.
+//  Dashboard primitives: per-metric trend meters, stat tiles and sparklines.
 //
 
 import SwiftUI
@@ -28,22 +28,16 @@ struct HeroHeader: View {
     }
 }
 
-/// The accent area+line marks for the CPU history — shared by the dashboard
-/// chart and the menu sparkline (each wraps it with its own axes/chrome).
-/// `filled` draws the area wash under the line. On by default for the menu-bar
-/// sparkline, which is a lone series where the fill gives the tiny plot some
-/// body. Off on the dashboard: there the pale wash sits under the line and
-/// shifts how its colour reads against the CPU meter beside it, even though
-/// both are the same `Theme.accent` — so the two looked mismatched when they
-/// were not.
+/// The accent area+line marks for the CPU history. Only the menu-bar panel uses
+/// these now — the dashboard draws its own lines with `Sparkline`. The area wash
+/// stays on here because that plot is a lone series in a tiny space, where the
+/// fill gives it some body.
 @ChartContentBuilder
-func cpuHistoryMarks(_ history: [MetricPoint], filled: Bool = true) -> some ChartContent {
+func cpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
     ForEach(history) { p in
-        if filled {
-            AreaMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
-                .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
-                                                startPoint: .top, endPoint: .bottom))
-        }
+        AreaMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
+            .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
+                                            startPoint: .top, endPoint: .bottom))
         LineMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
             .foregroundStyle(Theme.accent)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
@@ -51,51 +45,36 @@ func cpuHistoryMarks(_ history: [MetricPoint], filled: Bool = true) -> some Char
     }
 }
 
-/// GPU series for the same chart. A line only — no area fill, so it stays
-/// legible where it crosses the other series rather than muddying them.
-@ChartContentBuilder
-func gpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
-    ForEach(history) { p in
-        LineMark(x: .value("t", p.time), y: .value("GPU", p.gpu))
-            .foregroundStyle(Theme.gpuAccent)
-            .lineStyle(StrokeStyle(lineWidth: 1.5))
-            .interpolationMethod(.catmullRom)
-    }
-}
-
-/// Memory series. Same 0...100 axis as CPU and GPU — one scale, three lines,
-/// never a second y axis.
-@ChartContentBuilder
-func memHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
-    ForEach(history) { p in
-        LineMark(x: .value("t", p.time), y: .value("Memory", p.mem))
-            .foregroundStyle(Theme.memAccent)
-            .lineStyle(StrokeStyle(lineWidth: 1.5))
-            .interpolationMethod(.catmullRom)
-    }
-}
-
-/// One live metric as a labelled meter: value, a ratio bar, and a detail line.
+/// One live metric: label, current value, its own trend line, and a detail line.
 ///
-/// Replaces the ring gauges. A ring is a two-slice donut around a single number —
-/// the arc encodes nothing the number doesn't already say, while costing a square
-/// tile each. Three of them crowded the 90s chart into a column too narrow to
-/// render its own axis. A meter states the same ratio in a strip, so the metrics
-/// stack in a fraction of the width and adding a fourth costs one row, not a column.
+/// This replaced the ring gauges, then absorbed the combined chart that briefly
+/// sat beside it. A ring was a two-slice donut around a single number, and the
+/// three-series chart plotted the same values a second time — stacked on one
+/// 0...100 axis they overlapped into a tangle no legend could untie. A line per
+/// metric, in that metric's colour, says the same thing without either problem,
+/// and a fourth metric costs one row.
 struct MetricMeter: View {
     let value: Double        // 0...100
     let label: String
     let detail: String
-    /// Identity colour, shared with this metric's line on the chart. Carried by the
-    /// meter fill and the legend dot so the two views agree at a glance.
+    /// Identity colour, carried by the trend line and the dot beside the label.
     let tint: Color
     /// Recent history for this metric, newest last. Fixed to a 0...100 scale, not
     /// self-scaled: these are percentages with a real ceiling, and self-scaling
     /// would draw a quiet 4% CPU as a full-height mountain.
     var trend: [Double] = []
-    var action: RingGauge.Action? = nil
+    var action: Action? = nil
 
-    // Guard NaN before it reaches a width multiplier, as RingGauge does for `.trim`.
+    /// Optional button rendered under the meter (the Clear on the memory row).
+    struct Action {
+        let title: String
+        let systemImage: String
+        var busy: Bool = false
+        let run: () -> Void
+    }
+
+    // Guard NaN before it reaches the sparkline scale: min/max propagate NaN
+    // rather than reject it, and Core Animation blanks the layer on a non-finite.
     private var clamped: Double { value.isFinite ? min(max(value, 0), 100) : 0 }
 
     var body: some View {
@@ -111,91 +90,27 @@ struct MetricMeter: View {
                 Text("%").font(.system(size: 11)).foregroundStyle(.secondary)
             }
 
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(tint.opacity(0.15))          // track: lighter step of the same hue
-                    Capsule().fill(tint)
-                        .frame(width: max(0, geo.size.width * clamped / 100))
-                }
-            }
-            .frame(height: 6)
-
+            // No meter bar: the sparkline states the same ratio against the same
+            // fixed 0...100 ceiling, and says how it got there as well. Two marks
+            // for one number was redundant once the trend was there.
             if trend.count > 1 {
                 Sparkline(values: trend, tint: tint, fixedPeak: 100)
-                    .frame(height: 21)   // Fibonacci
+                    .frame(height: 34)   // Fibonacci
             }
 
             Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .lineLimit(1).minimumScaleFactor(0.85)
 
-            if let action { RingGauge.actionButton(action) }
+            if let action { actionButton(action) }
         }
         // One spoken element: "CPU, 8 cores: 27 percent".
         .accessibilityElement(children: .ignore)
         .accessibilityLabel("\(label), \(detail)")
         .accessibilityValue("\(Int(clamped.rounded())) percent")
     }
-}
 
-struct RingGauge: View {
-    let value: Double        // 0...100
-    let label: String
-    let detail: String
-    var action: Action? = nil
-
-    /// Optional button rendered under the gauge (e.g. "Clear" on the RAM ring).
-    struct Action {
-        let title: String
-        let systemImage: String
-        var busy: Bool = false
-        let run: () -> Void
-    }
-
-    // Guard NaN before it reaches `.trim` — Core Animation logs and blanks the
-    // arc on a non-finite value (min/max propagate NaN rather than reject it).
-    private var clamped: Double { value.isFinite ? min(max(value, 0), 100) : 0 }
-
-    var body: some View {
-        VStack(spacing: Space.s) {
-            ZStack {
-                Circle()
-                    .stroke(Color.secondary.opacity(0.15), lineWidth: 8)
-                Circle()
-                    .trim(from: 0, to: clamped / 100)
-                    .stroke(Theme.accentGradient, style: StrokeStyle(lineWidth: 8, lineCap: .round))
-                    .rotationEffect(.degrees(-90))
-                    // Value already EMA-smoothed and updates once/sec; animating a
-                    // gradient arc every tick was continuous compositing for nothing.
-                VStack(spacing: 0) {
-                    Text("\(Int(clamped.rounded()))")
-                        .font(.system(size: 34, weight: .semibold))
-                        .monospacedDigit()
-                        .contentTransition(.numericText())
-                    Text("%").font(.system(size: 12)).foregroundStyle(.secondary)
-                }
-            }
-            .frame(width: 89, height: 89)   // Fibonacci
-            // One spoken element: "CPU, 8 cores: 27 percent".
-            .accessibilityElement(children: .ignore)
-            .accessibilityLabel("\(label), \(detail)")
-            .accessibilityValue("\(Int(clamped.rounded())) percent")
-
-            VStack(spacing: 2) {
-                Text(label).font(.system(size: 14, weight: .semibold))
-                Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
-                    .multilineTextAlignment(.center)
-            }
-            .textSelection(.enabled)
-            .accessibilityHidden(true)   // already conveyed by the gauge element above
-
-            if let action { Self.actionButton(action) }
-        }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)   // equal height across the row
-        .card()
-    }
-
-    @ViewBuilder static func actionButton(_ a: Action) -> some View {
+    @ViewBuilder private func actionButton(_ a: Action) -> some View {
         Button(action: a.run) {
             Group {
                 if a.busy {

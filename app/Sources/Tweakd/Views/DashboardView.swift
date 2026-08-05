@@ -191,11 +191,12 @@ private struct LiveMetrics: View {
 
     var body: some View {
         VStack(spacing: Space.m) {
-            HStack(alignment: .top, spacing: Space.m) {
-                // Meters in one card, chart in another. The three metrics read as a
-                // set rather than three competing tiles, and the chart gets the width
-                // it needs for its own axis instead of a quarter of the row.
-                VStack(spacing: Space.m) {
+            // One card, three metrics, each with its own trend. The combined 90s
+            // chart is gone: it plotted the same three series a second time, and
+            // stacked on one axis they overlapped into an unreadable tangle.
+            // Separate lines beat three-in-one here.
+            VStack(spacing: Space.m) {
+                Group {
                     MetricMeter(value: metrics.cpuPercent, label: "CPU",
                                 detail: "\(SystemInfo.coreCount) cores", tint: Theme.accent,
                                 trend: metrics.history.map(\.cpu))
@@ -209,15 +210,9 @@ private struct LiveMetrics: View {
                                 action: .init(title: "Clear", systemImage: "wind",
                                               busy: clearing, run: onClearRAM))
                 }
-                .frame(width: 233)   // Fibonacci
-                .card()
-
-                chart
             }
-            // No fixed row height: the meter card sizes to its own content, and
-            // pinning it to 200 clipped the Clear button out over the tiles below.
-            // The chart takes its height from the meters beside it instead.
-            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .card()
 
             HStack(spacing: Space.m) {
                 StatTile(title: "Download", value: formatRate(metrics.netDownKBps),
@@ -238,62 +233,4 @@ private struct LiveMetrics: View {
         kbps >= 1024 ? String(format: "%.1f MB/s", kbps / 1024) : String(format: "%.0f KB/s", kbps)
     }
 
-    /// A trailing 90-second window anchored on the newest sample, so the chart
-    /// scrolls with real time instead of squashing every tick into the x-domain.
-    private var xWindow: ClosedRange<Date> {
-        let end = metrics.history.last?.time ?? Date()
-        return end.addingTimeInterval(-90)...end
-    }
-
-    private var chart: some View {
-        VStack(alignment: .leading, spacing: Space.xs) {
-            HStack(spacing: Space.xs) {
-                Text("last 90s").font(.system(size: 11)).foregroundStyle(.secondary).fixedSize()
-                    .textSelection(.enabled)
-                Spacer()
-                seriesKey("CPU", Theme.accent)
-                seriesKey("GPU", Theme.gpuAccent)
-                seriesKey("Memory", Theme.memAccent)
-            }
-            Chart {
-                cpuHistoryMarks(metrics.history, filled: false)
-                gpuHistoryMarks(metrics.history)
-                memHistoryMarks(metrics.history)
-            }
-            .chartXScale(domain: xWindow)
-            .chartYScale(domain: 0...100)
-            .chartXAxis(.hidden)
-            // Labels on the leading edge: on the trailing edge they sat outside
-            // the plot and got clipped by the card, which is what cut "100" and
-            // "0" in half against the right border.
-            .chartYAxis {
-                AxisMarks(position: .leading, values: [0, 50, 100]) {
-                    AxisGridLine().foregroundStyle(Theme.hairline)
-                    AxisValueLabel().font(.system(size: 9)).foregroundStyle(.secondary)
-                }
-            }
-            .frame(minHeight: 144)   // Fibonacci — a floor, so the plot never collapses
-            // Swift Charts doesn't clip marks to the plot area on its own — a
-            // point that's briefly just outside the rolling 90s domain (normal
-            // as the window advances every tick) would otherwise draw a line
-            // straight across whatever sits beside this card.
-            .chartPlotStyle { $0.clipped() }
-            .clipped()
-            // No implicit animation here: history.count changes every second,
-            // so an animated relayout of the 90-point chart would run 30fps
-            // continuously. The chart still redraws each tick — just not animated.
-        }
-        .frame(maxWidth: .infinity)
-        .card()
-    }
-
-    /// Legend dot + label. Two series share one chart, so the colour has to be
-    /// named somewhere — the y-axis can't say which line is which.
-    private func seriesKey(_ label: String, _ color: Color) -> some View {
-        HStack(spacing: 3) {
-            Circle().fill(color).frame(width: 6, height: 6)
-            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
-        }
-        .fixedSize()   // "CPU" must never wrap to "CP / U" when the row is tight
-    }
 }
