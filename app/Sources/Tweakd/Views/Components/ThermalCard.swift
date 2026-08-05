@@ -23,7 +23,8 @@ struct ThermalCard: View {
             if pressureTrend.count > 1 {
                 VStack(alignment: .leading, spacing: 2) {
                     Sparkline(values: pressureTrend, tint: Theme.accent,
-                              fixedPeak: 3, stepped: true)
+                              fixedPeak: 3, stepped: true,
+                              gridLevels: [(1.0, "critical"), (2.0 / 3.0, "serious")])
                         .frame(height: 21)   // Fibonacci
                     Text("Pressure · last 90s — nominal → critical")
                         .font(.system(size: 10)).foregroundStyle(.secondary)

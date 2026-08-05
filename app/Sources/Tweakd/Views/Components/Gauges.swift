@@ -107,7 +107,10 @@ struct MetricMeter: View {
             // fixed 0...100 ceiling, and says how it got there as well. Two marks
             // for one number was redundant once the trend was there.
             if trend.count > 1 {
-                Sparkline(values: trend, tint: tint, fixedPeak: 100)
+                // 100 and 50 ruled, so the line's height is readable at a glance
+                // rather than being a shape with no scale. 0 is the baseline.
+                Sparkline(values: trend, tint: tint, fixedPeak: 100,
+                          gridLevels: [(1.0, "100%"), (0.5, "50%")])
                     .frame(height: 34)   // Fibonacci
             }
 
@@ -154,6 +157,11 @@ struct StatTile: View {
     /// and a bar would have to invent one.
     var trend: [Double] = []
     var trendTint: Color = Theme.accent
+    /// Formats this window's peak for the rule at the top of the sparkline.
+    /// A self-scaled line has no fixed ceiling, so without the peak printed the
+    /// top of the box is meaningless — the same height means 20 KB/s one minute
+    /// and 20 MB/s the next.
+    var trendPeakLabel: ((Double) -> String)? = nil
 
     var body: some View {
         HStack(spacing: Space.s) {
@@ -168,7 +176,11 @@ struct StatTile: View {
             }
             .textSelection(.enabled)
             Spacer(minLength: Space.s)
-            if trend.count > 1 { Sparkline(values: trend, tint: trendTint).frame(width: 89, height: 28) }
+            if trend.count > 1 {
+                Sparkline(values: trend, tint: trendTint,
+                          gridLevels: trendPeakLabel.map { [(1.0, $0(max(trend.max() ?? 0, 1)))] } ?? [])
+                    .frame(width: 89, height: 28)
+            }
         }
         .card(padding: Space.s)
         .accessibilityElement(children: .ignore)
@@ -207,6 +219,11 @@ struct Sparkline: View {
     /// Draw as a staircase. Right for a state that steps between discrete levels
     /// — interpolating thermal pressure would imply values between them.
     var stepped: Bool = false
+    /// Reference levels to rule, as fractions of the scale, each with the label
+    /// to print against it. Without these the line has no readable height: a
+    /// curve halfway up the box could be 50%, or half of whatever this second's
+    /// peak happens to be, and nothing on screen distinguishes the two.
+    var gridLevels: [(fraction: Double, label: String)] = []
 
     var body: some View {
         GeometryReader { geo in
@@ -224,6 +241,24 @@ struct Sparkline: View {
                         y: inset + plotHeight * (1 - CGFloat(min(max(v / peak, 0), 1))))
             }
             ZStack {
+                // Rules first, so the series always draws over them.
+                ForEach(gridLevels.indices, id: \.self) { i in
+                    let level = gridLevels[i]
+                    let y = inset + plotHeight * (1 - CGFloat(level.fraction))
+                    Path { p in
+                        p.move(to: CGPoint(x: 0, y: y))
+                        p.addLine(to: CGPoint(x: geo.size.width, y: y))
+                    }
+                    .stroke(Theme.hairline, style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+                    Text(level.label)
+                        .font(.system(size: 8))
+                        .foregroundStyle(.tertiary)
+                        .position(x: 0, y: y)
+                        .offset(x: 1, y: -6)
+                        .fixedSize()
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
                 Path { p in
                     guard let first = points.first else { return }
                     p.move(to: CGPoint(x: first.x, y: inset + plotHeight))

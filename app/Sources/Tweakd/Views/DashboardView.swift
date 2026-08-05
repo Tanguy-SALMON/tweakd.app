@@ -217,10 +217,12 @@ private struct LiveMetrics: View {
             HStack(spacing: Space.m) {
                 StatTile(title: "Download", value: formatRate(metrics.netDownKBps),
                          systemImage: "arrow.down.circle",
-                         trend: metrics.history.map(\.netDown), trendTint: Theme.accent)
+                         trend: metrics.history.map(\.netDown), trendTint: Theme.accent,
+                         trendPeakLabel: formatRate)
                 StatTile(title: "Upload", value: formatRate(metrics.netUpKBps),
                          systemImage: "arrow.up.circle",
-                         trend: metrics.history.map(\.netUp), trendTint: Theme.gpuAccent)
+                         trend: metrics.history.map(\.netUp), trendTint: Theme.gpuAccent,
+                         trendPeakLabel: formatRate)
             }
             .animation(.easeOut(duration: 0.2), value: metrics.netDownKBps)
             .animation(.easeOut(duration: 0.2), value: metrics.netUpKBps)
