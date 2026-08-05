@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Explicit Info.plist. GENERATE_INFOPLIST_FILE honours only an allowlist of INFOPLIST_KEY_*
+     settings and CFBundleIconFile is not one. The icns is the iconutil-built Resources/AppIcon.icns
+     (all ten sizes) rather than an asset catalog: under Xcode 26 actool emits an icns containing
+     only the 16 and 128 variants, which App Store Connect rejects (error 90236). -->
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>          <string>en</string>
+	<key>CFBundleExecutable</key>                 <string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIconFile</key>                   <string>AppIcon</string>
+	<key>CFBundleIdentifier</key>                 <string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>      <string>6.0</string>
+	<key>CFBundleName</key>                       <string>$(PRODUCT_NAME)</string>
+	<key>CFBundleDisplayName</key>                <string>tweakd</string>
+	<key>CFBundlePackageType</key>                <string>APPL</string>
+	<key>CFBundleShortVersionString</key>         <string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>                    <string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSApplicationCategoryType</key>          <string>public.app-category.utilities</string>
+	<key>LSMinimumSystemVersion</key>             <string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>NSPrincipalClass</key>                   <string>NSApplication</string>
+</dict>
+</plist>
