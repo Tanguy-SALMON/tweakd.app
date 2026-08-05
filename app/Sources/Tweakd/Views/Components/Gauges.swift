@@ -65,8 +65,13 @@ struct MetricMeter: View {
     var trend: [Double] = []
     var action: Action? = nil
 
-    /// Optional button rendered under the meter (the Clear on the memory row).
+    /// Optional button on the metric's own row (the Purge on the memory row).
     struct Action {
+        /// Shown on the button itself. Keep it to a word — it sits inline between
+        /// the metric name and its value, so a phrase here pushes the number off.
+        let label: String
+        /// The full phrasing, for the tooltip and VoiceOver, where there is room
+        /// to say what the button actually does.
         let title: String
         let systemImage: String
         var busy: Bool = false
@@ -132,12 +137,16 @@ struct MetricMeter: View {
             if a.busy {
                 ProgressView().controlSize(.mini)
             } else {
-                Image(systemName: a.systemImage)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(tint)
-                    .padding(.horizontal, Space.xs)
-                    .padding(.vertical, 2)
-                    .background(tint.opacity(0.12), in: Capsule())
+                HStack(spacing: 3) {
+                    Image(systemName: a.systemImage)
+                    Text(a.label)
+                }
+                .font(.system(size: 10, weight: .semibold))
+                .foregroundStyle(tint)
+                .padding(.horizontal, Space.xs)
+                .padding(.vertical, 2)
+                .background(tint.opacity(0.12), in: Capsule())
+                .fixedSize()   // never wrap or truncate between name and value
             }
         }
         .buttonStyle(.plain)
