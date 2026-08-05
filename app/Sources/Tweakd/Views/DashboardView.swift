@@ -197,6 +197,8 @@ private struct LiveMetrics: View {
                           detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
                           action: .init(title: "Clear", systemImage: "wind",
                                         busy: clearing, run: onClearRAM))
+                RingGauge(value: metrics.gpuPercent, label: "GPU",
+                          detail: "\(formatBytes(metrics.gpuInUseBytes)) in use")
                 chart
             }
             .frame(height: 200)
@@ -225,9 +227,17 @@ private struct LiveMetrics: View {
 
     private var chart: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
-            Text("CPU · last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
-                .textSelection(.enabled)
-            Chart { cpuHistoryMarks(metrics.history) }
+            HStack(spacing: Space.xs) {
+                Text("last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
+                    .textSelection(.enabled)
+                Spacer()
+                seriesKey("CPU", Theme.accent)
+                seriesKey("GPU", Theme.gpuAccent)
+            }
+            Chart {
+                cpuHistoryMarks(metrics.history)
+                gpuHistoryMarks(metrics.history)
+            }
             .chartXScale(domain: xWindow)
             .chartYScale(domain: 0...100)
             .chartXAxis(.hidden)
@@ -249,5 +259,14 @@ private struct LiveMetrics: View {
         }
         .frame(maxWidth: .infinity)
         .card()
+    }
+
+    /// Legend dot + label. Two series share one chart, so the colour has to be
+    /// named somewhere — the y-axis can't say which line is which.
+    private func seriesKey(_ label: String, _ color: Color) -> some View {
+        HStack(spacing: 3) {
+            Circle().fill(color).frame(width: 6, height: 6)
+            Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
+        }
     }
 }

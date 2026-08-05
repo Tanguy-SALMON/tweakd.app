@@ -55,6 +55,11 @@ enum Theme {
     /// Deep end of the juicy gradient — oklch(57.7% 0.245 27.325), vibrant red (#E7000E).
     static let accentDeep = Color(hex: 0xE7000E)
 
+    /// GPU series colour. Cool teal, chosen to sit as far from the warm accent as
+    /// possible so the two lines stay separable on the shared 90s chart — the
+    /// accent's whole range is orange→red, so any warm hue would read as CPU.
+    static let gpuAccent = Color(hex: 0x30B0C7)
+
     /// The juicy MyD1 gradient: a 135° wash of bright-orange → vibrant orange →
     /// vibrant red (mirrors the .acct-avatar avatar gradient). Used on hero tiles,
     /// the ring gauge, and gradient cards.

@@ -9,12 +9,14 @@
 import Foundation
 import Combine
 import Darwin
+import IOKit
 
 struct MetricPoint: Identifiable {
     let id: Int
     let time: Date    // real wall-clock stamp, so the chart is a true time series
     let cpu: Double    // 0...100
     let mem: Double    // 0...100
+    let gpu: Double    // 0...100
 }
 
 @MainActor
@@ -24,6 +26,12 @@ final class SystemMetrics: ObservableObject {
     @Published private(set) var memUsedBytes: UInt64 = 0
     @Published private(set) var memUsedPercent: Double = 0
     let memTotalBytes: UInt64 = SystemInfo.physicalMemory
+
+    /// Integrated GPU busy time, read from the accelerator's own performance
+    /// counters. Unlike `powermetrics` this needs no root, so the gauge works
+    /// for every user without a password prompt.
+    @Published private(set) var gpuPercent: Double = 0
+    @Published private(set) var gpuInUseBytes: UInt64 = 0
 
     /// Live network throughput, summed across physical interfaces (en*) so a
     /// VPN's utun tunnel isn't double-counted with the Wi-Fi/Ethernet it rides on.
@@ -93,7 +101,14 @@ final class SystemMetrics: ObservableObject {
         memUsedBytes = used
         memUsedPercent = total > 0 ? Double(used) / Double(total) * 100 : 0
 
-        history.append(MetricPoint(id: tick, time: Date(), cpu: cpuPercent, mem: memUsedPercent))
+        // Same EMA treatment as CPU: the accelerator counters are burstier still,
+        // so an unsmoothed line reads as noise rather than load.
+        let (rawGPU, gpuBytes) = Self.readGPU()
+        gpuPercent = gpuPercent == 0 ? rawGPU : gpuPercent + (rawGPU - gpuPercent) * 0.5
+        gpuInUseBytes = gpuBytes
+
+        history.append(MetricPoint(id: tick, time: Date(), cpu: cpuPercent,
+                                   mem: memUsedPercent, gpu: gpuPercent))
         if history.count > capacity { history.removeFirst(history.count - capacity) }
         tick += 1
 
@@ -178,5 +193,42 @@ final class SystemMetrics: ObservableObject {
             tx += UInt64(data.ifi_obytes)
         }
         return (rx, tx)
+    }
+}
+
+// MARK: - GPU
+
+extension SystemMetrics {
+
+    /// Busy percentage and in-use GPU memory, from `AGXAccelerator`'s
+    /// `PerformanceStatistics` dictionary in the IO registry.
+    ///
+    /// This is the same counter Activity Monitor and `mactop` show. It is
+    /// readable without root, which `powermetrics --samplers gpu_power` is not —
+    /// the whole point of using it here is that the gauge never has to prompt.
+    ///
+    /// Returns `(0, 0)` on anything unexpected rather than throwing: a missing
+    /// GPU counter should flatten the chart, not take down sampling for CPU
+    /// and memory alongside it.
+    nonisolated static func readGPU() -> (percent: Double, inUseBytes: UInt64) {
+        var iterator: io_iterator_t = 0
+        guard IOServiceGetMatchingServices(kIOMainPortDefault,
+                                           IOServiceMatching("AGXAccelerator"),
+                                           &iterator) == KERN_SUCCESS else { return (0, 0) }
+        defer { IOObjectRelease(iterator) }
+
+        while case let entry = IOIteratorNext(iterator), entry != 0 {
+            defer { IOObjectRelease(entry) }
+            guard let stats = IORegistryEntryCreateCFProperty(
+                entry, "PerformanceStatistics" as CFString, kCFAllocatorDefault, 0
+            )?.takeRetainedValue() as? [String: Any] else { continue }
+
+            // "Device Utilization %" is the whole-device figure; the separate
+            // Renderer/Tiler counters are per-stage and would double-count.
+            let percent = (stats["Device Utilization %"] as? NSNumber)?.doubleValue ?? 0
+            let bytes = (stats["In use system memory"] as? NSNumber)?.uint64Value ?? 0
+            return (min(max(percent, 0), 100), bytes)
+        }
+        return (0, 0)
     }
 }

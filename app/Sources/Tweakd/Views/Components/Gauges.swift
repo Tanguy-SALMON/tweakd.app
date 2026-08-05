@@ -43,6 +43,18 @@ func cpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
     }
 }
 
+/// GPU series for the same chart. A line only — no area fill, so it stays
+/// legible where it crosses the CPU area rather than muddying it.
+@ChartContentBuilder
+func gpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
+    ForEach(history) { p in
+        LineMark(x: .value("t", p.time), y: .value("GPU", p.gpu))
+            .foregroundStyle(Theme.gpuAccent)
+            .lineStyle(StrokeStyle(lineWidth: 1.5))
+            .interpolationMethod(.catmullRom)
+    }
+}
+
 struct RingGauge: View {
     let value: Double        // 0...100
     let label: String
