@@ -210,11 +210,18 @@ private struct LiveMetrics: View {
 
                 chart
             }
-            .frame(height: 200)
+            // No fixed row height: the meter card sizes to its own content, and
+            // pinning it to 200 clipped the Clear button out over the tiles below.
+            // The chart takes its height from the meters beside it instead.
+            .fixedSize(horizontal: false, vertical: true)
 
             HStack(spacing: Space.m) {
-                StatTile(title: "Download", value: formatRate(metrics.netDownKBps), systemImage: "arrow.down.circle")
-                StatTile(title: "Upload", value: formatRate(metrics.netUpKBps), systemImage: "arrow.up.circle")
+                StatTile(title: "Download", value: formatRate(metrics.netDownKBps),
+                         systemImage: "arrow.down.circle",
+                         trend: metrics.history.map(\.netDown), trendTint: Theme.accent)
+                StatTile(title: "Upload", value: formatRate(metrics.netUpKBps),
+                         systemImage: "arrow.up.circle",
+                         trend: metrics.history.map(\.netUp), trendTint: Theme.gpuAccent)
             }
             .animation(.easeOut(duration: 0.2), value: metrics.netDownKBps)
             .animation(.easeOut(duration: 0.2), value: metrics.netUpKBps)
@@ -244,18 +251,22 @@ private struct LiveMetrics: View {
                 seriesKey("GPU", Theme.gpuAccent)
             }
             Chart {
-                cpuHistoryMarks(metrics.history)
+                cpuHistoryMarks(metrics.history, filled: false)
                 gpuHistoryMarks(metrics.history)
             }
             .chartXScale(domain: xWindow)
             .chartYScale(domain: 0...100)
             .chartXAxis(.hidden)
+            // Labels on the leading edge: on the trailing edge they sat outside
+            // the plot and got clipped by the card, which is what cut "100" and
+            // "0" in half against the right border.
             .chartYAxis {
-                AxisMarks(values: [0, 50, 100]) {
+                AxisMarks(position: .leading, values: [0, 50, 100]) {
                     AxisGridLine().foregroundStyle(Theme.hairline)
                     AxisValueLabel().font(.system(size: 9)).foregroundStyle(.secondary)
                 }
             }
+            .frame(minHeight: 144)   // Fibonacci — a floor, so the plot never collapses
             // Swift Charts doesn't clip marks to the plot area on its own — a
             // point that's briefly just outside the rolling 90s domain (normal
             // as the window advances every tick) would otherwise draw a line

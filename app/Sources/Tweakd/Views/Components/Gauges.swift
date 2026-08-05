@@ -30,12 +30,20 @@ struct HeroHeader: View {
 
 /// The accent area+line marks for the CPU history — shared by the dashboard
 /// chart and the menu sparkline (each wraps it with its own axes/chrome).
+/// `filled` draws the area wash under the line. On by default for the menu-bar
+/// sparkline, which is a lone series where the fill gives the tiny plot some
+/// body. Off on the dashboard: there the pale wash sits under the line and
+/// shifts how its colour reads against the CPU meter beside it, even though
+/// both are the same `Theme.accent` — so the two looked mismatched when they
+/// were not.
 @ChartContentBuilder
-func cpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
+func cpuHistoryMarks(_ history: [MetricPoint], filled: Bool = true) -> some ChartContent {
     ForEach(history) { p in
-        AreaMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
-            .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
-                                            startPoint: .top, endPoint: .bottom))
+        if filled {
+            AreaMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
+                .foregroundStyle(LinearGradient(colors: [Theme.accent.opacity(0.22), Theme.accent.opacity(0.02)],
+                                                startPoint: .top, endPoint: .bottom))
+        }
         LineMark(x: .value("t", p.time), y: .value("CPU", p.cpu))
             .foregroundStyle(Theme.accent)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
@@ -189,6 +197,11 @@ struct StatTile: View {
     let value: String
     let systemImage: String
     var accent: Bool = false
+    /// Optional trend, newest last. Throughput is a rate with no ceiling, so it
+    /// gets a sparkline rather than a meter — there is no "100%" to fill against,
+    /// and a bar would have to invent one.
+    var trend: [Double] = []
+    var trendTint: Color = Theme.accent
 
     var body: some View {
         HStack(spacing: Space.s) {
@@ -202,7 +215,8 @@ struct StatTile: View {
                     .lineLimit(1).minimumScaleFactor(0.7)
             }
             .textSelection(.enabled)
-            Spacer()
+            Spacer(minLength: Space.s)
+            if trend.count > 1 { Sparkline(values: trend, tint: trendTint).frame(width: 89, height: 28) }
         }
         .card(padding: Space.s)
         .accessibilityElement(children: .ignore)
@@ -215,4 +229,45 @@ func formatBytes(_ bytes: UInt64) -> String {
     let f = ByteCountFormatter()
     f.countStyle = .memory
     return f.string(fromByteCount: Int64(bytes))
+}
+
+/// A bare trend line — no axes, no labels, sized by its container.
+///
+/// Scaled to its own maximum rather than a shared one: throughput has no fixed
+/// ceiling, and a common scale would flatten a 40 KB/s upload to a dead line
+/// whenever a download spikes to 20 MB/s. The tile's value text carries the
+/// magnitude; the line only has to carry the shape.
+struct Sparkline: View {
+    let values: [Double]
+    let tint: Color
+
+    var body: some View {
+        GeometryReader { geo in
+            let peak = max(values.max() ?? 0, 1)   // never divide by zero on an idle link
+            let stepX = values.count > 1 ? geo.size.width / CGFloat(values.count - 1) : 0
+            let points = values.enumerated().map { i, v in
+                CGPoint(x: CGFloat(i) * stepX,
+                        y: geo.size.height * (1 - CGFloat(min(max(v / peak, 0), 1))))
+            }
+            ZStack {
+                Path { p in
+                    guard let first = points.first else { return }
+                    p.move(to: CGPoint(x: first.x, y: geo.size.height))
+                    p.addLine(to: first)
+                    points.dropFirst().forEach { p.addLine(to: $0) }
+                    p.addLine(to: CGPoint(x: points[points.count - 1].x, y: geo.size.height))
+                    p.closeSubpath()
+                }
+                .fill(LinearGradient(colors: [tint.opacity(0.22), tint.opacity(0.02)],
+                                     startPoint: .top, endPoint: .bottom))
+                Path { p in
+                    guard let first = points.first else { return }
+                    p.move(to: first)
+                    points.dropFirst().forEach { p.addLine(to: $0) }
+                }
+                .stroke(tint, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
+            }
+        }
+        .accessibilityHidden(true)   // the tile's value already states the figure
+    }
 }

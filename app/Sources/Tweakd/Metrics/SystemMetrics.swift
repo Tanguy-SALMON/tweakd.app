@@ -17,6 +17,8 @@ struct MetricPoint: Identifiable {
     let cpu: Double    // 0...100
     let mem: Double    // 0...100
     let gpu: Double    // 0...100
+    let netDown: Double   // KB/s — a rate, not a percentage: no fixed ceiling
+    let netUp: Double     // KB/s
 }
 
 @MainActor
@@ -107,11 +109,9 @@ final class SystemMetrics: ObservableObject {
         gpuPercent = gpuPercent == 0 ? rawGPU : gpuPercent + (rawGPU - gpuPercent) * 0.5
         gpuInUseBytes = gpuBytes
 
-        history.append(MetricPoint(id: tick, time: Date(), cpu: cpuPercent,
-                                   mem: memUsedPercent, gpu: gpuPercent))
-        if history.count > capacity { history.removeFirst(history.count - capacity) }
-        tick += 1
-
+        // Network is read before the history append, not after, so each point
+        // carries the throughput sampled at its own timestamp — the sparklines in
+        // the Download/Upload tiles would otherwise lag the tile value by a tick.
         let (rx, tx) = readNetworkBytes()
         let now = Date()
         if let prev = prevNetSample {
@@ -122,6 +122,12 @@ final class SystemMetrics: ObservableObject {
             }
         }
         prevNetSample = (now, rx, tx)
+
+        history.append(MetricPoint(id: tick, time: now, cpu: cpuPercent,
+                                   mem: memUsedPercent, gpu: gpuPercent,
+                                   netDown: netDownKBps, netUp: netUpKBps))
+        if history.count > capacity { history.removeFirst(history.count - capacity) }
+        tick += 1
     }
 
     // MARK: - Mach reads
