@@ -11,10 +11,25 @@ import SwiftUI
 
 struct ThermalCard: View {
     @ObservedObject var monitor: ThermalMonitor
+    /// Thermal-pressure history, 0...3. Sampled on the metrics tick, which is a
+    /// free ProcessInfo read — unlike the per-cluster MHz below it, which needs
+    /// `powermetrics` as root and so stays on-demand.
+    var pressureTrend: [Double] = []
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             verdictRow
+
+            if pressureTrend.count > 1 {
+                VStack(alignment: .leading, spacing: 2) {
+                    Sparkline(values: pressureTrend, tint: Theme.accent,
+                              fixedPeak: 3, stepped: true)
+                        .frame(height: 21)   // Fibonacci
+                    Text("Pressure · last 90s — nominal → critical")
+                        .font(.system(size: 10)).foregroundStyle(.secondary)
+                        .textSelection(.enabled)
+                }
+            }
 
             if !monitor.clusters.isEmpty {
                 Divider().overlay(Theme.hairline)

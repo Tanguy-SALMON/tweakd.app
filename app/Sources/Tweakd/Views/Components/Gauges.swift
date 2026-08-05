@@ -52,12 +52,24 @@ func cpuHistoryMarks(_ history: [MetricPoint], filled: Bool = true) -> some Char
 }
 
 /// GPU series for the same chart. A line only — no area fill, so it stays
-/// legible where it crosses the CPU area rather than muddying it.
+/// legible where it crosses the other series rather than muddying them.
 @ChartContentBuilder
 func gpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
     ForEach(history) { p in
         LineMark(x: .value("t", p.time), y: .value("GPU", p.gpu))
             .foregroundStyle(Theme.gpuAccent)
+            .lineStyle(StrokeStyle(lineWidth: 1.5))
+            .interpolationMethod(.catmullRom)
+    }
+}
+
+/// Memory series. Same 0...100 axis as CPU and GPU — one scale, three lines,
+/// never a second y axis.
+@ChartContentBuilder
+func memHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
+    ForEach(history) { p in
+        LineMark(x: .value("t", p.time), y: .value("Memory", p.mem))
+            .foregroundStyle(Theme.memAccent)
             .lineStyle(StrokeStyle(lineWidth: 1.5))
             .interpolationMethod(.catmullRom)
     }
@@ -77,6 +89,10 @@ struct MetricMeter: View {
     /// Identity colour, shared with this metric's line on the chart. Carried by the
     /// meter fill and the legend dot so the two views agree at a glance.
     let tint: Color
+    /// Recent history for this metric, newest last. Fixed to a 0...100 scale, not
+    /// self-scaled: these are percentages with a real ceiling, and self-scaling
+    /// would draw a quiet 4% CPU as a full-height mountain.
+    var trend: [Double] = []
     var action: RingGauge.Action? = nil
 
     // Guard NaN before it reaches a width multiplier, as RingGauge does for `.trim`.
@@ -103,6 +119,11 @@ struct MetricMeter: View {
                 }
             }
             .frame(height: 6)
+
+            if trend.count > 1 {
+                Sparkline(values: trend, tint: tint, fixedPeak: 100)
+                    .frame(height: 21)   // Fibonacci
+            }
 
             Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
                 .textSelection(.enabled)
@@ -247,10 +268,19 @@ struct Sparkline: View {
     /// series to a fixed left origin and stretched it as history filled, so it
     /// never appeared to flow.
     var capacity: Int = 90
+    /// Pin the top of the scale instead of using the series' own maximum. Needed
+    /// for anything with a real ceiling: a 0...100 percentage self-scaled would
+    /// redraw a quiet 4% CPU as a full-height mountain, and thermal pressure
+    /// self-scaled would show "fair" as if it were "critical".
+    var fixedPeak: Double? = nil
+    /// Draw as a staircase. Right for a state that steps between discrete levels
+    /// — interpolating thermal pressure would imply values between them.
+    var stepped: Bool = false
 
     var body: some View {
         GeometryReader { geo in
-            let peak = max(values.max() ?? 0, 1)   // never divide by zero on an idle link
+            // never divide by zero on an idle link
+            let peak = fixedPeak ?? max(values.max() ?? 0, 1)
             let slots = max(capacity - 1, 1)
             let stepX = geo.size.width / CGFloat(slots)
             // Inset by half the stroke so a flat idle line at zero stays visible
@@ -267,7 +297,7 @@ struct Sparkline: View {
                     guard let first = points.first else { return }
                     p.move(to: CGPoint(x: first.x, y: inset + plotHeight))
                     p.addLine(to: first)
-                    points.dropFirst().forEach { p.addLine(to: $0) }
+                    Self.trace(&p, points, stepped: stepped)
                     p.addLine(to: CGPoint(x: points[points.count - 1].x, y: inset + plotHeight))
                     p.closeSubpath()
                 }
@@ -276,11 +306,20 @@ struct Sparkline: View {
                 Path { p in
                     guard let first = points.first else { return }
                     p.move(to: first)
-                    points.dropFirst().forEach { p.addLine(to: $0) }
+                    Self.trace(&p, points, stepped: stepped)
                 }
                 .stroke(tint, style: StrokeStyle(lineWidth: 1.5, lineJoin: .round))
             }
         }
         .accessibilityHidden(true)   // the tile's value already states the figure
+    }
+
+    /// Walk the remaining points, either straight between them or as a staircase
+    /// that holds each level until the next sample changes it.
+    private static func trace(_ p: inout Path, _ points: [CGPoint], stepped: Bool) {
+        for point in points.dropFirst() {
+            if stepped { p.addLine(to: CGPoint(x: point.x, y: p.currentPoint?.y ?? point.y)) }
+            p.addLine(to: point)
+        }
     }
 }

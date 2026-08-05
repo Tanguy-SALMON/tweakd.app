@@ -26,7 +26,8 @@ struct DashboardView: View {
                              systemImage: SystemInfo.sipEnabled ? "lock" : "lock.open")
                 }
 
-                ThermalCard(monitor: model.thermal)
+                ThermalCard(monitor: model.thermal,
+                            pressureTrend: model.metrics.history.map(\.thermal))
                 adminCard
                 AudioWatchdogCard(watchdog: model.audioWatchdog,
                                   adminUnlocked: model.engine.adminUnlocked)
@@ -196,12 +197,15 @@ private struct LiveMetrics: View {
                 // it needs for its own axis instead of a quarter of the row.
                 VStack(spacing: Space.m) {
                     MetricMeter(value: metrics.cpuPercent, label: "CPU",
-                                detail: "\(SystemInfo.coreCount) cores", tint: Theme.accent)
+                                detail: "\(SystemInfo.coreCount) cores", tint: Theme.accent,
+                                trend: metrics.history.map(\.cpu))
                     MetricMeter(value: metrics.gpuPercent, label: "GPU",
-                                detail: "\(formatBytes(metrics.gpuInUseBytes)) in use", tint: Theme.gpuAccent)
+                                detail: "\(formatBytes(metrics.gpuInUseBytes)) in use", tint: Theme.gpuAccent,
+                                trend: metrics.history.map(\.gpu))
                     MetricMeter(value: metrics.memUsedPercent, label: "Memory",
                                 detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
                                 tint: Theme.memAccent,
+                                trend: metrics.history.map(\.mem),
                                 action: .init(title: "Clear", systemImage: "wind",
                                               busy: clearing, run: onClearRAM))
                 }
@@ -249,10 +253,12 @@ private struct LiveMetrics: View {
                 Spacer()
                 seriesKey("CPU", Theme.accent)
                 seriesKey("GPU", Theme.gpuAccent)
+                seriesKey("Memory", Theme.memAccent)
             }
             Chart {
                 cpuHistoryMarks(metrics.history, filled: false)
                 gpuHistoryMarks(metrics.history)
+                memHistoryMarks(metrics.history)
             }
             .chartXScale(domain: xWindow)
             .chartYScale(domain: 0...100)

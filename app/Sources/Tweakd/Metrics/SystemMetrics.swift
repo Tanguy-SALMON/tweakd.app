@@ -19,6 +19,10 @@ struct MetricPoint: Identifiable {
     let gpu: Double    // 0...100
     let netDown: Double   // KB/s — a rate, not a percentage: no fixed ceiling
     let netUp: Double     // KB/s
+    /// Thermal pressure as a 0...3 step (nominal · fair · serious · critical).
+    /// Not a continuous measure — it is macOS's own coarse state, plotted as a
+    /// staircase rather than a curve.
+    let thermal: Double
 }
 
 @MainActor
@@ -34,6 +38,20 @@ final class SystemMetrics: ObservableObject {
     /// for every user without a password prompt.
     @Published private(set) var gpuPercent: Double = 0
     @Published private(set) var gpuInUseBytes: UInt64 = 0
+
+    /// Thermal pressure, 0...3. Sampled here rather than in `ThermalMonitor` so
+    /// it lands on the same tick as everything else and shares one history buffer.
+    @Published private(set) var thermalStep: Double = 0
+
+    static func thermalStep(_ s: ProcessInfo.ThermalState) -> Double {
+        switch s {
+        case .nominal:  return 0
+        case .fair:     return 1
+        case .serious:  return 2
+        case .critical: return 3
+        @unknown default: return 0
+        }
+    }
 
     /// Live network throughput, summed across physical interfaces (en*) so a
     /// VPN's utun tunnel isn't double-counted with the Wi-Fi/Ethernet it rides on.
@@ -123,9 +141,17 @@ final class SystemMetrics: ObservableObject {
         }
         prevNetSample = (now, rx, tx)
 
+        // Free: a property read on ProcessInfo, no sampling and no privileges.
+        // Deliberately NOT per-cluster MHz — that needs `powermetrics` as root,
+        // ~300ms a shot, so putting it on this 1s tick would mean a root process
+        // every second and a password prompt whenever admin is locked. Frequency
+        // stays on-demand in the thermal card.
+        thermalStep = Self.thermalStep(ProcessInfo.processInfo.thermalState)
+
         history.append(MetricPoint(id: tick, time: now, cpu: cpuPercent,
                                    mem: memUsedPercent, gpu: gpuPercent,
-                                   netDown: netDownKBps, netUp: netUpKBps))
+                                   netDown: netDownKBps, netUp: netUpKBps,
+                                   thermal: thermalStep))
         if history.count > capacity { history.removeFirst(history.count - capacity) }
         tick += 1
     }
