@@ -80,14 +80,27 @@ struct MetricMeter: View {
     var body: some View {
         VStack(alignment: .leading, spacing: Space.xxs) {
             HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
-                Circle().fill(tint).frame(width: 7, height: 7)
-                Text(label).font(.system(size: 13, weight: .semibold))
+                // The readout collapses to one spoken element: "CPU, 8 cores:
+                // 27 percent". Scoped to this group rather than the whole row so
+                // it doesn't swallow the action button beside it — `.ignore` on
+                // the outer stack would make that button unreachable.
+                HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                    Circle().fill(tint).frame(width: 7, height: 7)
+                    Text(label).font(.system(size: 13, weight: .semibold))
+                }
+                .accessibilityElement(children: .ignore)
+                .accessibilityLabel("\(label), \(detail)")
+                .accessibilityValue("\(Int(clamped.rounded())) percent")
+
+                if let action { actionButton(action) }
                 Spacer(minLength: Space.xs)
                 // Proportional figures: this is a standalone value, not a column.
                 Text("\(Int(clamped.rounded()))")
                     .font(.system(size: 22, weight: .semibold))
                     .contentTransition(.numericText())
+                    .accessibilityHidden(true)
                 Text("%").font(.system(size: 11)).foregroundStyle(.secondary)
+                    .accessibilityHidden(true)
             }
 
             // No meter bar: the sparkline states the same ratio against the same
@@ -101,30 +114,33 @@ struct MetricMeter: View {
             Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
                 .textSelection(.enabled)
                 .lineLimit(1).minimumScaleFactor(0.85)
-
-            if let action { actionButton(action) }
+                .accessibilityHidden(true)   // already spoken by the readout above
         }
-        // One spoken element: "CPU, 8 cores: 27 percent".
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(label), \(detail)")
-        .accessibilityValue("\(Int(clamped.rounded())) percent")
     }
 
+    /// A quiet icon button on the metric's own row.
+    ///
+    /// This was a full-width gradient slab under the meter, which gave a
+    /// convenience shortcut more visual weight than the metric it belonged to —
+    /// and the same thing is already a first-class entry in Quick Actions
+    /// ("Purge Inactive Memory"). Sized to the row, labelled on hover.
     @ViewBuilder private func actionButton(_ a: Action) -> some View {
         Button(action: a.run) {
-            Group {
-                if a.busy {
-                    ProgressView().controlSize(.small)
-                } else {
-                    Label(a.title, systemImage: a.systemImage).font(.system(size: 12, weight: .medium))
-                }
+            if a.busy {
+                ProgressView().controlSize(.mini)
+            } else {
+                Image(systemName: a.systemImage)
+                    .font(.system(size: 11, weight: .semibold))
+                    .foregroundStyle(tint)
+                    .padding(.horizontal, Space.xs)
+                    .padding(.vertical, 2)
+                    .background(tint.opacity(0.12), in: Capsule())
             }
-            .frame(maxWidth: .infinity)
         }
-        .buttonStyle(.gradient)
-        .controlSize(.small)
+        .buttonStyle(.plain)
         .disabled(a.busy)
-        .padding(.top, Space.xxs)
+        .help(a.title)
+        .accessibilityLabel(a.title)
     }
 }
 

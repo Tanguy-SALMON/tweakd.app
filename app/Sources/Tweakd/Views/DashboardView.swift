@@ -207,7 +207,7 @@ private struct LiveMetrics: View {
                                 detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
                                 tint: Theme.memAccent,
                                 trend: metrics.history.map(\.mem),
-                                action: .init(title: "Clear", systemImage: "wind",
+                                action: .init(title: "Purge inactive memory", systemImage: "wind",
                                               busy: clearing, run: onClearRAM))
                 }
             }
