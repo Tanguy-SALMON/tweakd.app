@@ -240,22 +240,35 @@ func formatBytes(_ bytes: UInt64) -> String {
 struct Sparkline: View {
     let values: [Double]
     let tint: Color
+    /// Width of the time window in samples, matching the history buffer. The x
+    /// axis is this window — NOT `values.count` — so the newest sample always
+    /// sits at the right edge and older ones march left, exactly like the 90s
+    /// chart's fixed date domain. Scaling to `values.count` instead pinned the
+    /// series to a fixed left origin and stretched it as history filled, so it
+    /// never appeared to flow.
+    var capacity: Int = 90
 
     var body: some View {
         GeometryReader { geo in
             let peak = max(values.max() ?? 0, 1)   // never divide by zero on an idle link
-            let stepX = values.count > 1 ? geo.size.width / CGFloat(values.count - 1) : 0
+            let slots = max(capacity - 1, 1)
+            let stepX = geo.size.width / CGFloat(slots)
+            // Inset by half the stroke so a flat idle line at zero stays visible
+            // instead of being clipped in half by the bottom edge.
+            let inset = 0.75
+            let plotHeight = max(geo.size.height - inset * 2, 1)
+            let newestIndex = values.count - 1
             let points = values.enumerated().map { i, v in
-                CGPoint(x: CGFloat(i) * stepX,
-                        y: geo.size.height * (1 - CGFloat(min(max(v / peak, 0), 1))))
+                CGPoint(x: geo.size.width - CGFloat(newestIndex - i) * stepX,
+                        y: inset + plotHeight * (1 - CGFloat(min(max(v / peak, 0), 1))))
             }
             ZStack {
                 Path { p in
                     guard let first = points.first else { return }
-                    p.move(to: CGPoint(x: first.x, y: geo.size.height))
+                    p.move(to: CGPoint(x: first.x, y: inset + plotHeight))
                     p.addLine(to: first)
                     points.dropFirst().forEach { p.addLine(to: $0) }
-                    p.addLine(to: CGPoint(x: points[points.count - 1].x, y: geo.size.height))
+                    p.addLine(to: CGPoint(x: points[points.count - 1].x, y: inset + plotHeight))
                     p.closeSubpath()
                 }
                 .fill(LinearGradient(colors: [tint.opacity(0.22), tint.opacity(0.02)],
