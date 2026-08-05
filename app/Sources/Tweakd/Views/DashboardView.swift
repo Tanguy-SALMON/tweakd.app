@@ -190,15 +190,24 @@ private struct LiveMetrics: View {
 
     var body: some View {
         VStack(spacing: Space.m) {
-            HStack(spacing: Space.m) {
-                RingGauge(value: metrics.cpuPercent, label: "CPU",
-                          detail: "\(SystemInfo.coreCount) cores")
-                RingGauge(value: metrics.memUsedPercent, label: "Memory",
-                          detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
-                          action: .init(title: "Clear", systemImage: "wind",
-                                        busy: clearing, run: onClearRAM))
-                RingGauge(value: metrics.gpuPercent, label: "GPU",
-                          detail: "\(formatBytes(metrics.gpuInUseBytes)) in use")
+            HStack(alignment: .top, spacing: Space.m) {
+                // Meters in one card, chart in another. The three metrics read as a
+                // set rather than three competing tiles, and the chart gets the width
+                // it needs for its own axis instead of a quarter of the row.
+                VStack(spacing: Space.m) {
+                    MetricMeter(value: metrics.cpuPercent, label: "CPU",
+                                detail: "\(SystemInfo.coreCount) cores", tint: Theme.accent)
+                    MetricMeter(value: metrics.gpuPercent, label: "GPU",
+                                detail: "\(formatBytes(metrics.gpuInUseBytes)) in use", tint: Theme.gpuAccent)
+                    MetricMeter(value: metrics.memUsedPercent, label: "Memory",
+                                detail: "\(formatBytes(metrics.memUsedBytes)) of \(formatBytes(metrics.memTotalBytes))",
+                                tint: Theme.memAccent,
+                                action: .init(title: "Clear", systemImage: "wind",
+                                              busy: clearing, run: onClearRAM))
+                }
+                .frame(width: 233)   // Fibonacci
+                .card()
+
                 chart
             }
             .frame(height: 200)
@@ -228,7 +237,7 @@ private struct LiveMetrics: View {
     private var chart: some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack(spacing: Space.xs) {
-                Text("last 90s").font(.system(size: 11)).foregroundStyle(.secondary)
+                Text("last 90s").font(.system(size: 11)).foregroundStyle(.secondary).fixedSize()
                     .textSelection(.enabled)
                 Spacer()
                 seriesKey("CPU", Theme.accent)
@@ -268,5 +277,6 @@ private struct LiveMetrics: View {
             Circle().fill(color).frame(width: 6, height: 6)
             Text(label).font(.system(size: 10, weight: .medium)).foregroundStyle(.secondary)
         }
+        .fixedSize()   // "CPU" must never wrap to "CP / U" when the row is tight
     }
 }

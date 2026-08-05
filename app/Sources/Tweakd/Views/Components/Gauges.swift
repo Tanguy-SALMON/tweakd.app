@@ -55,6 +55,60 @@ func gpuHistoryMarks(_ history: [MetricPoint]) -> some ChartContent {
     }
 }
 
+/// One live metric as a labelled meter: value, a ratio bar, and a detail line.
+///
+/// Replaces the ring gauges. A ring is a two-slice donut around a single number —
+/// the arc encodes nothing the number doesn't already say, while costing a square
+/// tile each. Three of them crowded the 90s chart into a column too narrow to
+/// render its own axis. A meter states the same ratio in a strip, so the metrics
+/// stack in a fraction of the width and adding a fourth costs one row, not a column.
+struct MetricMeter: View {
+    let value: Double        // 0...100
+    let label: String
+    let detail: String
+    /// Identity colour, shared with this metric's line on the chart. Carried by the
+    /// meter fill and the legend dot so the two views agree at a glance.
+    let tint: Color
+    var action: RingGauge.Action? = nil
+
+    // Guard NaN before it reaches a width multiplier, as RingGauge does for `.trim`.
+    private var clamped: Double { value.isFinite ? min(max(value, 0), 100) : 0 }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.xxs) {
+            HStack(alignment: .firstTextBaseline, spacing: Space.xs) {
+                Circle().fill(tint).frame(width: 7, height: 7)
+                Text(label).font(.system(size: 13, weight: .semibold))
+                Spacer(minLength: Space.xs)
+                // Proportional figures: this is a standalone value, not a column.
+                Text("\(Int(clamped.rounded()))")
+                    .font(.system(size: 22, weight: .semibold))
+                    .contentTransition(.numericText())
+                Text("%").font(.system(size: 11)).foregroundStyle(.secondary)
+            }
+
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(tint.opacity(0.15))          // track: lighter step of the same hue
+                    Capsule().fill(tint)
+                        .frame(width: max(0, geo.size.width * clamped / 100))
+                }
+            }
+            .frame(height: 6)
+
+            Text(detail).font(.system(size: 11)).foregroundStyle(.secondary)
+                .textSelection(.enabled)
+                .lineLimit(1).minimumScaleFactor(0.85)
+
+            if let action { RingGauge.actionButton(action) }
+        }
+        // One spoken element: "CPU, 8 cores: 27 percent".
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("\(label), \(detail)")
+        .accessibilityValue("\(Int(clamped.rounded())) percent")
+    }
+}
+
 struct RingGauge: View {
     let value: Double        // 0...100
     let label: String
@@ -106,13 +160,13 @@ struct RingGauge: View {
             .textSelection(.enabled)
             .accessibilityHidden(true)   // already conveyed by the gauge element above
 
-            if let action { actionButton(action) }
+            if let action { Self.actionButton(action) }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)   // equal height across the row
         .card()
     }
 
-    @ViewBuilder private func actionButton(_ a: Action) -> some View {
+    @ViewBuilder static func actionButton(_ a: Action) -> some View {
         Button(action: a.run) {
             Group {
                 if a.busy {

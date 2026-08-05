@@ -55,10 +55,17 @@ enum Theme {
     /// Deep end of the juicy gradient — oklch(57.7% 0.245 27.325), vibrant red (#E7000E).
     static let accentDeep = Color(hex: 0xE7000E)
 
-    /// GPU series colour. Cool teal, chosen to sit as far from the warm accent as
-    /// possible so the two lines stay separable on the shared 90s chart — the
-    /// accent's whole range is orange→red, so any warm hue would read as CPU.
-    static let gpuAccent = Color(hex: 0x30B0C7)
+    // Metric identities for the dashboard. CPU reuses the brand accent; GPU and
+    // memory take a cool teal and an indigo. Not picked by eye — the triple was
+    // run through the palette validator and passes the lightness band, chroma
+    // floor, CVD separation (worst adjacent pair ΔE 17.0 deutan) and the
+    // normal-vision floor against BOTH the light and dark chart surfaces. The
+    // teal sits at 2.83:1 on the light surface, under the 3:1 bar, which is
+    // allowed only because every metric carries a visible text label beside its
+    // mark — identity is never colour alone here. Re-validate before changing
+    // any of the three.
+    static let gpuAccent = Color(hex: 0x33A5BB)
+    static let memAccent = Color(hex: 0x6366F1)
 
     /// The juicy MyD1 gradient: a 135° wash of bright-orange → vibrant orange →
     /// vibrant red (mirrors the .acct-avatar avatar gradient). Used on hero tiles,
