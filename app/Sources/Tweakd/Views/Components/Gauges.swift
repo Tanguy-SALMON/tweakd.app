@@ -259,13 +259,17 @@ struct Sparkline: View {
                         p.addLine(to: CGPoint(x: geo.size.width, y: y))
                     }
                     .stroke(Theme.hairline, style: StrokeStyle(lineWidth: 1, dash: [2, 3]))
+
+                    // Sit the label just under its rule, pinned to the leading
+                    // edge. `.position` centres on a point and was placing these
+                    // half outside the plot; anchoring the frame and offsetting
+                    // keeps them inside and stops adjacent rules colliding.
                     Text(level.label)
                         .font(.system(size: 8))
                         .foregroundStyle(.tertiary)
-                        .position(x: 0, y: y)
-                        .offset(x: 1, y: -6)
                         .fixedSize()
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                        .offset(y: y + 1)
                 }
 
                 Path { p in

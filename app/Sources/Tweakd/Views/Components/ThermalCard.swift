@@ -25,8 +25,10 @@ struct ThermalCard: View {
                     Sparkline(values: pressureTrend, tint: Theme.accent,
                               fixedPeak: 3, stepped: true,
                               gridLevels: [(1.0, "critical"), (2.0 / 3.0, "serious")])
-                        .frame(height: 21)   // Fibonacci
-                    Text("Pressure · last 90s — nominal → critical")
+                        // 34, not 21: two 8pt labels 1/3 of the box apart need
+                        // the room, and at 21 they overlapped into a smudge.
+                        .frame(height: 34)   // Fibonacci
+                    Text("Thermal pressure · last 90s — baseline is nominal")
                         .font(.system(size: 10)).foregroundStyle(.secondary)
                         .textSelection(.enabled)
                 }
