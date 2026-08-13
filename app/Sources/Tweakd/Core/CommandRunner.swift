@@ -111,6 +111,93 @@ enum CommandRunner {
         return result
     }
 
+    // MARK: - Long-running admin stream
+
+    /// A privileged process left running, delivering stdout a line at a time.
+    /// Cancel it by calling `stop()` or simply dropping the handle.
+    final class StreamHandle: @unchecked Sendable {
+        private let task: Process
+        private let pipe: Pipe
+        private var stopped = false
+
+        init(task: Process, pipe: Pipe) {
+            self.task = task
+            self.pipe = pipe
+        }
+
+        func stop() {
+            guard !stopped else { return }
+            stopped = true
+            pipe.fileHandleForReading.readabilityHandler = nil
+            // Terminating `sudo` does NOT reap its child, so the sampler would
+            // otherwise keep running as root forever. Closing our end of the pipe
+            // is what actually kills it: the child gets SIGPIPE on its next write,
+            // which for a 1 Hz sampler is within a second.
+            try? pipe.fileHandleForReading.close()
+            if task.isRunning { task.terminate() }
+        }
+
+        deinit { stop() }
+    }
+
+    /// Start a privileged command and stream its stdout line by line.
+    ///
+    /// Returns nil unless admin is already unlocked. There is deliberately no
+    /// prompting fallback: `osascript … with administrator privileges` only
+    /// hands back output once the command *finishes*, so a continuous sampler
+    /// under it would stream nothing and never end.
+    ///
+    /// The caller is responsible for bounding the command's lifetime — anything
+    /// started here is root, and a UI that forgets to stop it leaves it running.
+    static func streamAdmin(_ command: String,
+                            onLine: @escaping @Sendable (String) -> Void,
+                            onEnd: @escaping @Sendable () -> Void = {}) -> StreamHandle? {
+        guard hasPasswordlessAdmin() else { return nil }
+        Log.info("admin stream start: \(command.prefix(80))")
+
+        let task = Process()
+        let out = Pipe()
+        task.executableURL = URL(fileURLWithPath: "/usr/bin/sudo")
+        task.arguments = ["-n", "/bin/zsh", "-c", zshPipeline(command)]
+        task.standardOutput = out
+        task.standardError = FileHandle.nullDevice
+
+        // Reassembled here rather than per-read: a pipe read boundary lands
+        // mid-line often enough that parsing raw chunks silently drops samples.
+        let buffer = LineBuffer()
+        out.fileHandleForReading.readabilityHandler = { handle in
+            let data = handle.availableData
+            guard !data.isEmpty else { return }
+            for line in buffer.feed(data) { onLine(line) }
+        }
+        task.terminationHandler = { _ in
+            Log.info("admin stream ended")
+            onEnd()
+        }
+
+        do {
+            try task.run()
+        } catch {
+            Log.error("admin stream launch failed: \(error.localizedDescription)")
+            return nil
+        }
+        return StreamHandle(task: task, pipe: out)
+    }
+
+    /// Accumulates pipe chunks and hands back only whole lines.
+    private final class LineBuffer: @unchecked Sendable {
+        private var partial = ""
+        private let lock = NSLock()
+
+        func feed(_ data: Data) -> [String] {
+            lock.lock(); defer { lock.unlock() }
+            partial += String(decoding: data, as: UTF8.self)
+            var lines = partial.components(separatedBy: "\n")
+            partial = lines.removeLast()   // trailing fragment waits for more
+            return lines
+        }
+    }
+
     // MARK: - Plumbing
 
     private static func run(executable: String, arguments: [String]) -> CommandResult {

@@ -159,6 +159,21 @@ final class ThermalMonitor: ObservableObject {
 
     var thermalLabel: String { Self.label(thermalState) }
 
+    /// The four levels macOS can report, in order, each with what it actually
+    /// means for you. Shown as a scale in the UI: "Nominal" on its own is a
+    /// result with nothing to compare it against.
+    static let levels: [(state: ProcessInfo.ThermalState, name: String, meaning: String)] = [
+        (.nominal,  "Nominal",  "No heat limiting at all. Full speed is available."),
+        (.fair,     "Fair",     "Warming up. macOS trims peak speed a little; you're unlikely to feel it."),
+        (.serious,  "Serious",  "Real slowdown. Speed is cut to shed heat, and background work is deferred."),
+        (.critical, "Critical", "Emergency limiting. Everything is throttled hard until the Mac cools."),
+    ]
+
+    /// 0…3 — which rung of `levels` is lit right now.
+    var levelIndex: Int {
+        Int(SystemMetrics.thermalStep(thermalState))
+    }
+
     /// True when this Mac has no fan, so sustained load is far likelier to
     /// throttle — worth saying out loud on an Air.
     static let isPassivelyCooled: Bool = SystemInfo.isFanless
@@ -197,6 +212,104 @@ final class ThermalMonitor: ObservableObject {
                            .joined(separator: ",")],
                       result: .ok)
         }
+    }
+
+    // MARK: - Live frequency stream (admin, 1 Hz)
+
+    /// True while cluster speeds are refreshing every second.
+    @Published private(set) var live = false
+    /// Why live mode isn't available, if it isn't.
+    @Published private(set) var liveBlocked: String?
+
+    private var stream: CommandRunner.StreamHandle?
+    private var blockLines: [String] = []
+    /// Bound on one stream's lifetime. This is a root process; if the UI ever
+    /// fails to stop it, it stops itself rather than sampling forever.
+    private static let liveSampleLimit = 900     // 15 min at 1 Hz
+
+    /// Live mode needs a *streaming* root process, which only the passwordless
+    /// sudoers rule can give us — the authorization dialog buffers until exit.
+    var canGoLive: Bool { CommandRunner.hasPasswordlessAdmin() }
+
+    func toggleLive() {
+        live ? stopLive() : startLive()
+    }
+
+    func startLive() {
+        guard stream == nil else { return }
+        guard canGoLive else {
+            liveBlocked = "Live speeds need Admin Access unlocked — powermetrics has to keep running as root."
+            return
+        }
+        liveBlocked = nil
+
+        // One sample per second, cpu_power only. `-n` bounds the run; the handler
+        // below restarts it if it expires while the card is still showing.
+        let cmd = "/usr/bin/powermetrics --samplers cpu_power -i 1000 -n \(Self.liveSampleLimit) 2>/dev/null"
+        stream = CommandRunner.streamAdmin(cmd, onLine: { [weak self] line in
+            Task { @MainActor in self?.consume(line) }
+        }, onEnd: { [weak self] in
+            Task { @MainActor in self?.streamEnded() }
+        })
+
+        guard stream != nil else {
+            liveBlocked = "Couldn't start powermetrics."
+            return
+        }
+        live = true
+        sampleError = nil
+        Log.audit("thermal.live", ["state": "start"])
+    }
+
+    func stopLive() {
+        stream?.stop()
+        stream = nil
+        blockLines = []
+        guard live else { return }
+        live = false
+        Log.audit("thermal.live", ["state": "stop"])
+    }
+
+    private func streamEnded() {
+        stream = nil
+        // Hit the sample cap while still on screen: start a fresh window rather
+        // than silently freezing the numbers at whatever they last were.
+        if live {
+            live = false
+            startLive()
+        }
+    }
+
+    /// Accumulate one sample block, then parse it whole.
+    ///
+    /// powermetrics emits a cluster's frequency and its residency histogram on
+    /// separate lines, and the histogram is where the maximum comes from — so
+    /// lines can't be parsed individually. `*** Sampled system activity` opens
+    /// each block, which makes it the flush point for the previous one.
+    private func consume(_ line: String) {
+        if line.contains("*** Sampled system activity") {
+            flushBlock()
+            return
+        }
+        blockLines.append(line)
+        // A malformed stream must not grow without bound.
+        if blockLines.count > 400 { blockLines.removeFirst(blockLines.count - 400) }
+    }
+
+    private func flushBlock() {
+        defer { blockLines = [] }
+        let parsed = Self.parseClusters(blockLines.joined(separator: "\n"))
+        guard !parsed.isEmpty else { return }
+        // Max MHz comes from the residency histogram, which only lists steps the
+        // cluster actually visited this second — an idle cluster can report a low
+        // "max". Carry the highest ceiling seen so the percentage stays anchored.
+        let previousMax = Dictionary(uniqueKeysWithValues: clusters.map { ($0.name, $0.maxMHz) })
+        clusters = parsed.map {
+            ClusterSpeed(name: $0.name, currentMHz: $0.currentMHz,
+                         maxMHz: max($0.maxMHz, previousMax[$0.name] ?? 0))
+        }
+        sampledAt = Date()
+        sampleError = nil
     }
 
     /// Parse `powermetrics --samplers cpu_power` output into per-cluster speeds.
