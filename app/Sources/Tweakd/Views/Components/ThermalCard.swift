@@ -103,13 +103,16 @@ struct ThermalCard: View {
         .accessibilityValue("\(ThermalMonitor.levels[min(current, 3)].name). \(ThermalMonitor.levels[min(current, 3)].meaning)")
     }
 
-    /// Green only at nominal — the point of the scale is that one end is good.
+    /// A cool-to-hot ramp built from the app's own palette — no system green or
+    /// yellow, which belong to no other surface here. Teal reads as the calm end
+    /// against the warm accent, and the two hot rungs are the accent at half and
+    /// full strength before it deepens to red.
     private func rungTint(_ index: Int) -> Color {
         switch index {
-        case 0:  return .green
-        case 1:  return .yellow
-        case 2:  return .orange
-        default: return .red
+        case 0:  return Theme.gpuAccent
+        case 1:  return Theme.accent.opacity(0.5)
+        case 2:  return Theme.accent
+        default: return Theme.accentDeep
         }
     }
 
@@ -126,7 +129,7 @@ struct ThermalCard: View {
     private var liveRow: some View {
         HStack(spacing: Space.xs) {
             if monitor.live {
-                Circle().fill(.green).frame(width: 6, height: 6)
+                Circle().fill(Theme.gpuAccent).frame(width: 6, height: 6)
                 Text("Live · refreshing every second")
                     .font(.system(size: 11)).foregroundStyle(.secondary)
             } else if let at = monitor.sampledAt {
@@ -158,7 +161,7 @@ struct ThermalCard: View {
         return HStack(alignment: .top, spacing: Space.s) {
             Image(systemName: v.icon)
                 .font(.system(size: 22, weight: .medium))
-                .foregroundStyle(v.isAlarming ? AnyShapeStyle(.orange) : AnyShapeStyle(Theme.accentGradient))
+                .foregroundStyle(v.isAlarming ? AnyShapeStyle(Theme.accentDeep) : AnyShapeStyle(Theme.accentGradient))
                 .frame(width: 30)
 
             VStack(alignment: .leading, spacing: 2) {
