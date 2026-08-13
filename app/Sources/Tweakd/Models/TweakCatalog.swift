@@ -93,6 +93,46 @@ enum TweakCatalog {
             appliedWhenOutputContains: "0",
             tags: [.prioritizeBattery, .prioritizePerformance], recommended: true
         ),
+        // Always-on / "run it like a server". All three are scoped to `-c`
+        // (power adapter) rather than `-a`: on battery an unsleeping Mac is a
+        // flat Mac, and the point is a machine that keeps serving while it is
+        // plugged in and idle, not one that never sleeps anywhere.
+        Tweak(
+            key: "never-sleep-on-power",
+            title: "Never Sleep on Power Adapter",
+            summary: "Keeps the Mac fully awake and serving when idle on mains. Battery behaviour is untouched.",
+            category: .power, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "pmset -c sleep 0",
+            revertCommand: "pmset -c sleep 1",
+            // "sleep" appears inside "displaysleep", "disksleep", "SleepServices"
+            // and "Sleep On Power Button", so match the field exactly — and only
+            // after the AC Power heading, since the battery block is listed first.
+            statusCommand: "pmset -g custom | awk '/AC Power/{f=1} f && $1==\"sleep\" {print $2; exit}'",
+            appliedWhenOutputContains: "0",
+            tags: [.serverWorkload, .prioritizePerformance], recommended: false
+        ),
+        Tweak(
+            key: "never-disksleep-on-power",
+            title: "Keep Disks Spun Up on Power",
+            summary: "Stops storage idling down on mains, so the first request after a quiet spell isn't slow.",
+            category: .power, privilege: .admin, risk: .safe, sipRequired: false,
+            applyCommand: "pmset -c disksleep 0",
+            revertCommand: "pmset -c disksleep 10",
+            statusCommand: "pmset -g custom | awk '/AC Power/{f=1} f && $1==\"disksleep\" {print $2; exit}'",
+            appliedWhenOutputContains: "0",
+            tags: [.serverWorkload, .prioritizePerformance], recommended: false
+        ),
+        Tweak(
+            key: "disable-standby-on-power",
+            title: "No Deep Standby on Power",
+            summary: "Blocks the low-power standby state on mains, so the Mac stays instantly reachable.",
+            category: .power, privilege: .admin, risk: .moderate, sipRequired: false,
+            applyCommand: "pmset -c standby 0",
+            revertCommand: "pmset -c standby 1",
+            statusCommand: "pmset -g custom | awk '/AC Power/{f=1} f && $1==\"standby\" {print $2; exit}'",
+            appliedWhenOutputContains: "0",
+            tags: [.serverWorkload], recommended: false
+        ),
         Tweak(
             key: "disable-hibernation-image",
             title: "Skip Hibernation Image",
@@ -627,6 +667,9 @@ enum TweakCatalog {
         "serverperfmode": "server.rack",
         // Power
         "lowpowermode-off": "battery.100.bolt",
+        "never-sleep-on-power": "powerplug",
+        "never-disksleep-on-power": "internaldrive",
+        "disable-standby-on-power": "bolt.horizontal",
         "disable-powernap": "powersleep",
         "disable-hibernation-image": "bed.double",
         // Snappiness
@@ -676,7 +719,9 @@ enum TweakCatalog {
         // Performance & power → raw speed
         "timer-coalescing": [.faster], "disable-app-nap": [.faster], "raise-gpu-vram": [.faster],
         "disable-lowpri-throttle": [.faster], "serverperfmode": [.faster], "lowpowermode-off": [.faster],
-        "disable-powernap": [.battery], "disable-hibernation-image": [.disk],
+        "disable-powernap": [.battery],
+        "never-sleep-on-power": [.throughput], "never-disksleep-on-power": [.faster],
+        "disable-standby-on-power": [.throughput], "disable-hibernation-image": [.disk],
         // Snappiness → responsiveness
         "fast-window-resize": [.snappier], "disable-window-anim": [.snappier], "instant-dock": [.snappier],
         "fast-key-repeat": [.snappier], "fast-mission-control": [.snappier],

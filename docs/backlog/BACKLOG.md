@@ -43,3 +43,37 @@ Mostly already implemented (`TweakCatalog.swift` .security category, `PriorityMa
 Not carried into this backlog — its goal (fix pegged `coreaudiod`) is already solved by a
 different, better design: `Core/CoreAudioWatchdog.swift`, an opt-in background watchdog
 that auto-restarts `coreaudiod` when it spikes.
+
+## Always-on / server mode — shipped, needs verification
+
+Three tweaks added to the Power category, all scoped to `-c` (power adapter) rather than
+`-a`, so battery behaviour is untouched: `never-sleep-on-power`, `never-disksleep-on-power`,
+`disable-standby-on-power`.
+
+Outstanding:
+
+- **Not yet applied on real hardware.** The read-side is verified — each `statusCommand`
+  was run and parses the AC block correctly — but `pmset -c …` needs root, so the write
+  side and the re-probe round trip are untested. Apply once and confirm the row flips to
+  Applied rather than "System reported no change."
+- **Revert values are assumed defaults**, matching what this Mac reported (`sleep 1`,
+  `disksleep 10`, `standby 1`). A Mac configured differently would be reverted to these
+  rather than to what it had. Same convention as the existing `pmset` tweaks, but worth
+  revisiting if anyone reports a surprise.
+- **`docs/TWEAKS.md` has no entries for the three** — the table around line 135 and the
+  detail sections around line 244 both need rows adding.
+- **Wake-on-network (`womp`) and `tcpkeepalive` were deliberately left out**: both already
+  read `1` on this machine, so a tweak would have shipped permanently "Applied" and done
+  nothing. Add only if a Mac is found where they default off.
+- **`systemsetup -setrestartpowerfailure` was considered and dropped** — it errors with
+  "Not supported on this machine" on Apple Silicon notebooks, so it would be a dead toggle.
+
+## Power button — undecided
+
+`defaults write com.apple.loginwindow PowerButtonSleepsSystem -bool no` stops a stray press
+of the Touch ID key sleeping the Mac. Already set to `0` on the dev machine, applied by hand.
+
+Not added: the key reads and writes fine, but whether **macOS 26 still honours it** can only
+be settled by physically pressing the power button. There are credible reports of it being
+ignored on recent macOS, and shipping it unverified would be exactly the dead toggle the
+catalog rule forbids. Test, then add or discard.
