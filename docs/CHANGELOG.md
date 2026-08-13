@@ -4,6 +4,54 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.0] — 2026-08-13
+
+### Added — one button that cleans the safe caches
+
+Disk Cleanup led with "~9.5 GB reclaimable right now" and then made you clear
+thirteen rows one at a time.
+
+"Clean Up Now" sits next to that headline and sweeps every **safe, regenerable**
+row in one pass. It deliberately does *not* touch the Trash, Docker's images and
+volumes, or your device backups — a one-tap button must never be the thing that
+deletes something irreplaceable, so those keep their own individual buttons.
+
+The banner quotes the sweep's own total separately from the headline, because
+the headline includes rows the button leaves alone, and the confirmation names
+every item it is about to clear rather than asking for blanket consent.
+
+### Added — live CPU cluster speeds
+
+Performance and Efficiency core frequencies now refresh every second while
+"Go live" is on, instead of being a single frozen sample.
+
+`powermetrics` needs root and takes ~300 ms, so polling it once a second would
+mean a new root process every second. Instead one sampler is started and its
+output is streamed and parsed block by block. That requires *streaming* root,
+which only the passwordless sudoers rule provides — the authorization dialog
+buffers output until the command exits, so live mode says it needs Admin Access
+unlocked rather than failing silently.
+
+The sampler is bounded (15 min) and stopped when the pane closes; closing our
+end of the pipe is what actually kills it, since terminating `sudo` doesn't
+reap its child.
+
+Each block's maximum MHz is carried forward across samples: the residency
+histogram only lists the steps a cluster actually visited that second, so an
+idle cluster reports a low "max" and the percentage would jump around.
+
+### Added — the thermal pressure scale is explained
+
+"Nominal" was a verdict with nothing to measure it against, and the dashed rules
+on the trend strip were labelled with states the UI never defined.
+
+All four levels — Nominal, Fair, Serious, Critical — are now shown as a scale
+with the current rung lit and what it means for you spelled out underneath.
+
+Also answered in the UI: there is no temperature reading, because Apple Silicon
+doesn't publish a die temperature to apps. The pressure level is the signal
+macOS itself acts on when it decides to slow down.
+
 ### Changed — the main window opens at 80% of the screen
 
 Sized against the screen's *visible* frame rather than its full frame, so the
