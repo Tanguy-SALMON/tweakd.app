@@ -245,6 +245,65 @@ final class DiskCleanupManager: ObservableObject {
                   result: result.ok ? .ok : .failed)
     }
 
+    // MARK: - One-tap sweep
+
+    /// Busy key for the sweep, so the button can show progress without any row
+    /// of `items` owning it.
+    static let sweepID = "clean-all"
+
+    /// The rows the one-tap sweep runs, and *only* these.
+    ///
+    /// Safe means regenerable: caches and build artifacts the tool rebuilds by
+    /// itself. Deliberately excluded, because "clean my Mac in one go" must
+    /// never be the thing that deletes something you wanted:
+    ///   • Empty Trash — the Trash is a holding area, emptying it is a decision.
+    ///   • Docker prune — destroys images/volumes, and needs the daemon running.
+    ///   • iOS backups / device support — irreplaceable or slow to re-download.
+    /// Each of those keeps its own button, one deliberate tap at a time.
+    var sweepItems: [CleanupItem] {
+        Self.items.filter { item in
+            item.risk == .safe && !item.destructive && available[item.id] != false
+        }
+    }
+
+    /// What the sweep would actually free — the headline total includes rows it
+    /// won't touch, so quoting that number on the button would overpromise.
+    var sweepReclaimableBytes: Double {
+        sweepItems.reduce(0.0) { sum, item in
+            sum + (sizes[item.id].flatMap(Self.parseSize) ?? 0)
+        }
+    }
+
+    /// Run every sweepable row in sequence, then re-measure everything.
+    ///
+    /// Sequential on purpose: these are `rm -rf` and package-manager cleanups
+    /// competing for the same disk, and running them at once makes the whole
+    /// pass slower while the per-row progress becomes a lie.
+    func cleanAll() async {
+        guard !busy.contains(Self.sweepID) else { return }
+        busy.insert(Self.sweepID)
+        defer { busy.remove(Self.sweepID) }
+
+        let targets = sweepItems
+        let before = totalReclaimableBytes
+        for item in targets {
+            await clean(item)
+        }
+        await scan()
+        let freed = max(0, before - totalReclaimableBytes)
+        lastMessage = "Cleaned \(targets.count) item\(targets.count == 1 ? "" : "s") · about \(Self.humanBytes(freed)) freed."
+        Log.audit("cleanup.sweep",
+                  ["items": targets.map(\.id).joined(separator: ","),
+                   "bytesFreed": "\(Int(freed))"],
+                  result: .ok)
+    }
+
+    nonisolated static func humanBytes(_ bytes: Double) -> String {
+        bytes >= 1_000_000_000
+            ? String(format: "%.1f GB", bytes / 1_000_000_000)
+            : String(format: "%.0f MB", bytes / 1_000_000)
+    }
+
     /// Off-main: find Library leftovers for apps that are no longer installed.
     func scanOrphaned() async {
         scanningOrphaned = true

@@ -14,6 +14,7 @@ struct DiskCleanupView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmingItemID: String?
     @State private var confirmingOrphaned = false
+    @State private var confirmingSweep = false
 
     private var cleanup: DiskCleanupManager { model.diskCleanup }
 
@@ -59,6 +60,24 @@ struct DiskCleanupView: View {
         } message: {
             Text(confirmingItem?.blurb ?? "These belong to apps no longer installed on this Mac. This can't be undone.")
         }
+        .confirmationDialog("Clean \(cleanup.sweepItems.count) safe caches?",
+                            isPresented: $confirmingSweep) {
+            Button("Clean Up Now") { Task { await cleanup.cleanAll() } }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text(sweepSummary)
+        }
+    }
+
+    /// Name what's about to be cleared rather than asking for blanket consent —
+    /// the whole risk of a one-tap sweep is not knowing what it touched.
+    private var sweepSummary: String {
+        let names = cleanup.sweepItems.map(\.title).joined(separator: ", ")
+        return """
+        Clears: \(names).
+
+        Every one of these is regenerable — the app or tool rebuilds it on next use. Your Trash, Docker data and device backups are not touched.
+        """
     }
 
     private var confirmingItem: CleanupItem? {
@@ -86,16 +105,43 @@ struct DiskCleanupView: View {
     }
 
     private var reclaimableBanner: some View {
-        HStack(spacing: Space.s) {
+        let sweeping = cleanup.busy.contains(DiskCleanupManager.sweepID)
+        let count = cleanup.sweepItems.count
+        let sweepBytes = cleanup.sweepReclaimableBytes
+
+        return HStack(spacing: Space.s) {
             Image(systemName: "sparkles")
-                .font(.system(size: 16))
+                .font(.system(size: 20))
                 .foregroundStyle(Theme.accentGradient)
-            Text("~\(formattedGB(cleanup.totalReclaimableBytes)) reclaimable right now.")
-                .font(.system(size: 13, weight: .semibold))
-                .textSelection(.enabled)
-            Spacer()
+                .frame(width: 26)
+            VStack(alignment: .leading, spacing: 2) {
+                Text("~\(formattedGB(cleanup.totalReclaimableBytes)) reclaimable right now.")
+                    .font(.system(size: 15, weight: .semibold))
+                // The button frees less than the headline, and saying so here is
+                // cheaper than an apology afterwards.
+                Text(count == 0
+                     ? "Nothing safe left to sweep — what remains needs a deliberate tap below."
+                     : "One tap clears \(count) safe cache\(count == 1 ? "" : "s") (~\(formattedGB(sweepBytes))). Trash, Docker and your backups are left alone.")
+                    .font(.system(size: 12)).foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .textSelection(.enabled)
+            Spacer(minLength: Space.s)
+            if sweeping {
+                ProgressView().controlSize(.small)
+            } else if count > 0 {
+                Button {
+                    confirmingSweep = true
+                } label: {
+                    Label("Clean Up Now", systemImage: "wand.and.sparkles")
+                }
+                .buttonStyle(.gradient)
+                .controlSize(.large)
+                .help("Clear every safe, regenerable cache in one pass")
+            }
         }
         .card(padding: Space.s)
+        .animation(.easeOut(duration: 0.15), value: sweeping)
     }
 
     private func formattedGB(_ bytes: Double) -> String {
