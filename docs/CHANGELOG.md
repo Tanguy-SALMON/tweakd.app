@@ -4,6 +4,18 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.1] — 2026-08-13
+
+### Fixed — the thermal scale used colours from outside the palette
+
+The four rungs were drawn in system `.green`, `.yellow`, `.orange` and `.red`,
+none of which appear anywhere else in the app.
+
+The ramp is now built from colours already in `Theme` and already validated for
+both light and dark: `gpuAccent` (teal) for the calm end, `accent` at half then
+full strength, and `accentDeep` for critical. The live-sampling dot and the
+alarming verdict icon were the same mistake and follow the same rule.
+
 ## [0.9.0] — 2026-08-13
 
 ### Added — one button that cleans the safe caches
