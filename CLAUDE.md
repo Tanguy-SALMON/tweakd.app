@@ -86,12 +86,16 @@ and is unfixable by the person seeing it.
   (`stapler validate` + `spctl --assess`). An un-notarised image uploads
   perfectly happily and only fails days later on someone else's machine.
 
-One-time credential setup — an app-specific password from
-appleid.apple.com, stored in the keychain, never in the repo:
+One-time credential setup. The Apple ID that owns team `BXH6425K7L` is
+**`tanguy.salmon@gmail.com`** — the same account as Cloudflare, *not* the
+`@hthai.co.th` address this Mac uses for iCloud. The password is an
+app-specific password from **appleid.apple.com** (not developer.apple.com, and
+no App ID registration is involved — App IDs are an App Store concept).
+Stored in the keychain, never in the repo:
 
 ```bash
 xcrun notarytool store-credentials "tweakd" \
-  --apple-id "<apple id>" --team-id "BXH6425K7L" \
+  --apple-id "tanguy.salmon@gmail.com" --team-id "BXH6425K7L" \
   --password "<app-specific password>"
 ```
 
