@@ -15,8 +15,9 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 
 ## Features
 
-- **Dashboard** — live CPU & memory ring gauges (read straight from the Mach kernel,
-  no shelling out; CPU smoothed so the menu and window stay consistent; sampling is
+- **Dashboard** — live CPU, memory **and GPU** ring gauges (CPU/memory read straight from
+  the Mach kernel and GPU from `AGXAccelerator`'s IO-registry counters — the same figure
+  Activity Monitor shows, and no root needed — no shelling out; CPU smoothed so the menu and window stay consistent; sampling is
   ref-counted so it costs nothing when no gauge is on screen), a rolling 90-second chart,
   a **Clear RAM** button on the memory ring (purges inactive pages), system facts, and a
   **Core Audio Watchdog** that auto-restarts a runaway `coreaudiod` when a stuck audio
@@ -31,11 +32,16 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
   inside the app bundle) are found too. Security/EDR agents are listed **read-only**;
   Apple's daemons aren't listed at all.
 - **Disk Cleanup** — measured, one-tap reclaim of caches, Xcode DerivedData, simulator
-  junk, package-manager caches, orphaned leftovers from uninstalled apps, and Docker.
+  junk, package-manager caches, orphaned leftovers from uninstalled apps, and Docker. A
+  **Clean All** sweep runs the low-risk, non-destructive rows in one go — the Trash,
+  Docker prune and iOS backups stay out of it and remain deliberate, confirmed actions.
 - **Process Priority** — `renice` any running process (not just a curated list), with a
   busiest-processes table and optional apply-at-login.
-- **Thermal & CPU speed** — reads macOS's own thermal-pressure level and samples real
-  per-cluster MHz against the hardware maximum, so you can tell *throttled* from *idle*.
+- **Thermal & CPU speed** — reads macOS's own thermal-pressure level (shown as a
+  four-rung ladder, Nominal → Critical, each rung spelling out what it costs you) and
+  samples real per-cluster MHz against the hardware maximum, so you can tell *throttled*
+  from *idle*. **Go live** streams those speeds once a second while admin is unlocked.
+  No temperature is shown — Apple Silicon doesn't publish a die temperature to apps.
 - **Audit trail** — every change is logged to the unified log (category `audit`) and to
   `~/Library/Logs/tweakd/tweakd.log`, recording before → intended → **actual** state.
 - **51 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background

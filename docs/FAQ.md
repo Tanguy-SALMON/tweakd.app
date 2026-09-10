@@ -60,8 +60,15 @@ Full reasoning and the per-tweak table: [TWEAKS.md](TWEAKS.md#fanless-vs-activel
 ### How do I tell whether my CPU is actually being throttled?
 The Dashboard's **thermal card**. It reads macOS's own thermal-pressure level
 (`Nominal` → the full clock range is available; `Fair`/`Serious`/`Critical` → macOS
-is derating for heat), and **Check speed** samples real per-cluster frequencies
-against the hardware maximum.
+is derating for heat, shown as a four-rung ladder with what each rung means), and
+**Check speed** samples real per-cluster frequencies against the hardware maximum.
+**Go live** keeps those speeds updating once a second — that needs Admin Access
+unlocked, because a streaming root process can't run behind the password dialog
+(it only hands back output once the command has finished).
+
+**Why no temperature?** Apple Silicon doesn't publish a die temperature to apps, so
+the card shows none rather than a made-up number. The pressure level is the honest
+signal anyway — it's what macOS itself acts on when it decides to slow down.
 
 The trap to avoid: **cores sitting well below maximum is normal, not throttling** —
 they clock down whenever nothing is asking for work. Only the pressure level tells

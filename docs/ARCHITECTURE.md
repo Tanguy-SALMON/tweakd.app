@@ -17,7 +17,8 @@ How the app is built, for anyone reading or extending the code.
 ```
 app/Sources/Tweakd/
   App/        TweakdApp (scenes), AppModel (+ wizard), Theme (design system)
-  Core/       CommandRunner, TweakEngine, SystemInfo, CoreAudioWatchdog, Log
+  Core/       CommandRunner, TweakEngine, SystemInfo, ServicesManager,
+              DiskCleanupManager, CoreAudioWatchdog, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
   Metrics/    SystemMetrics (Mach sampling), Benchmark (+ BenchmarkHistory), ThermalMonitor
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
@@ -25,8 +26,10 @@ app/Sources/Tweakd/
   Onboarding/ OnboardingView
 app/build.sh  build, bundle, ad-hoc sign, launch
 scripts/      make_icon.swift, release-website.sh
-web/          index.html — the page published at tweakd.app
-docs/         TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md, backlog/
+web/          index.html, privacy.html, terms.html — deployed to the Cloudflare
+              Pages project `tweakd-app` by scripts/release-website.sh
+docs/         TWEAKS.md, TOOLS.md, SERVICES.md, ARCHITECTURE.md, SAFETY.md, FAQ.md,
+              CHANGELOG.md, CONTRIBUTING.md, SYSTEM-CHANGES.md, README.md, backlog/
 ```
 
 ## Data model — the tweak catalog is the source of truth
@@ -118,6 +121,30 @@ After that, every admin tweak runs via `sudo -n` with no prompt. **Lock** remove
 the file. Security note: this grants your user passwordless root via `/bin/zsh` — a
 real convenience/safety trade fine for a personal machine. See [SAFETY.md](SAFETY.md).
 
+### The long-running admin stream — `streamAdmin` / `StreamHandle`
+
+A third lane, for a privileged process that must keep *running* and deliver stdout a
+line at a time (the Thermal card's live 1 Hz `powermetrics`):
+
+```swift
+CommandRunner.streamAdmin(_:onLine:onEnd:) -> StreamHandle?   // nil unless admin is unlocked
+```
+
+- **Only the `sudo -n` backend can stream.** `osascript … with administrator privileges`
+  buffers stdout and hands it back only once the command *finishes*, so a continuous
+  sampler under it would emit nothing and never end. There is deliberately **no prompting
+  fallback** — the call returns `nil` when passwordless admin is locked, and the UI says so.
+- **`stop()` closes the read end of the pipe, and that is what kills the child.**
+  Terminating `sudo` does *not* reap the process it spawned, so a naive `terminate()`
+  leaves a sampler running as root forever. With our end closed, the child takes SIGPIPE
+  on its next write — within a second for a 1 Hz sampler. `deinit` calls `stop()` too, so
+  dropping the handle is enough.
+- **Lines are reassembled before parsing.** A `LineBuffer` accumulates pipe chunks and
+  yields only whole lines; read boundaries land mid-line often enough that parsing raw
+  chunks silently drops samples.
+- The **caller** bounds the lifetime — anything started here is root. The Thermal card
+  stops the stream in `.onDisappear`, and the command itself carries an `-n` sample cap.
+
 ### The `run()` plumbing — why not `waitUntilExit()`
 
 Commands run through a single `run(executable:arguments:)`:
@@ -132,10 +159,17 @@ Commands run through a single `run(executable:arguments:)`:
   the ~64 KB pipe buffer of the un-read stream.
 - All blocking work is dispatched off the main actor (`await Task.detached { … }.value`).
 
-## SystemMetrics — live CPU/RAM (`@MainActor ObservableObject`)
+## SystemMetrics — live CPU/RAM/GPU (`@MainActor ObservableObject`)
 
 - Reads straight from the **Mach kernel** — `host_statistics(HOST_CPU_LOAD_INFO)` for
   CPU ticks, `host_statistics64(HOST_VM_INFO64)` for memory — no shelling out.
+- **GPU** comes from the IO registry, not a command: `AGXAccelerator`'s
+  `PerformanceStatistics` dictionary, reading `Device Utilization %` (the whole-device
+  figure — the Renderer/Tiler counters are per-stage and would double-count) and
+  `In use system memory`. Same counter Activity Monitor shows, and **readable without
+  root**, which `powermetrics --samplers gpu_power` is not — that's the whole point: the
+  gauge never prompts. Anything unexpected returns `(0, 0)` rather than throwing, so a
+  missing GPU counter flattens one chart instead of taking CPU and memory down with it.
 - CPU is **EMA-smoothed** so the menu-bar panel and the window converge on the same
   figure instead of catching different instantaneous spikes.
 - The Mach **host port** and **page size** are cached in statics (calling

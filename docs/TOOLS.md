@@ -48,6 +48,19 @@ sudo /usr/sbin/purge          # 🔐
 > Useful before a big build that wants a clean slate; pointless as routine hygiene.
 > macOS has no equivalent of a Windows "RAM cleaner", and unused RAM is wasted RAM.
 
+**GPU** — the third gauge. Tweakd reads `AGXAccelerator`'s `PerformanceStatistics` from
+the IO registry (`Device Utilization %` and `In use system memory`), the same counter
+Activity Monitor shows and one that needs **no root**. By hand:
+
+```bash
+# Busy % and in-use GPU memory, no sudo
+/usr/sbin/ioreg -r -c AGXAccelerator -d 1 \
+  | /usr/bin/grep -E '"Device Utilization %"|"In use system memory"'
+
+# The root-only alternative, if you want power draw as well
+sudo /usr/bin/powermetrics --samplers gpu_power -n 1 -i 300     # 🔐
+```
+
 **System facts** shown on the card:
 
 ```bash
@@ -79,8 +92,19 @@ On this M2 Air `pmset -g therm` prints only `No thermal warning level has been
 recorded` — it reflects the older CPU-speed-limit mechanism, not the pressure level, so
 **don't read "no warning" as "not throttled."** Use `powermetrics`, or the app's card.
 
-Levels are **nominal** (full speed available) · **fair** (slightly limited) ·
-**serious / critical** (real loss of performance).
+There are four levels, and the card shows them as a **ladder** with the current rung lit
+— "Nominal" on its own is a result with nothing to compare it against:
+
+| Level | What it means for you |
+|---|---|
+| **Nominal** | No heat limiting at all. Full speed is available. |
+| **Fair** | Peak performance trimmed slightly — usually after a sustained burst. |
+| **Serious** | Real derating. Sustained work is measurably slower. |
+| **Critical** | Heavy throttling; macOS is protecting the hardware. |
+
+**No degrees.** Apple Silicon doesn't publish a die temperature to apps, so the card
+shows none — the pressure level is the honest signal, and it's the one the system
+actually acts on when it decides to slow down.
 
 **2. Actual clock speeds** — needs root, takes ~0.3 s:
 
@@ -107,6 +131,12 @@ Watch it live while you reproduce a slowdown:
 ```bash
 sudo /usr/bin/powermetrics --samplers cpu_power,thermal -i 1000    # 🔐  Ctrl-C to stop
 ```
+
+**Live mode in the app** is exactly that command at 1 Hz: **Go live** streams per-cluster
+MHz once a second instead of taking a single point-in-time sample. It needs **Admin
+Access unlocked** — a streaming root process can't run behind the password dialog, which
+only returns output once the command finishes — and it stops itself when you leave the
+page, since `powermetrics` runs as root the whole time it's on.
 
 ---
 
@@ -137,6 +167,21 @@ Measure everything at once:
 /usr/bin/du -sh ~/.Trash ~/Library/Caches ~/Library/Developer/Xcode/DerivedData \
   ~/Library/Logs/DiagnosticReports ~/.npm 2>/dev/null
 ```
+
+### Clean All — the one-tap sweep
+
+The button at the top of the page runs the safe rows in sequence, then re-measures
+everything. It includes **only** rows that are `risk == .safe` and **not** destructive —
+caches that regrow on their own. Deliberately left out, because "clean my Mac in one go"
+must never delete something you'd want back:
+
+- **Empty Trash** — a holding area; emptying it is a decision, not hygiene.
+- **Docker prune** — removes images, volumes and containers. Explicit and confirmed only.
+- **iOS Device Backups / Device Support** — irreplaceable, or slow to re-download.
+
+The headline "reclaimable" total on the page counts every row; the sweep's own figure
+counts only the rows it will actually touch, so the two can differ. The equivalent by
+hand is just the safe **Clear** commands from the table above, run one after another.
 
 ### Three things worth knowing before you clear
 

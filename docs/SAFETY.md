@@ -104,6 +104,11 @@ resolved by itself once indexing finished. So:
 - Anything irreversible is marked **destructive** in the app and asks for confirmation
   first, and every deleted path is logged **before** the delete so the record survives
   a pass that dies partway through.
+- **Clean All** (the one-tap sweep) runs **only** the rows that are low-risk *and* not
+  destructive — caches that regrow by themselves. Emptying the Trash, pruning Docker and
+  anything touching iOS backups or device support stay out of it and remain one-by-one,
+  confirmed decisions. The sweep logs one `cleanup.sweep` entry listing exactly which
+  items it ran, alongside the per-item `cleanup.clean` lines.
 
 ## Firewall & Stealth Mode — safe, reversible
 
@@ -215,6 +220,7 @@ Entries are `key=value` pairs, so they're greppable:
 CHANGE event=tweak.set key=disable-siri-daemon from=notApplied to=applied privilege=admin exit=0 result=ok
 CHANGE event=admin.unlock sudoers=/etc/sudoers.d/tweakd exit=0 result=ok
 CHANGE event=cleanup.clean item=xcode-derived sizeBefore=564M sizeAfter=0B exit=0 result=ok
+CHANGE event=cleanup.sweep items=app-caches,xcode-derived,npm-cache bytesFreed=1204887552 result=ok
 CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=ok
 ```
 

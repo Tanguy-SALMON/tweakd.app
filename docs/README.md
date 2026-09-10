@@ -16,7 +16,8 @@ Everything about Tweakd — the app, and how to do all of it **by hand** in Term
   need, the full `launchctl` cookbook (list · find failing · inspect · measure cost ·
   stop · disable · restart), what not to touch, and what each `launchctl` error means.
 - **[TOOLS.md](TOOLS.md)** — command-line equivalents for the remaining panes: Dashboard
-  and Clear RAM, Thermal & CPU speed, every Disk Cleanup row, Process Priority, Benchmark
+  (CPU, memory, GPU) and Clear RAM, Thermal & CPU speed including live sampling, every
+  Disk Cleanup row and what the one-tap **Clean All** sweep does, Process Priority, Benchmark
   history (the JSON is yours to read), the Core Audio watchdog, and the audit trail.
 
 ## Reference
