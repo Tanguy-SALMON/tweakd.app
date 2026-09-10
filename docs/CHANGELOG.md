@@ -4,6 +4,40 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.6] — 2026-09-10
+
+### Added — the download is signed with a Developer ID and notarised by Apple
+
+Every build until now was **ad-hoc signed** (`codesign --sign -`). That is fine
+on the machine that built it and useless everywhere else: Gatekeeper refuses an
+ad-hoc bundle it has never seen with *"Tweakd is damaged and can't be opened"* —
+which reads like a corrupt download and cannot be fixed by the person seeing it.
+It did not matter while nothing was downloadable. It mattered the moment
+`/api/download` started handing out a real `.dmg`.
+
+- `app/build.sh` now signs with **Developer ID Application: Tanguy SALMON
+  (BXH6425K7L)**, `--options runtime` and a trusted `--timestamp`. Hardened
+  Runtime is mandatory for notarisation and can only be set at signing time.
+  With no certificate in the keychain it still falls back to ad-hoc, and says so.
+- `scripts/package-dmg.sh` signs the disk image, submits it to Apple's notary
+  service and **staples** the resulting ticket into the image. Stapling is what
+  makes a first launch work with no network — without it the receiving Mac has
+  to reach Apple to check.
+- `scripts/release-download.sh` refuses to upload a `.dmg` with no ticket. An
+  un-notarised image uploads perfectly happily and only fails days later, on
+  someone else's machine, where nobody can see why.
+
+### Fixed — Hardened Runtime would have silently broken Empty Trash
+
+Disk Cleanup shells out to `osascript -e 'tell application "Finder" to empty
+trash'`. osascript sends the Apple event, but TCC attributes it to the
+*responsible* process — Tweakd — so under the Hardened Runtime it is rejected
+with `errAEEventNotPermitted` and the trash quietly never empties.
+`com.apple.security.automation.apple-events` plus an
+`NSAppleEventsUsageDescription` string restore it. Those are the **only**
+exceptions taken: every privileged command runs as a child process, so library
+validation and the executable-memory entitlements are not needed.
+
 ## [0.10.5] — 2026-09-10
 
 ### Fixed — 0.10.3's 404 page could shadow /api/download
