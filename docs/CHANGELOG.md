@@ -4,6 +4,44 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.3] — 2026-09-10
+
+Documentation and website catch-up. No behaviour change — the app binary differs
+from 0.9.2 only in its version string.
+
+### Documented — the features shipped in 0.8.x/0.9.x that nothing described
+
+- **GPU gauge** — `README.md`, `docs/ARCHITECTURE.md` and `docs/TOOLS.md` now
+  cover it, including the `ioreg`/`AGXAccelerator` one-liner it is read from
+  (`Device Utilization %`, `In use system memory`) and why that beats
+  `powermetrics --samplers gpu_power`: no root required.
+- **Disk Cleanup's one-tap sweep** — `docs/TOOLS.md` gains a "Clean All" section
+  stating the inclusion rule (`risk == .safe && !destructive`), why Trash, Docker
+  prune and iOS backups are excluded, and why the sweep total is smaller than the
+  headline reclaimable figure. `docs/SAFETY.md` records the `cleanup.sweep` audit
+  entry.
+- **Thermal card** — the one-line level list in `docs/TOOLS.md` became a table of
+  what Nominal/Fair/Serious/Critical each mean, plus live mode (1 Hz, needs admin
+  unlocked, stops on leaving the pane) and the "no die temperature" note.
+- **`CommandRunner.streamAdmin` / `StreamHandle`** — `docs/ARCHITECTURE.md` now
+  explains the constraint that forced it: `osascript … with administrator
+  privileges` buffers stdout until exit, so only the passwordless `sudo -n` lane
+  can stream. It also records why `stop()` closes the read end of the pipe —
+  terminating `sudo` does not reap its child, but SIGPIPE on the child's next
+  write does.
+
+### Fixed — the website advertised the wrong numbers
+
+`web/index.html` claimed **v0.8.0** and "48 tweaks + 6 actions". The catalog has
+**51 tweaks and 9 actions**, and the version pill is now 0.9.3. The page also
+gains cards for the thermal ladder, the Disk Cleanup sweep and the GPU gauge.
+
+### Corrected — `docs/ARCHITECTURE.md`'s layout tree
+
+The `docs/` line listed five of eleven files, and the `web/` line said the page is
+"published at tweakd.app". It is deployed to the Cloudflare Pages project
+`tweakd-app`; `tweakd.app` is not currently one of that project's domains.
+
 ## [0.9.2] — 2026-09-10
 
 ### Fixed — documented daemon commands reported failure when they had worked
