@@ -4,6 +4,23 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.5] — 2026-09-10
+
+### Fixed — the website's AI section was missing a tweak, and the nav a third of the page
+
+A per-section audit of the live page against `TweakCatalog.swift` found **Tune
+Ollama for GPU & Keep-Alive** filed under *Process Priority*. Its `category:` is
+`.ai`, and the AI & Intelligence section listed 3 of its 4 tweaks. Moved.
+
+Every section now matches the catalog exactly: Performance 5, Power 8, Snappiness
+14, Privacy 5, Background Services 4, Security & Network 11 (split across the
+page's `#network` and `#secnet`), AI & Intelligence 4 — **51**. Process Priority
+holds the 8 `PriorityManager` targets, and One-shot Actions the 9 real actions.
+
+The nav bar linked 11 of the page's 14 sections: **Power**, **Background
+Services** and **AI** had no entry, so three whole categories were reachable only
+by scrolling.
+
 ## [0.9.4] — 2026-09-10
 
 A full audit of every Markdown file and of the website's command reference
