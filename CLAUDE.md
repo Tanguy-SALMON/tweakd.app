@@ -12,35 +12,33 @@ scripts/    make_icon.swift, release-website.sh
 
 Build: `app/build.sh --no-launch` (release) — `app/build.sh` also launches.
 
-## The website has TWO live URLs, and they are not the same site
+## The website has TWO front doors, deployed two different ways
 
-| URL | What it is | Current? |
+| URL | Served by | Config |
 |---|---|---|
-| `https://tweakd-app.pages.dev` | The Cloudflare Pages project **`tweakd-app`**, which `scripts/release-website.sh` deploys to | **Yes** — this is what a deploy updates |
-| `https://tweakd.app` | The custom domain. Serves an **older, unrelated deployment** | **No** — stale |
+| `https://tweakd.app` | Worker **`still-pond-7677`** (a Workers *custom domain*) | `wrangler.worker.toml` |
+| `https://tweakd-app.pages.dev` | Pages project **`tweakd-app`** | `wrangler.toml` |
 
-**Deploying does not update `tweakd.app`.** As of 2026-09-10:
+**`tweakd.app` is NOT a Pages custom domain.** `wrangler pages deploy` does
+nothing to it — that is why it served the 2026-07-30 build (v0.4.0) for six weeks
+while pages.dev was current, and why `wrangler pages project list` shows
+`tweakd.app` attached to no project. It was found with:
 
-- `wrangler pages project list` shows only `tweakd-app.pages.dev` under the
-  `tweakd-app` project's domains — `tweakd.app` is **not attached to it**.
-- Cache-busted fetches confirm the two serve different HTML: pages.dev is on
-  v0.9.3, `tweakd.app` still advertises **v0.4.0**, still shows the removed
-  "View source" GitHub button, and 404s on `/privacy.html` and `/terms.html`.
-- `tweakd.app`'s nameservers are Cloudflare (`jake`/`lina.ns.cloudflare.com`) and
-  it is served by Cloudflare, so it is some other Pages project or Worker on the
-  same account.
-- Anchors like `https://tweakd.app/#manual` resolve because the *old* page also
-  has a `#manual` section — that is not evidence the domain is up to date.
+```bash
+curl -H "Authorization: Bearer $TOKEN" \
+  "https://api.cloudflare.com/client/v4/accounts/$ACC/workers/domains?service=still-pond-7677"
+```
 
-**When reporting a deploy, always state which URL you verified.** Checking
-`tweakd.app` will show stale content and is not a valid check of a release.
+`scripts/release-website.sh` now deploys **both**, and fails preflight if either
+config is missing. Never deploy just one.
 
-**To fix (manual, one time):** Cloudflare dashboard → Pages → `tweakd-app` →
-Custom domains → add `tweakd.app`. The installed wrangler (4.130.0) has no
-`pages domain` subcommand, so this cannot be scripted from here.
+**When reporting a deploy, verify `tweakd.app`** — that is the URL people use.
 
 Cloudflare account: `tanguy.salmon@gmail.com`, account ID
-`6c8d37ea88675da2282af94b7438b14c`.
+`6c8d37ea88675da2282af94b7438b14c`. Zone `tweakd.app`:
+`0b7e57a06696b1e502ae9928802bc819`. The stored wrangler OAuth token
+(`~/Library/Preferences/.wrangler/config/default.toml`) can read Workers and
+Pages via the API but **not** DNS.
 
 ## Downloads — R2, not a file in the repo
 

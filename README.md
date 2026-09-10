@@ -82,7 +82,8 @@ Full docs live in [`docs/`](docs/), and the same reference is on the website:
 - **[web/index.html](web/index.html)** — web docs: every tweak with its exact
   Terminal command and **click-to-copy** (works offline). This is the page
   `scripts/release-website.sh` publishes to
-  [tweakd-app.pages.dev](https://tweakd-app.pages.dev).
+  [tweakd.app](https://tweakd.app) (and its
+  [pages.dev mirror](https://tweakd-app.pages.dev)).
 - **[docs/TWEAKS.md](docs/TWEAKS.md)** — every tweak + one-shot action with manual
   apply/revert commands. **You can do everything by hand — no app required.**
 - **[docs/SERVICES.md](docs/SERVICES.md)** — background services: a tutorial plus the
@@ -208,9 +209,11 @@ of thing is always in the same place:
 | Directory | Holds |
 |---|---|
 | `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, `build.sh`, entitlements |
-| `web/` | the website: `index.html`, `privacy.html`, `terms.html`, `icon.png` — deployed by `scripts/release-website.sh` to the Cloudflare Pages project `tweakd-app` |
+| `web/` | the website: `index.html`, `privacy.html`, `terms.html`, `icon.png` — deployed by `scripts/release-website.sh` to both tweakd.app (a Worker) and the `tweakd-app` Pages project |
 | `docs/` | all markdown — the tweak/service references, `backlog/`, `CHANGELOG.md`, `CONTRIBUTING.md` |
 | `functions/` | Cloudflare Pages Functions — `api/download.js` serves the current `.dmg` from R2 |
+| `worker/` | the tweakd.app Worker — same site, same download route |
+| `shared/` | code both front doors import (`r2-download.js`) |
 | `scripts/` | release and icon tooling |
 | `dist/` | packaged `.dmg` (gitignored — rebuilt per `app/VERSION`) |
 
@@ -237,6 +240,8 @@ scripts/package-dmg.sh       .app -> dist/Tweakd-<version>.dmg
 scripts/release-download.sh  package, upload to R2, verify the live endpoint
 scripts/release-website.sh   deploy web/ + functions/ to Cloudflare Pages
 functions/api/download.js    GET /api/download -> current .dmg from R2
+worker/index.js              the tweakd.app Worker (assets + /api/download)
+shared/r2-download.js        the R2 lookup, imported by both
 ```
 
 ### Publishing a release

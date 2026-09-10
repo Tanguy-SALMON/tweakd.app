@@ -17,9 +17,12 @@
 #   ./scripts/release-website.sh              # deploy web/ to production
 #   ./scripts/release-website.sh --dry-run    # show what would happen
 #
-# Prod URL:    https://tweakd-app.pages.dev  (attach tweakd.app as a
-#              custom domain in the Cloudflare dashboard once its DNS
-#              zone is set up — Pages > tweakd-app > Custom domains)
+# Two targets, because the site has two front doors:
+#   tweakd.app             -> Worker `still-pond-7677` (wrangler.worker.toml)
+#   tweakd-app.pages.dev   -> Pages project `tweakd-app` (wrangler.toml)
+# The apex is a Workers custom domain, NOT a Pages one, so deploying Pages
+# alone leaves tweakd.app untouched. Both are deployed here so they cannot
+# drift apart again.
 # Project:     tweakd-app (Cloudflare Pages, created via
 #              `wrangler pages project create tweakd-app`)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -92,6 +95,11 @@ if [ ! -f "$ROOT/wrangler.toml" ]; then
 fi
 success "wrangler.toml present (R2 binding for /api/download)"
 
+if [ ! -f "$ROOT/wrangler.worker.toml" ]; then
+  fail "wrangler.worker.toml not found — tweakd.app is served by a Worker, not Pages."
+fi
+success "wrangler.worker.toml present (the tweakd.app Worker)"
+
 if [ ! -f "$ROOT/functions/api/download.js" ]; then
   fail "functions/api/download.js not found — the Download button would 404."
 fi
@@ -103,7 +111,7 @@ fi
 success "Cloudflare auth OK"
 
 step "Deploy to production"
-info "→ https://${PROJECT_NAME}.pages.dev (+ ${DOMAIN} once the custom domain is attached)"
+info "→ https://${PROJECT_NAME}.pages.dev"
 # Deploy from the repo root, with no directory argument: wrangler.toml supplies
 # `pages_build_output_dir = "web"` AND the R2 binding the download Function
 # needs. Passing the directory here instead would deploy the same files with no
@@ -111,10 +119,19 @@ info "→ https://${PROJECT_NAME}.pages.dev (+ ${DOMAIN} once the custom domain 
 cd "$ROOT"
 run npx wrangler pages deploy --project-name="$PROJECT_NAME" --branch=main --commit-dirty=true
 
-success "Deployed"
+success "Deployed to Pages"
+
+step "Deploy to ${DOMAIN}"
+# tweakd.app is a Workers custom domain on the service `still-pond-7677`, NOT a
+# Pages custom domain — the deploy above does nothing to it. Skipping this step
+# is how the apex sat on v0.4.0 for six weeks while pages.dev was current.
+info "→ https://${DOMAIN} (Worker: still-pond-7677)"
+run npx wrangler deploy --config wrangler.worker.toml
+
+success "Deployed to ${DOMAIN}"
 
 echo ""
 header "Website release complete"
-echo -e "    ${GREEN}Production:${RESET} https://${PROJECT_NAME}.pages.dev"
-echo -e "    ${GREEN}Custom domain:${RESET} https://${DOMAIN} (attach in Cloudflare dashboard: Pages > ${PROJECT_NAME} > Custom domains)"
+echo -e "    ${GREEN}Production:${RESET} https://${DOMAIN}"
+echo -e "    ${GREEN}Mirror:${RESET}     https://${PROJECT_NAME}.pages.dev"
 echo ""

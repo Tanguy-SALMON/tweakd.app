@@ -33,11 +33,16 @@ app/Sources/Tweakd/
 app/build.sh  build, bundle, ad-hoc sign, launch
 scripts/      make_icon.swift, release-website.sh, package-dmg.sh,
               release-download.sh
-web/          index.html, privacy.html, terms.html — deployed to the Cloudflare
-              Pages project `tweakd-app` by scripts/release-website.sh
+web/          index.html, privacy.html, terms.html — deployed by
+              scripts/release-website.sh to BOTH tweakd.app (a Worker) and the
+              `tweakd-app` Pages project. The apex is a Workers custom domain,
+              not a Pages one, so deploying Pages alone leaves it stale.
 functions/    api/download.js — Pages Function; streams the current .dmg out of
               the R2 bucket `tweakd-downloads`
-wrangler.toml the Pages config, and the R2 binding that Function needs
+worker/       index.js — the tweakd.app Worker: assets + the same /api/download
+shared/       r2-download.js — the R2 lookup both front doors import
+wrangler.toml Pages config + the R2 binding
+wrangler.worker.toml   the tweakd.app Worker (service `still-pond-7677`)
 dist/         packaged .dmg (gitignored — a build artifact of one app/VERSION)
 docs/         TWEAKS.md, TOOLS.md, SERVICES.md, ARCHITECTURE.md, SAFETY.md, FAQ.md,
               CHANGELOG.md, CONTRIBUTING.md, SYSTEM-CHANGES.md, README.md, backlog/

@@ -1,0 +1,35 @@
+# wrangler.worker.toml
+# ============================================
+# Cloudflare Worker — the site actually served at tweakd.app
+# ============================================
+# THIS is what answers on tweakd.app. The apex is a Workers *custom domain* on
+# the service `still-pond-7677` — it is NOT a Cloudflare Pages custom domain, so
+# `wrangler pages deploy` changes nothing there. That is why tweakd.app sat on
+# v0.4.0 while tweakd-app.pages.dev was current.
+#
+# The opaque name is Cloudflare's auto-generated one from the original 2026-07-30
+# deploy. Renaming means creating a new service and re-pointing the custom
+# domain, so it stays as-is; the name is load-bearing and must match the live
+# service or the deploy lands somewhere nobody is looking.
+#
+# Deploy:  scripts/release-website.sh   (deploys this AND the Pages project)
+#
+# Serves:  https://tweakd.app
+# ============================================
+name = "still-pond-7677"
+main = "worker/index.js"
+compatibility_date = "2026-09-10"
+
+# Static files. The Worker script only intercepts /api/download; everything else
+# is handed to this binding untouched.
+[assets]
+directory = "web"
+binding = "ASSETS"
+not_found_handling = "404-page"
+
+# The .dmg store, shared with the Pages deployment. Objects are named
+# `Tweakd-<version>.dmg`; the handler lists the bucket and serves the highest
+# version, so publishing is a single upload with no pointer to keep in sync.
+[[r2_buckets]]
+binding = "DOWNLOADS"
+bucket_name = "tweakd-downloads"
