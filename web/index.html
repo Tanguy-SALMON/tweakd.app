@@ -276,11 +276,14 @@
   <a href="#about">About</a>
   <a href="#manual">Do it by hand</a>
   <a href="#performance" class="hide-sm">Performance</a>
+  <a href="#power" class="hide-sm">Power</a>
   <a href="#snappiness" class="hide-sm">Snappiness</a>
   <a href="#privacy" class="hide-sm">Privacy</a>
+  <a href="#services" class="hide-sm">Background Services</a>
   <a href="#network" class="hide-sm">Network</a>
   <a href="#secnet" class="hide-sm">Security &amp; Network</a>
   <a href="#priority" class="hide-sm">Process Priority</a>
+  <a href="#ai" class="hide-sm">AI</a>
   <a href="#actions">Actions</a>
   <a href="#safety">Safety</a>
   <a href="#get" class="dl">Download</a>
@@ -292,7 +295,7 @@
   <p class="tagline">Tune macOS. Or do it entirely by hand.</p>
   <p class="sub">A premium menu-bar app that toggles reversible system optimizations — live CPU, GPU &amp; RAM, guided setup, one-tap presets. Prefer the Terminal? This page lists <b>every tweak and the exact command</b> to apply and revert it yourself. No app required.</p>
   <div class="cta">
-    <a class="btn primary" href="#get"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download for macOS <span class="sz">v0.9.4</span></a>
+    <a class="btn primary" href="#get"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download for macOS <span class="sz">v0.9.5</span></a>
     <a class="btn ghost" href="#manual"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Do it in Terminal</a>
   </div>
   <span class="pill">macOS 15+ · Menu bar · Reversible · 51 tweaks + 9 actions</span>
@@ -873,12 +876,6 @@ done</code><button>Copy</button></div>
     <p><b>Emergency reset:</b> run <span class="inline-code">sudo renice -n 0</span> on every process you've raised or lowered, then remove any <span class="inline-code">~/Library/LaunchAgents/app.tweakd.priority.*.plist</span> LaunchAgents you created.</p>
   </div>
 
-  <div class="tweak">
-    <div class="th"><h3>Tune Ollama for GPU &amp; Keep-Alive</h3><span class="badge user">no sudo</span><span class="badge note">safe</span><span class="badge adv">beta</span><span class="gain"><svg viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>More throughput<svg class="up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span></div>
-    <p class="desc"><b>Beta &mdash; unverified.</b> Sets <span class="inline-code">OLLAMA_NUM_GPU</span> and <span class="inline-code">OLLAMA_KEEP_ALIVE</span> so local LLM workloads offload more layers to the GPU and keep models resident for 30 minutes instead of unloading between prompts. Restart Ollama after applying.</p>
-    <div class="cmd apply"><span class="lbl">Apply</span><code>launchctl setenv OLLAMA_NUM_GPU 999 &amp;&amp; launchctl setenv OLLAMA_KEEP_ALIVE 30m</code><button>Copy</button></div>
-    <div class="cmd"><span class="lbl">Revert</span><code>launchctl unsetenv OLLAMA_NUM_GPU &amp;&amp; launchctl unsetenv OLLAMA_KEEP_ALIVE</code><button>Copy</button></div>
-  </div>
 </div></section>
 
 <!-- ===================== AI ===================== -->
@@ -905,6 +902,12 @@ done</code><button>Copy</button></div>
     <p class="desc">Stops sending lookup queries for Siri-powered suggestions.</p>
     <div class="cmd apply"><span class="lbl">Apply</span><code>defaults write com.apple.lookup.shared LookupSuggestionsDisabled -bool true</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>defaults delete com.apple.lookup.shared LookupSuggestionsDisabled</code><button>Copy</button></div>
+  </div>
+  <div class="tweak">
+    <div class="th"><h3>Tune Ollama for GPU &amp; Keep-Alive</h3><span class="badge user">no sudo</span><span class="badge note">safe</span><span class="badge adv">beta</span><span class="gain"><svg viewBox="0 0 24 24"><path d="m21 16-4 4-4-4"/><path d="M17 20V4"/><path d="m3 8 4-4 4 4"/><path d="M7 4v16"/></svg>More throughput<svg class="up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span></div>
+    <p class="desc"><b>Beta &mdash; unverified.</b> Sets <span class="inline-code">OLLAMA_NUM_GPU</span> and <span class="inline-code">OLLAMA_KEEP_ALIVE</span> so local LLM workloads offload more layers to the GPU and keep models resident for 30 minutes instead of unloading between prompts. Restart Ollama after applying.</p>
+    <div class="cmd apply"><span class="lbl">Apply</span><code>launchctl setenv OLLAMA_NUM_GPU 999 &amp;&amp; launchctl setenv OLLAMA_KEEP_ALIVE 30m</code><button>Copy</button></div>
+    <div class="cmd"><span class="lbl">Revert</span><code>launchctl unsetenv OLLAMA_NUM_GPU &amp;&amp; launchctl unsetenv OLLAMA_KEEP_ALIVE</code><button>Copy</button></div>
   </div>
 </div></section>
 
@@ -1017,7 +1020,7 @@ fi</code><button>Copy</button></div>
     <h2>Get Tweakd.</h2>
     <p>A lightweight menu-bar app for macOS 15+. Everything on this page, one click away — or keep it all manual.</p>
     <div class="cta">
-      <a class="btn on-grad" href="#"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download for macOS <span class="sz">v0.9.4</span></a>
+      <a class="btn on-grad" href="#"><svg class="apple" viewBox="0 0 24 24"><path d="M17.05 20.28c-.98.95-2.05.8-3.08.35-1.09-.46-2.09-.48-3.24 0-1.44.62-2.2.44-3.06-.35C2.79 15.25 3.51 7.59 9.05 7.31c1.35.07 2.29.74 3.08.8 1.18-.24 2.31-.93 3.57-.84 1.51.12 2.65.72 3.4 1.8-3.12 1.87-2.38 5.98.48 7.13-.57 1.5-1.31 2.99-2.53 4.09zM12.03 7.25c-.15-2.23 1.66-4.07 3.74-4.25.29 2.58-2.34 4.5-3.74 4.25z"/></svg>Download for macOS <span class="sz">v0.9.5</span></a>
       <a class="btn on-grad-ghost" href="#manual"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/></svg>Do it in Terminal</a>
     </div>
     <p class="banner-note">Requires macOS 15+ · Apple silicon &amp; Intel.</p>
