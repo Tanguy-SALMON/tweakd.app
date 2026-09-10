@@ -4,6 +4,31 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.2] — 2026-09-10
+
+### Fixed — tweakd.app was never being deployed
+
+The apex is a Workers **custom domain** on the service `still-pond-7677`, not a
+Cloudflare Pages custom domain. `wrangler pages deploy` therefore never touched
+it, and it had been serving the 2026-07-30 build — v0.4.0, with the dead
+`href="#"` download button and the removed "View source" link — the entire time
+pages.dev was current.
+
+- `worker/index.js` serves tweakd.app: `/api/download` from R2, everything else
+  from the assets binding.
+- `wrangler.worker.toml` targets that service.
+- `shared/r2-download.js` holds the R2 lookup once, so the Pages Function and
+  the Worker cannot drift apart. `functions/api/download.js` is now two
+  re-exports.
+- `release-website.sh` deploys **both** front doors and fails preflight if
+  either config is missing. Deploying one and not the other is what caused this.
+
+### Changed — every Download link downloads
+
+The header button and the nav item both pointed at `#get`, scrolling to the
+bottom of the page instead of fetching anything. All three now point at
+`/api/download`.
+
 ## [0.10.1] — 2026-09-10
 
 ### Documented — the download machinery 0.10.0 added
