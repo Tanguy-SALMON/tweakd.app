@@ -1,0 +1,146 @@
+# Consistency and build checks. No secrets, no deploys, no signing.
+#
+# Releasing stays on the maintainer's Mac (scripts/release-download.sh), which
+# is the only place the Developer ID private key exists. Putting that key in CI
+# would let anyone who compromises this repo sign malware as Tanguy SALMON —
+# a much larger risk than the manual release step it would save.
+#
+# Split by cost: GitHub bills macOS runners at 10x Linux, and every check that
+# is really a text comparison runs fine on Linux. Only `swift build` needs a
+# Mac.
+name: checks
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  # --------------------------------------------------------------------------
+  # Everything that can rot silently between the app, the docs and the website.
+  # Each of these has actually broken this project at least once.
+  # --------------------------------------------------------------------------
+  consistency:
+    name: consistency (linux)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Shell scripts parse
+        run: |
+          fail=0
+          for f in $(find . -name '*.sh' -not -path './app/.build/*'); do
+            if bash -n "$f"; then
+              echo "ok   $f"
+            else
+              echo "FAIL $f"; fail=1
+            fi
+          done
+          exit $fail
+
+      # The site advertised v0.4.0 for six weeks while the app was far ahead,
+      # because nothing tied the two together. This ties them together.
+      - name: Website version matches app/VERSION
+        run: |
+          version="$(tr -d '[:space:]' < app/VERSION)"
+          echo "app/VERSION = ${version}"
+          pills="$(grep -o 'v[0-9]\+\.[0-9]\+\.[0-9]\+' web/index.html | sort -u)"
+          echo "site pills  = ${pills}"
+          if [ "$pills" != "v${version}" ]; then
+            echo "::error::Website advertises '${pills}' but app/VERSION is '${version}'."
+            exit 1
+          fi
+
+      # CLAUDE.md: "it was wrong once already". The hero pill quotes the catalog
+      # size, and nothing stopped it drifting when tweaks were added.
+      - name: Website catalog counts match TweakCatalog.swift
+        run: |
+          cat="app/Sources/Tweakd/Models/TweakCatalog.swift"
+          tweaks="$(grep -c '^[[:space:]]\+Tweak(' "$cat")"
+          actions="$(grep -c '^[[:space:]]\+SystemAction(' "$cat")"
+          echo "catalog: ${tweaks} tweaks, ${actions} actions"
+          fail=0
+          grep -q "${tweaks} tweaks + ${actions} actions" web/index.html \
+            || { echo "::error::web/index.html does not say '${tweaks} tweaks + ${actions} actions'."; fail=1; }
+          grep -q "${tweaks} reversible tweaks" web/index.html \
+            || { echo "::error::web/index.html does not say '${tweaks} reversible tweaks'."; fail=1; }
+          exit $fail
+
+      # Site convention: no public repo, so no links to one. The "View source"
+      # button was removed once and would be easy to reintroduce by habit.
+      - name: No GitHub links on the public site
+        run: |
+          if grep -rn 'github\.com' web/; then
+            echo "::error::The site must not link to GitHub — there is no public repo."
+            exit 1
+          fi
+          echo "ok — no github.com references in web/"
+
+      # Every Download link regressed to '#get' once, which scrolled the page
+      # instead of downloading anything.
+      - name: Download links point at /api/download
+        run: |
+          count="$(grep -c 'href="/api/download"' web/index.html)"
+          echo "found ${count} download links"
+          [ "$count" -ge 2 ] || { echo "::error::Expected at least 2 /api/download links, found ${count}."; exit 1; }
+          if grep -o 'class="btn[^"]*"[^>]*href="#get"' web/index.html; then
+            echo "::error::A Download button points at #get instead of /api/download."
+            exit 1
+          fi
+
+      - name: Release scripts deploy both front doors
+        run: |
+          # tweakd.app is a Worker, tweakd-app.pages.dev is Pages. Deploying only
+          # one leaves the URL people actually visit frozen on an old build.
+          fail=0
+          grep -q 'wrangler pages deploy' scripts/release-website.sh \
+            || { echo "::error::release-website.sh no longer deploys Pages."; fail=1; }
+          grep -q 'wrangler.worker.toml' scripts/release-website.sh \
+            || { echo "::error::release-website.sh no longer deploys the Worker (tweakd.app)."; fail=1; }
+          # An un-notarised .dmg uploads exactly as cleanly as a good one.
+          grep -q 'stapler validate' scripts/release-download.sh \
+            || { echo "::error::release-download.sh no longer gates the upload on notarisation."; fail=1; }
+          exit $fail
+
+  # --------------------------------------------------------------------------
+  # The only job that needs a Mac, so it is the only one billed at 10x.
+  # --------------------------------------------------------------------------
+  build:
+    name: build (macos)
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Swift version
+        run: swift --version
+
+      - name: Build release
+        run: swift build -c release --package-path app
+
+      # There is no Developer ID key on the runner, so build.sh takes its ad-hoc
+      # path. That is deliberate: this proves the bundle assembles, not that it
+      # is publishable. Signing and notarisation happen on the maintainer's Mac.
+      - name: Assemble the .app bundle
+        run: TWEAKD_SIGN_IDENTITY=- app/build.sh --no-launch
+
+      - name: Info.plist is valid and matches app/VERSION
+        run: |
+          plist="app/build/tweakd.app/Contents/Info.plist"
+          plutil -lint "$plist"
+          bundle="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' "$plist")"
+          version="$(tr -d '[:space:]' < app/VERSION)"
+          echo "bundle=${bundle} VERSION=${version}"
+          [ "$bundle" = "$version" ] || { echo "::error::Bundle says ${bundle}, app/VERSION says ${version}."; exit 1; }
+
+      - name: Entitlements are valid and minimal
+        run: |
+          plutil -lint app/tweakd.entitlements
+          # Hardened Runtime exceptions weaken it. Adding one should be a
+          # deliberate decision, not something that arrives with a copied file.
+          allowed="com.apple.security.automation.apple-events"
+          keys="$(plutil -convert json -o - app/tweakd.entitlements | tr ',' '\n' | grep -o '"com\.apple\.security\.[^"]*"' | tr -d '"' | sort -u)"
+          echo "entitlements: ${keys:-<none>}"
+          for k in $keys; do
+            [ "$k" = "$allowed" ] || { echo "::error::Unexpected entitlement '${k}'. Justify it in app/tweakd.entitlements first."; exit 1; }
+          done
