@@ -91,10 +91,11 @@ One-time credential setup. The Apple ID that owns team `BXH6425K7L` is
 `@hthai.co.th` address this Mac uses for iCloud. The password is an
 app-specific password from **appleid.apple.com** (not developer.apple.com, and
 no App ID registration is involved — App IDs are an App Store concept).
-Stored in the keychain, never in the repo:
+Stored in the keychain, never in the repo — there is no file to edit, and
+the profile name is **case-sensitive** (`Tweakd`, not `tweakd`):
 
 ```bash
-xcrun notarytool store-credentials "tweakd" \
+xcrun notarytool store-credentials "Tweakd" \
   --apple-id "tanguy.salmon@gmail.com" --team-id "BXH6425K7L" \
   --password "<app-specific password>"
 ```

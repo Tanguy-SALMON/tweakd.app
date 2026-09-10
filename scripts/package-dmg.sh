@@ -30,7 +30,7 @@
 #
 # One-time setup (the credentials live in the keychain, not in this repo):
 #
-#   xcrun notarytool store-credentials "tweakd" \
+#   xcrun notarytool store-credentials "Tweakd" \
 #     --apple-id "<your Apple ID>" \
 #     --team-id "BXH6425K7L" \
 #     --password "<app-specific password from appleid.apple.com>"
@@ -45,9 +45,11 @@ cd "$ROOT"
 
 SKIP_BUILD=false
 NOTARIZE=true
-# The keychain profile created by `notarytool store-credentials`. Overridable
-# so a second machine or a CI box can use its own.
-NOTARY_PROFILE="${TWEAKD_NOTARY_PROFILE:-tweakd}"
+# The keychain profile created by `notarytool store-credentials`. The name is
+# CASE-SENSITIVE: storing "Tweakd" and asking for "tweakd" is a second, empty
+# profile and a 401 that reads exactly like a wrong password. Overridable so a
+# second machine or a CI box can use its own.
+NOTARY_PROFILE="${TWEAKD_NOTARY_PROFILE:-Tweakd}"
 
 for arg in "$@"; do
   case "$arg" in
