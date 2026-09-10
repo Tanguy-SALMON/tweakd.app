@@ -210,7 +210,9 @@ of thing is always in the same place:
 | `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, `build.sh`, entitlements |
 | `web/` | the website: `index.html`, `privacy.html`, `terms.html`, `icon.png` — deployed by `scripts/release-website.sh` to the Cloudflare Pages project `tweakd-app` |
 | `docs/` | all markdown — the tweak/service references, `backlog/`, `CHANGELOG.md`, `CONTRIBUTING.md` |
+| `functions/` | Cloudflare Pages Functions — `api/download.js` serves the current `.dmg` from R2 |
 | `scripts/` | release and icon tooling |
+| `dist/` | packaged `.dmg` (gitignored — rebuilt per `app/VERSION`) |
 
 Inside the app, all paths from the repo root:
 
@@ -229,7 +231,23 @@ app/Sources/Tweakd/
               MainWindow, Components (Gauges — HeroHeader, MetricMeter, StatTile,
               Sparkline, cpuHistoryMarks; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
-app/build.sh              build, bundle, ad-hoc sign, launch
-scripts/make_icon.swift   regenerate AppIcon.png
-scripts/release-website.sh  deploy web/ to Cloudflare Pages
+app/build.sh                 build, bundle, ad-hoc sign, launch
+scripts/make_icon.swift      regenerate AppIcon.png
+scripts/package-dmg.sh       .app -> dist/Tweakd-<version>.dmg
+scripts/release-download.sh  package, upload to R2, verify the live endpoint
+scripts/release-website.sh   deploy web/ + functions/ to Cloudflare Pages
+functions/api/download.js    GET /api/download -> current .dmg from R2
 ```
+
+### Publishing a release
+
+```bash
+scripts/release-download.sh   # build, package, upload to R2, then verify
+scripts/release-website.sh    # deploy the site and the Function
+```
+
+The Download button points at `/api/download`. Objects in the `tweakd-downloads`
+bucket are named `Tweakd-<version>.dmg`, and the Function serves the highest
+version it finds — so publishing is a single upload, with no pointer to keep in
+sync. `release-download.sh` finishes by re-reading `X-Tweakd-Version` from the
+live endpoint, because an upload can succeed while the Function is broken.

@@ -31,9 +31,14 @@ app/Sources/Tweakd/
               StatTile, Sparkline; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
 app/build.sh  build, bundle, ad-hoc sign, launch
-scripts/      make_icon.swift, release-website.sh
+scripts/      make_icon.swift, release-website.sh, package-dmg.sh,
+              release-download.sh
 web/          index.html, privacy.html, terms.html — deployed to the Cloudflare
               Pages project `tweakd-app` by scripts/release-website.sh
+functions/    api/download.js — Pages Function; streams the current .dmg out of
+              the R2 bucket `tweakd-downloads`
+wrangler.toml the Pages config, and the R2 binding that Function needs
+dist/         packaged .dmg (gitignored — a build artifact of one app/VERSION)
 docs/         TWEAKS.md, TOOLS.md, SERVICES.md, ARCHITECTURE.md, SAFETY.md, FAQ.md,
               CHANGELOG.md, CONTRIBUTING.md, SYSTEM-CHANGES.md, README.md, backlog/
 ```
