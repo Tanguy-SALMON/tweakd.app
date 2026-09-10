@@ -36,6 +36,30 @@ or boot-args and **silently do nothing while SIP is on**:
 In the app these show as **Unavailable** (greyed out) when SIP is enabled, so you
 can't half-apply them.
 
+### `launchctl bootout` and the background-service tweaks
+
+The four background-service tweaks — **Media Analysis** (`mediaanalysisd`), **Photo
+Analysis** (`photoanalysisd`), **Siri Assistant** (`assistantd`) and **Proactive
+Intelligence** (`duetexpertd`) — are *not* marked 🧱, and their `launchctl disable`
+does persist. But the `launchctl bootout` half of each command fails under SIP:
+
+```
+Boot-out failed: 150: Operation not permitted while System Integrity Protection is engaged
+```
+
+Two consequences worth knowing:
+
+- **`disable` stops launchd from starting the daemon; it does not stop macOS from
+  spinning it up on demand** over XPC. Seeing the process alive after applying the
+  tweak is expected, not a failure. To stop it *now*, quit it: `killall -TERM
+  mediaanalysisd`.
+- **A macOS update can drop the override.** After 26.6.2 two of the four
+  (`assistantd`, `duetexpertd`) were no longer listed by
+  `launchctl print-disabled gui/$(id -u)`. Re-check after every major update.
+
+That is also why the app chains these with `;` and a trailing `true` rather than
+`&&` — otherwise a tweak that worked would report as failed.
+
 ### Disabling SIP (only if you understand the trade-off)
 
 1. Reboot into **Recovery** (Apple Silicon: hold the power button → *Options*).

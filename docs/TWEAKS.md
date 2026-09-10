@@ -424,7 +424,7 @@ defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool true
 Stops the `analyticsd` telemetry daemon. Only possible with SIP disabled.
 ```bash
 # Apply
-sudo launchctl disable system/com.apple.analyticsd && sudo launchctl bootout system/com.apple.analyticsd
+sudo launchctl disable system/com.apple.analyticsd; sudo launchctl bootout system/com.apple.analyticsd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 sudo launchctl enable system/com.apple.analyticsd
 ```
@@ -495,7 +495,7 @@ done
 Stops background scanning of photos/videos for objects and scenes (`mediaanalysisd`).
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.mediaanalysisd && launchctl bootout gui/$(id -u)/com.apple.mediaanalysisd
+launchctl disable gui/$(id -u)/com.apple.mediaanalysisd; launchctl bootout gui/$(id -u)/com.apple.mediaanalysisd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.mediaanalysisd
 ```
@@ -504,7 +504,7 @@ launchctl enable gui/$(id -u)/com.apple.mediaanalysisd
 Stops face recognition and Memories generation in Photos (`photoanalysisd`).
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.photoanalysisd && launchctl bootout gui/$(id -u)/com.apple.photoanalysisd
+launchctl disable gui/$(id -u)/com.apple.photoanalysisd; launchctl bootout gui/$(id -u)/com.apple.photoanalysisd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.photoanalysisd
 ```
@@ -812,7 +812,7 @@ launchctl unload ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist; rm ~/
 Boots out the Siri assistant agent (`assistantd`) and hides its menu bar item.
 ```bash
 # Apply
-defaults write com.apple.Siri StatusMenuVisible -bool false && launchctl disable gui/$(id -u)/com.apple.assistantd && launchctl bootout gui/$(id -u)/com.apple.assistantd
+defaults write com.apple.Siri StatusMenuVisible -bool false && launchctl disable gui/$(id -u)/com.apple.assistantd; launchctl bootout gui/$(id -u)/com.apple.assistantd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/com.apple.assistantd
 ```
@@ -821,7 +821,7 @@ defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/
 Stops `duetexpertd` — the on-device daemon behind Siri Suggestions and predicted actions.
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.duetexpertd && launchctl bootout gui/$(id -u)/com.apple.duetexpertd
+launchctl disable gui/$(id -u)/com.apple.duetexpertd; launchctl bootout gui/$(id -u)/com.apple.duetexpertd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.duetexpertd
 ```
