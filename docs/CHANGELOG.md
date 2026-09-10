@@ -4,6 +4,33 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.0] — 2026-09-10
+
+### Added — the Download button actually downloads
+
+It had been `href="#"` since the site went up, under a note reading "Example
+buttons — point these at your release `.dmg`". There was no `.dmg` to point at,
+because the build stopped at `app/build/tweakd.app`.
+
+Three pieces, modelled on how the MyD1/SQLAgent sites do it:
+
+- **`scripts/package-dmg.sh`** wraps the bundle in `dist/Tweakd-<version>.dmg`
+  with an `/Applications` symlink, and refuses to package if the built bundle's
+  `CFBundleShortVersionString` disagrees with `app/VERSION`.
+- **`functions/api/download.js`**, a Pages Function bound to the R2 bucket
+  `tweakd-downloads`, lists the bucket and streams the highest-versioned object.
+  Deriving "current" from the bucket means there is no pointer to go stale.
+- **`scripts/release-download.sh`** packages, uploads, then HEADs the live
+  endpoint and compares `X-Tweakd-Version` against `app/VERSION` — an upload can
+  succeed while the Function is broken.
+
+`wrangler.toml` now exists at the repo root for the R2 binding, and
+`release-website.sh` deploys with no directory argument so that config applies;
+deploying `web/` explicitly would ship the same files with no bindings and every
+download would 500.
+
+The `.dmg` is not committed — `dist/` is gitignored.
+
 ## [0.9.5] — 2026-09-10
 
 ### Fixed — the website's AI section was missing a tweak, and the nav a third of the page

@@ -42,12 +42,42 @@ Custom domains → add `tweakd.app`. The installed wrangler (4.130.0) has no
 Cloudflare account: `tanguy.salmon@gmail.com`, account ID
 `6c8d37ea88675da2282af94b7438b14c`.
 
+## Downloads — R2, not a file in the repo
+
+The Download button points at **`/api/download`**, a Pages Function
+(`functions/api/download.js`) bound to the R2 bucket **`tweakd-downloads`**.
+
+- Objects are named **`Tweakd-<version>.dmg`**. The Function lists the bucket
+  and serves the **highest version** it finds, so publishing is a single upload
+  with no pointer, manifest or database row to keep in sync.
+- The `.dmg` is **never committed** — `dist/` is gitignored. It is a build
+  artifact of one `app/VERSION`.
+- `wrangler.toml` at the repo root exists **for the R2 binding**. Without it the
+  Function has no `env.DOWNLOADS` and every download 500s. That is also why
+  `release-website.sh` deploys with **no directory argument** — the config
+  supplies `pages_build_output_dir = "web"`. Passing `web` explicitly deploys
+  the same files with no bindings.
+- Pages routes each HTTP method to its own export. The Function exports both
+  `onRequestGet` and `onRequestHead`; without the HEAD export, HEAD falls
+  through to the static handler and answers with the homepage.
+
+Release, in order:
+
+```bash
+scripts/release-download.sh     # build → dist/Tweakd-<v>.dmg → R2, then verifies
+scripts/release-website.sh      # site + Function
+```
+
+`release-download.sh` finishes by HEAD-ing the live endpoint and comparing
+`X-Tweakd-Version` to `app/VERSION` — an upload can succeed while the Function
+is broken, so trusting the upload alone is not a check.
+
 ## Site conventions
 
 - No public GitHub repo. The site must not link to one — the "View source"
   button and the footer/legal-page GitHub links were removed on 2026-09-10, and
   privacy/terms name email as the only contact route.
-- The download button's `href` is still `"#"`: nothing packages a `.dmg` yet.
+- The download button points at `/api/download` (see above), not a static file.
 - The hero pill quotes the catalog size. Verify it against
   `app/Sources/Tweakd/Models/TweakCatalog.swift` before changing it
   (`static let all` and `static let actions`) — it was wrong once already.

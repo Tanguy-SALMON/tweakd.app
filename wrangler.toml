@@ -1,0 +1,28 @@
+# wrangler.toml
+# ============================================
+# Cloudflare Pages configuration — the Tweakd website
+# ============================================
+# The site itself is plain static HTML in web/; the only dynamic piece is
+# functions/api/download.js, which streams the current .dmg out of R2.
+#
+# This file exists for the R2 binding. Without it the Function has no
+# `env.DOWNLOADS` and every download 500s. Bindings can also be set in the
+# dashboard, but then they live nowhere in the repo and the next person has to
+# guess — so they are declared here instead.
+#
+# Deploy:   scripts/release-website.sh          (site + Function)
+# Publish:  scripts/release-download.sh         (build, package, upload the .dmg)
+#
+# Prod URL: https://tweakd-app.pages.dev
+#           tweakd.app is NOT attached to this project — see CLAUDE.md.
+# ============================================
+name = "tweakd-app"
+compatibility_date = "2026-09-10"
+pages_build_output_dir = "web"
+
+# The .dmg store. Objects are named `Tweakd-<version>.dmg`; the Function lists
+# the bucket and serves the highest version, so publishing is a single upload
+# with no pointer to keep in sync.
+[[r2_buckets]]
+binding = "DOWNLOADS"
+bucket_name = "tweakd-downloads"

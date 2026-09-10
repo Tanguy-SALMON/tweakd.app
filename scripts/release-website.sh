@@ -87,6 +87,16 @@ if [ ! -d "$WEB_DIR" ]; then
 fi
 success "Website directory OK ($WEB_DIR)"
 
+if [ ! -f "$ROOT/wrangler.toml" ]; then
+  fail "wrangler.toml not found — the R2 binding for /api/download lives there."
+fi
+success "wrangler.toml present (R2 binding for /api/download)"
+
+if [ ! -f "$ROOT/functions/api/download.js" ]; then
+  fail "functions/api/download.js not found — the Download button would 404."
+fi
+success "Download Function present"
+
 if ! npx wrangler whoami >/dev/null 2>&1; then
   fail "Not logged in to Cloudflare. Run: npx wrangler login"
 fi
@@ -94,7 +104,12 @@ success "Cloudflare auth OK"
 
 step "Deploy to production"
 info "→ https://${PROJECT_NAME}.pages.dev (+ ${DOMAIN} once the custom domain is attached)"
-run npx wrangler pages deploy "$WEB_DIR" --project-name="$PROJECT_NAME" --branch=main --commit-dirty=true
+# Deploy from the repo root, with no directory argument: wrangler.toml supplies
+# `pages_build_output_dir = "web"` AND the R2 binding the download Function
+# needs. Passing the directory here instead would deploy the same files with no
+# bindings, and /api/download would 500 with `env.DOWNLOADS` undefined.
+cd "$ROOT"
+run npx wrangler pages deploy --project-name="$PROJECT_NAME" --branch=main --commit-dirty=true
 
 success "Deployed"
 

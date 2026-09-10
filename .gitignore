@@ -8,6 +8,10 @@
 # Icon intermediate (regenerated from AppIcon.png)
 /app/Resources/AppIcon.iconset/
 
+# Packaged disk images — rebuilt by scripts/package-dmg.sh and published to R2,
+# never committed. The .dmg is a build artifact of a specific app/VERSION.
+/dist/
+
 # Wrangler local state (Cloudflare Pages deploys)
 /.wrangler/
 
