@@ -4,6 +4,25 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.4] — 2026-09-10
+
+### Fixed — the site promised Intel support the build has never produced
+
+The download banner read "Requires macOS 15+ · Apple silicon & Intel." It is not
+true and appears never to have been: `app/build.sh` runs a plain `swift build`,
+which emits a binary for the host architecture only. `lipo -info` on the shipped
+bundle reports a bare `arm64` — not a universal binary — so on an Intel Mac the
+download would simply refuse to launch.
+
+The banner now says **Apple silicon (M1 or later)**, and `README.md` records why,
+along with the `swift build --arch arm64 --arch x86_64` that would change it.
+
+### Fixed — the bundle advertised macOS 14
+
+`build.sh` wrote `LSMinimumSystemVersion` as `14.0` while `Package.swift`
+requires `.macOS(.v15)` and every doc says macOS 15+. A macOS 14 machine would
+have been allowed to launch an app built against APIs it doesn't have. Now 15.0.
+
 ## [0.10.3] — 2026-09-10
 
 ### Fixed — a bad URL gave you a blank page on tweakd.app
