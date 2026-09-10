@@ -4,6 +4,30 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.2] — 2026-09-10
+
+### Fixed — documented daemon commands reported failure when they had worked
+
+`docs/TWEAKS.md` chained the background-service disables with `&&`:
+
+```bash
+launchctl disable gui/$(id -u)/com.apple.mediaanalysisd && launchctl bootout ...
+```
+
+Under SIP, `bootout` returns `150: Operation not permitted`, so the whole line
+exits non-zero even though the `disable` — the half that actually persists — had
+succeeded. The commands now use `;` and a trailing `true`, matching what
+`TweakCatalog.swift` has always done.
+
+### Documented — what `disable` does and does not do
+
+`docs/SAFETY.md` gains a section on the four background-service tweaks
+(`mediaanalysisd`, `photoanalysisd`, `assistantd`, `duetexpertd`): `disable`
+stops launchd from *starting* a daemon but macOS can still spin it up on demand,
+so the process being alive afterwards is expected. It also records that a macOS
+update can silently drop the override — after 26.6.2, two of the four were no
+longer in `launchctl print-disabled`.
+
 ## [0.9.1] — 2026-08-13
 
 ### Fixed — the thermal scale used colours from outside the palette
