@@ -7,7 +7,8 @@ app/        Swift package + build.sh (produces app/build/tweakd.app)
 app/VERSION single line, e.g. 0.9.3 — the build stamps this into the bundle
 web/        index.html, privacy.html, terms.html — the public site
 docs/       the Markdown reference (TWEAKS.md, TOOLS.md, SAFETY.md, …)
-scripts/    make_icon.swift, release-website.sh
+scripts/    release.sh (entry point), release-site.sh, release-download.sh,
+            release-website.sh, package-dmg.sh, make_icon.swift
 ```
 
 Build: `app/build.sh --no-launch` (release) — `app/build.sh` also launches.
@@ -103,11 +104,26 @@ xcrun notarytool store-credentials "Tweakd" \
 `scripts/package-dmg.sh --no-notarize` skips the Apple round-trip for local
 testing. The result must not be published.
 
-Release, in order:
+Release — one entry point, same shape as the SQLAgent/MyD1 scripts:
+
+```bash
+scripts/release.sh                 # bump version, app, then both front doors
+scripts/release.sh --apps-only     # .dmg → R2, no website
+scripts/release-site.sh            # website only (shim for --web-only)
+scripts/release.sh --dry-run       # show everything, execute nothing
+```
+
+`release.sh` bumps the patch digit in `app/VERSION` **and** the version pills in
+`web/index.html` in the same step, then verifies they agree. Those two drifting
+apart is what let the site advertise v0.4.0 for six weeks, and CI now fails on
+it. `--no-bump` re-ships the current version.
+
+The work still lives in the two scripts it calls, which remain runnable
+directly:
 
 ```bash
 scripts/release-download.sh     # build → dist/Tweakd-<v>.dmg → R2, then verifies
-scripts/release-website.sh      # site + Function
+scripts/release-website.sh      # site + Function, both front doors
 ```
 
 `release-download.sh` finishes by HEAD-ing the live endpoint and comparing

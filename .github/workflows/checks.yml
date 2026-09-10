@@ -101,6 +101,15 @@ jobs:
           # An un-notarised .dmg uploads exactly as cleanly as a good one.
           grep -q 'stapler validate' scripts/release-download.sh \
             || { echo "::error::release-download.sh no longer gates the upload on notarisation."; fail=1; }
+          # release.sh is the documented entry point; release-site.sh is the
+          # website shim. Both must keep delegating rather than growing their
+          # own copy of the pipeline.
+          grep -q 'release-download.sh' scripts/release.sh \
+            || { echo "::error::release.sh no longer calls release-download.sh."; fail=1; }
+          grep -q 'release-website.sh' scripts/release.sh \
+            || { echo "::error::release.sh no longer calls release-website.sh."; fail=1; }
+          grep -q 'release.sh" --web-only' scripts/release-site.sh \
+            || { echo "::error::release-site.sh no longer delegates to release.sh --web-only."; fail=1; }
           exit $fail
 
   # --------------------------------------------------------------------------
