@@ -60,8 +60,6 @@ Outstanding:
   `disksleep 10`, `standby 1`). A Mac configured differently would be reverted to these
   rather than to what it had. Same convention as the existing `pmset` tweaks, but worth
   revisiting if anyone reports a surprise.
-- **`docs/TWEAKS.md` has no entries for the three** — the table around line 135 and the
-  detail sections around line 244 both need rows adding.
 - **Wake-on-network (`womp`) and `tcpkeepalive` were deliberately left out**: both already
   read `1` on this machine, so a tweak would have shipped permanently "Applied" and done
   nothing. Add only if a Mac is found where they default off.
@@ -82,8 +80,11 @@ catalog rule forbids. Test, then add or discard.
 
 Free-form notes dropped at the repo root; folded in here and the file removed.
 
-- **GPU usage diagram, like the CPU one ("like in MACtop")** — `GPUCard` +
-  `GPUMonitor`, shipped in 0.8.x
+- **GPU usage diagram, like the CPU one ("like in MACtop")** — the Dashboard's GPU
+  `MetricMeter` (busy % + in-use memory + trend), fed by `SystemMetrics.readGPU()`
+  reading `AGXAccelerator`'s own performance statistics (no root needed). Shipped
+  in 0.8.x. (There is no `GPUCard`/`GPUMonitor` type — the earlier note named files
+  that were never created.)
 - **A very visible one-tap button next to "~9.5 GB reclaimable right now."** —
   `DiskCleanupManager.cleanAll()` / the `Clean Up Now` banner button, 0.9.0. Scoped
   to `risk == .safe && !destructive`: Trash, Docker prune and iOS backups are

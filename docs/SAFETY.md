@@ -27,14 +27,16 @@ csrutil status
 # → "System Integrity Protection status: enabled."  (or "disabled.")
 ```
 
-A handful of tweaks are marked 🧱 **SIP off** — they modify protected system daemons
-or boot-args and **silently do nothing while SIP is on**:
+Exactly **one** tweak is marked 🧱 **SIP off** — it writes a protected boot-arg and
+**silently does nothing while SIP is on**:
 
-- **Disable Diagnostics & Analytics** (`com.apple.analyticsd`)
 - **Server Performance Mode** (`nvram boot-args`)
 
-In the app these show as **Unavailable** (greyed out) when SIP is enabled, so you
-can't half-apply them.
+In the app it shows as **Unavailable** (greyed out) when SIP is enabled, so you
+can't half-apply it.
+
+**Disable Diagnostics & Analytics** is *not* SIP-gated: it writes
+`/Library/Preferences/com.apple.SubmitDiagInfo` with `sudo`, which works with SIP on.
 
 ### `launchctl bootout` and the background-service tweaks
 
@@ -66,15 +68,18 @@ That is also why the app chains these with `;` and a trailing `true` rather than
 2. Open **Terminal** → `csrutil disable` → reboot.
 
 Disabling SIP lowers your Mac's defenses against malware and rootkits. **Most people
-should leave it on** and simply skip the two SIP-off tweaks.
+should leave it on** and simply skip the one SIP-off tweak.
 
 ## Reversibility
 
 - **Every tweak has a revert.** In the app: the row toggle, or **Revert All** on the
   Dashboard restores stock in one click. By hand: the **Revert** command in
   [TWEAKS.md](TWEAKS.md).
-- Reverts use **`defaults delete`** to restore the macOS *default behavior* rather
-  than guessing a specific value — the cleanest possible undo.
+- Where a preference simply has an unset state, the revert is **`defaults delete`** —
+  it restores the macOS *default behavior* rather than guessing a value, the cleanest
+  possible undo. Where there is no meaningful unset state (`pmset`, `sysctl`,
+  `launchctl`, and a few `defaults` keys macOS ships explicitly set), the revert
+  writes the documented stock value back instead.
 - **Resets on reboot (♻️):** `sysctl` tweaks (GPU limit, TCP buffers, socket backlog,
   window scaling, file descriptors), `nvram`, and `renice` priority changes live in
   memory/firmware. They vanish on restart — reapply if you want them permanent, or
@@ -88,7 +93,7 @@ machine a bill it pays afterwards, in CPU, heat and battery:
 
 | Action | The delayed cost |
 |---|---|
-| **Reindex Spotlight** (destructive) | A **full-disk re-crawl** by a dozen-plus `mdworker_shared`. The heaviest item here — minutes to hours depending on disk size |
+| **Rebuild Spotlight Index** (destructive) | A **full-disk re-crawl** by a dozen-plus `mdworker_shared`. The heaviest item here — minutes to hours depending on disk size |
 | **App Caches** / DerivedData | Regenerated on demand; the next Xcode build becomes a **full** build |
 | **Purge memory** | Drops the file cache, so reads hit the SSD again until it re-warms |
 | **Docker prune** (destructive) | Irreversible: unused images re-pull from the network |
@@ -104,7 +109,7 @@ resolved by itself once indexing finished. So:
 - Anything irreversible is marked **destructive** in the app and asks for confirmation
   first, and every deleted path is logged **before** the delete so the record survives
   a pass that dies partway through.
-- **Clean All** (the one-tap sweep) runs **only** the rows that are low-risk *and* not
+- **Clean Up Now** (the one-tap sweep) runs **only** the rows that are low-risk *and* not
   destructive — caches that regrow by themselves. Emptying the Trash, pruning Docker and
   anything touching iOS backups or device support stay out of it and remain one-by-one,
   confirmed decisions. The sweep logs one `cleanup.sweep` entry listing exactly which

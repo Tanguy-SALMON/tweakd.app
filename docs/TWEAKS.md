@@ -133,7 +133,12 @@ actually moved.
 | Server Performance Mode | Performance | 🔐 | 🧱 ⚠️ reboot |
 | Keep Low Power Mode Off | Power | 🔐 | safe |
 | Disable Power Nap | Power | 🔐 | safe |
+| Never Sleep on Power Adapter | Power | 🔐 | moderate · mains only |
+| Keep Disks Spun Up on Power | Power | 🔐 | safe · mains only |
+| No Deep Standby on Power | Power | 🔐 | moderate · mains only |
 | Skip Hibernation Image | Power | 🔐 | ⚠️ |
+| Disable Touch Bar | Power | 🔓 | safe · beta |
+| Stop Widget Background Refresh | Power | 🔓 | moderate · beta |
 | Instant Window Resizing | Snappiness | 🔓 | safe |
 | Disable Window Animations | Snappiness | 🔓 | safe |
 | Instant Dock Auto-Hide | Snappiness | 🔓 | restarts Dock |
@@ -150,19 +155,20 @@ actually moved.
 | Disable App Launch Bounce | Snappiness | 🔓 | restarts Dock |
 | Silence Crash Reporter | Privacy | 🔓 | safe |
 | Disable Personalized Ads | Privacy | 🔓 | safe |
-| Disable Diagnostics & Analytics | Privacy | 🔐 | 🧱 moderate |
+| Disable Diagnostics & Analytics | Privacy | 🔐 | moderate |
 | Harden Chromium & Chrome Telemetry | Privacy | 🔓 | browser restart |
 | Disable Firefox Telemetry | Privacy | 🔓 | replaces user.js |
 | Disable Media Analysis | Background Services | 🔓 | moderate |
 | Disable Photo Analysis | Background Services | 🔓 | moderate |
 | Disable Spotlight Indexing | Background Services | 🔐 | ⚠️ |
+| Disable Dictionary Background Indexing | Background Services | 🔓 | moderate · beta |
 | Stop Bonjour Advertising | Network | 🔐 | moderate |
 | Enlarge TCP Buffers | Network | 🔐 | ♻️ |
 | Raise Socket Backlog | Network | 🔐 | ♻️ |
 | Enable Application Firewall | Security & Network | 🔐 | safe |
 | Enable Stealth Mode | Security & Network | 🔐 | safe · needs firewall on |
 | Block Auto-Allow Signed Apps | Security & Network | 🔐 | moderate |
-| Block Ads & Trackers (hosts file) | Security & Network | 🔐 | ⚠️ · weekly auto-update |
+| Block Ads & Trackers (hosts file) | Security & Network | 🔐 | moderate · weekly auto-update |
 | Use Privacy DNS (Cloudflare) | Security & Network | 🔐 | moderate · plaintext |
 | Disable IPv6 | Security & Network | 🔐 | ⚠️ |
 | Enable TCP Window Scaling | Security & Network | 🔐 | ♻️ |
@@ -176,6 +182,7 @@ actually moved.
 | Disable Siri Assistant | AI & Intelligence | 🔓 | moderate |
 | Disable Proactive Intelligence | AI & Intelligence | 🔓 | moderate |
 | Disable Siri Suggestions in Lookup | AI & Intelligence | 🔓 | safe |
+| Tune Ollama for GPU & Keep-Alive | AI & Intelligence | 🔓 | safe · beta |
 
 ---
 
@@ -250,6 +257,34 @@ sudo pmset -a powernap 0
 sudo pmset -a powernap 1
 ```
 
+### Never Sleep on Power Adapter — 🔐
+Keeps the Mac fully awake and serving when idle on mains. Battery behaviour is
+untouched (`-c` = power adapter only).
+```bash
+# Apply
+sudo pmset -c sleep 0
+# Revert
+sudo pmset -c sleep 1
+```
+
+### Keep Disks Spun Up on Power — 🔐
+Stops storage idling down on mains, so the first request after a quiet spell isn't slow.
+```bash
+# Apply
+sudo pmset -c disksleep 0
+# Revert
+sudo pmset -c disksleep 10
+```
+
+### No Deep Standby on Power — 🔐
+Blocks the low-power standby state on mains, so the Mac stays instantly reachable.
+```bash
+# Apply
+sudo pmset -c standby 0
+# Revert
+sudo pmset -c standby 1
+```
+
 ### Skip Hibernation Image — 🔐 ⚠️
 Frees RAM-sized disk space and speeds sleep. Trade-off: you lose safe-sleep if the
 battery fully dies.
@@ -258,6 +293,24 @@ battery fully dies.
 sudo pmset -a hibernatemode 0
 # Revert
 sudo pmset -a hibernatemode 3
+```
+
+### Disable Touch Bar — 🔓 (beta)
+Unloads the Touch Bar agent to save a bit of power/CPU on Touch Bar Macs.
+```bash
+# Apply
+launchctl unload -w /System/Library/LaunchAgents/com.apple.touchbar.agent.plist 2>/dev/null || true
+# Revert
+launchctl load -w /System/Library/LaunchAgents/com.apple.touchbar.agent.plist 2>/dev/null || true
+```
+
+### Stop Widget Background Refresh — 🔓 (beta)
+Stops the Notification Center widget gallery from refreshing widgets in the background.
+```bash
+# Apply
+defaults write com.apple.notificationcenterui bulletinBoardIsBackgroundRefreshEnabled -bool false; killall NotificationCenter 2>/dev/null; true
+# Revert
+defaults delete com.apple.notificationcenterui bulletinBoardIsBackgroundRefreshEnabled 2>/dev/null; killall NotificationCenter 2>/dev/null; true
 ```
 
 ---
@@ -420,13 +473,14 @@ defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool false
 defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool true
 ```
 
-### Disable Diagnostics & Analytics — 🔐 🧱
-Stops the `analyticsd` telemetry daemon. Only possible with SIP disabled.
+### Disable Diagnostics & Analytics — 🔐
+Turns off *Share Mac Analytics* and *Share With App Developers* — the same switch as
+**System Settings → Privacy & Security → Analytics & Improvements**. Works with SIP on.
 ```bash
 # Apply
-sudo launchctl disable system/com.apple.analyticsd; sudo launchctl bootout system/com.apple.analyticsd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
+sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit -bool false; sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo ThirdPartyDataSubmit -bool false
 # Revert
-sudo launchctl enable system/com.apple.analyticsd
+sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo AutoSubmit -bool true; sudo defaults write /Library/Preferences/com.apple.SubmitDiagInfo ThirdPartyDataSubmit -bool true
 ```
 
 ### Harden Chromium & Chrome Telemetry — 🔓
@@ -478,7 +532,7 @@ done
 # Revert (only removes the file Tweakd wrote)
 for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   f="$p/user.js"
-  [ -f "$f" ] && grep -q 'tweakd privacy' "$f" && rm -f "$f"
+  [ -f "$f" ] && grep -qE 'tweakd privacy|MacTweak privacy' "$f" && rm -f "$f"
 done
 ```
 
@@ -519,6 +573,15 @@ sudo mdutil -a -i off
 sudo mdutil -a -i on
 ```
 
+### Disable Dictionary Background Indexing — 🔓 (beta)
+Unloads the Dictionary/Lookup background indexing agent.
+```bash
+# Apply
+launchctl unload -w /System/Library/LaunchAgents/com.apple.dictionaryd.plist 2>/dev/null || true
+# Revert
+launchctl load -w /System/Library/LaunchAgents/com.apple.dictionaryd.plist 2>/dev/null || true
+```
+
 ---
 
 ## 🌐 Network
@@ -527,9 +590,9 @@ sudo mdutil -a -i on
 Stops broadcasting services over Bonjour. AirDrop keeps working over AWDL.
 ```bash
 # Apply
-sudo defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool true && sudo killall -HUP mDNSResponder
+sudo defaults write /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements -bool true; sudo killall -HUP mDNSResponder 2>/dev/null; true
 # Revert
-sudo defaults delete /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements && sudo killall -HUP mDNSResponder
+sudo defaults delete /Library/Preferences/com.apple.mDNSResponder.plist NoMulticastAdvertisements 2>/dev/null; sudo killall -HUP mDNSResponder 2>/dev/null; true
 ```
 
 ### Enlarge TCP Buffers — 🔐 ♻️
@@ -593,7 +656,7 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setal
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned
 ```
 
-### Block Ads & Trackers (hosts file) — 🔐 ⚠️
+### Block Ads & Trackers (hosts file) — 🔐
 Downloads the [StevenBlack](https://github.com/StevenBlack/hosts) ad/tracker list and
 routes every domain in it to `0.0.0.0` in `/etc/hosts`. System-wide — every browser and
 app, no extension needed.
@@ -610,14 +673,29 @@ Revert is one command.
 
 ```bash
 # Apply / refresh — download the list and rebuild the marked block
-sudo /bin/zsh -c 'L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then sed "/# tweakd-adblock-start/,/# tweakd-adblock-end/d" /etc/hosts > "$T"; echo "# tweakd-adblock-start" >> "$T"; grep "^0\.0\.0\.0 " "$L" >> "$T"; echo "# tweakd-adblock-end" >> "$T"; cat "$T" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f "$L" "$T"'
+sudo /bin/zsh -s <<'EOF'
+L=$(mktemp); T=$(mktemp)
+if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then
+  sed -e '/# tweakd-adblock-start/,/# tweakd-adblock-end/d' -e '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts > "$T"
+  echo '# tweakd-adblock-start' >> "$T"
+  grep '^0\.0\.0\.0 ' "$L" >> "$T"
+  echo '# tweakd-adblock-end' >> "$T"
+  cat "$T" > /etc/hosts
+  dscacheutil -flushcache; killall -HUP mDNSResponder
+fi
+rm -f "$L" "$T"; true
+EOF
 
-# Revert — delete only Tweakd's block
-sudo sed -i '' '/# tweakd-adblock-start/,/# tweakd-adblock-end/d' /etc/hosts
-sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
+# Revert — delete only Tweakd's block (either marker name)
+sudo /bin/zsh -s <<'EOF'
+T=$(mktemp)
+sed -e '/# tweakd-adblock-start/,/# tweakd-adblock-end/d' -e '/# MacTweak-adblock-start/,/# MacTweak-adblock-end/d' /etc/hosts > "$T"
+cat "$T" > /etc/hosts; rm -f "$T"
+dscacheutil -flushcache; killall -HUP mDNSResponder; true
+EOF
 
 # Check
-grep -q '# tweakd-adblock-start' /etc/hosts && echo ON || echo OFF
+grep -qE '# tweakd-adblock-start|# MacTweak-adblock-start' /etc/hosts && echo ON || echo OFF
 grep -c '^0\.0\.0\.0 ' /etc/hosts          # how many domains are blocked
 ```
 
@@ -634,29 +712,28 @@ rm ~/Library/Application\ Support/tweakd/adblock-update.sh
 
 See [SERVICES.md](SERVICES.md) for what that agent looks like from `launchctl`'s side.
 
-### Use Privacy DNS (Cloudflare) — 🔐 (per network service)
+### Use Privacy DNS (Cloudflare) — 🔐 (all network services)
 Points DNS at Cloudflare's 1.1.1.1 / 1.0.0.1 privacy resolver instead of your ISP's
 default. **Honest caveat:** this is still **plaintext DNS** — macOS has no CLI switch
-for encrypted DNS-over-HTTPS/TLS, that requires a configuration profile. The app
-applies this to **every active network service**; the command below targets Wi-Fi —
-repeat with each name from `networksetup -listallnetworkservices` for the rest.
+for encrypted DNS-over-HTTPS/TLS, that requires a configuration profile. This applies
+to **every network service** the Mac has; `Empty` restores your DHCP-provided DNS.
 ```bash
 # Apply
-sudo networksetup -setdnsservers Wi-Fi 1.1.1.1 1.0.0.1
+sudo /bin/zsh -c 'networksetup -listallnetworkservices | tail -n +2 | sed "s/^\* //" | while IFS= read -r s; do networksetup -setdnsservers "$s" 1.1.1.1 1.0.0.1; done; true'
 # Revert
-sudo networksetup -setdnsservers Wi-Fi Empty
+sudo /bin/zsh -c 'networksetup -listallnetworkservices | tail -n +2 | sed "s/^\* //" | while IFS= read -r s; do networksetup -setdnsservers "$s" Empty; done; true'
 # Check
 networksetup -getdnsservers Wi-Fi
 ```
 
-### Disable IPv6 — 🔐 ⚠️ (per network service)
-Turns off IPv6 on a network service, shrinking the attack surface to IPv4 only.
-Repeat per active service (Wi-Fi, Ethernet…). **Can break IPv6-only networks.**
+### Disable IPv6 — 🔐 ⚠️ (all network services)
+Turns off IPv6 on every network service, shrinking the attack surface to IPv4 only.
+**Can break IPv6-only networks.**
 ```bash
 # Apply
-sudo networksetup -setv6off Wi-Fi
+sudo /bin/zsh -c 'networksetup -listallnetworkservices | tail -n +2 | sed "s/^\* //" | while IFS= read -r s; do networksetup -setv6off "$s"; done; true'
 # Revert
-sudo networksetup -setv6automatic Wi-Fi
+sudo /bin/zsh -c 'networksetup -listallnetworkservices | tail -n +2 | sed "s/^\* //" | while IFS= read -r s; do networksetup -setv6automatic "$s"; done; true'
 # Check
 networksetup -getinfo Wi-Fi
 ```
@@ -696,11 +773,11 @@ priority (range −20…19, default 0). All resets on reboot unless you enable
 ### Raise mDNSResponder — 🔐 ♻️
 ```bash
 # Apply
-sudo renice -n -5 -p $(pgrep mDNSResponder)
+sudo renice -n -5 -p $(pgrep -f "mDNSResponder")
 # Revert
-sudo renice -n 0 -p $(pgrep mDNSResponder)
+sudo renice -n 0 -p $(pgrep -f "mDNSResponder")
 # Check
-ps -o pid,nice,comm -p $(pgrep mDNSResponder)
+ps -o pid,nice,comm -p $(pgrep -f "mDNSResponder")
 ```
 
 ### Raise Firefox — 🔐 ♻️
@@ -785,6 +862,8 @@ pattern to build one for another target.
     </array>
     <key>RunAtLoad</key>
     <true/>
+    <key>KeepAlive</key>
+    <false/>
 </dict>
 </plist>
 ```
@@ -812,9 +891,9 @@ launchctl unload ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist; rm ~/
 Boots out the Siri assistant agent (`assistantd`) and hides its menu bar item.
 ```bash
 # Apply
-defaults write com.apple.Siri StatusMenuVisible -bool false && launchctl disable gui/$(id -u)/com.apple.assistantd; launchctl bootout gui/$(id -u)/com.apple.assistantd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
+defaults write com.apple.Siri StatusMenuVisible -bool false; launchctl disable gui/$(id -u)/com.apple.assistantd; launchctl bootout gui/$(id -u)/com.apple.assistantd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
-defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/com.apple.assistantd
+defaults delete com.apple.Siri StatusMenuVisible 2>/dev/null; launchctl enable gui/$(id -u)/com.apple.assistantd; true
 ```
 
 ### Disable Proactive Intelligence — 🔓
@@ -834,6 +913,16 @@ defaults write com.apple.lookup.shared LookupSuggestionsDisabled -bool true
 defaults delete com.apple.lookup.shared LookupSuggestionsDisabled
 ```
 
+### Tune Ollama for GPU & Keep-Alive — 🔓 (beta)
+Sets `OLLAMA_NUM_GPU` and `OLLAMA_KEEP_ALIVE` so local LLM workloads use more GPU
+layers and keep models loaded longer.
+```bash
+# Apply
+launchctl setenv OLLAMA_NUM_GPU 999 && launchctl setenv OLLAMA_KEEP_ALIVE 30m
+# Revert
+launchctl unsetenv OLLAMA_NUM_GPU && launchctl unsetenv OLLAMA_KEEP_ALIVE
+```
+
 ---
 
 ## 🛠️ One-shot Actions
@@ -847,6 +936,9 @@ Not toggles — run once, on demand. Nothing to revert.
 | Restart Dock & Finder | `killall Dock Finder` |
 | Restart Core Audio | `sudo killall coreaudiod` |
 | Rebuild Spotlight Index | `sudo mdutil -E /` |
+| Update Ad-Block List | re-runs the ad-block rebuild above, but **only if** the block is already installed |
+| Docker Resource Allocation | `docker info --format '{{.NCPU}}\|{{.MemTotal}}'` (read-only; launches Docker Desktop if it isn't running) |
+| Open Docker Desktop Settings | `open -a Docker` |
 
 **Purge Bloat Daemons Now** (they may respawn — pair with the toggles above):
 ```bash
@@ -867,7 +959,7 @@ sysctl -n kern.ipc.somaxconn                    # network
 mdutil -s /                                      # spotlight
 launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate   # security & network
-ps -o pid,nice,comm -p $(pgrep mDNSResponder)                            # process priority
+ps -o pid,nice,comm -p $(pgrep -f "mDNSResponder")                            # process priority
 ```
 Tweakd does exactly this after every change — which is why it only marks a tweak
 *Applied* when the system truly reports the new state.

@@ -4,7 +4,9 @@ How the app is built, for anyone reading or extending the code.
 
 ## At a glance
 
-- **Language / UI:** Swift 6, SwiftUI, Swift Charts. Targets **macOS 15+**.
+- **Language / UI:** Swift 6 toolchain (Swift 5 language mode —
+  `swiftLanguageMode(.v5)` in `app/Package.swift`), SwiftUI, Swift Charts.
+  Targets **macOS 15+**.
 - **Shape:** a **menu-bar app** — `MenuBarExtra(.window)` + a full `Window` scene.
   `LSUIElement` is **false**, so it shows a **Dock icon** alongside the menu-bar item.
 - **Distribution:** **not sandboxed**, **ad-hoc (locally) signed**. It has to drive
@@ -18,11 +20,15 @@ How the app is built, for anyone reading or extending the code.
 app/Sources/Tweakd/
   App/        TweakdApp (scenes), AppModel (+ wizard), Theme (design system)
   Core/       CommandRunner, TweakEngine, SystemInfo, ServicesManager,
-              DiskCleanupManager, CoreAudioWatchdog, Log
+              DiskCleanupManager, OrphanedAppScanner, PriorityManager,
+              CoreAudioWatchdog, AdBlockManager, FeatureSearch,
+              LegacyMigration, Brand, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
-  Metrics/    SystemMetrics (Mach sampling), Benchmark (+ BenchmarkHistory), ThermalMonitor
-  Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
-              ScanSheet, MainWindow, Components (HeroHeader, RingGauge, gauges)
+  Metrics/    SystemMetrics (Mach sampling), Benchmark, BenchmarkHistory, ThermalMonitor
+  Views/      Dashboard, TweakList/Row, Services, DiskCleanup, ProcessPriority,
+              Benchmark, Actions, Sidebar, Menu, SearchResults, ScanSheet,
+              MainWindow, Components (Gauges — HeroHeader, MetricMeter,
+              StatTile, Sparkline; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
 app/build.sh  build, bundle, ad-hoc sign, launch
 scripts/      make_icon.swift, release-website.sh
@@ -34,8 +40,8 @@ docs/         TWEAKS.md, TOOLS.md, SERVICES.md, ARCHITECTURE.md, SAFETY.md, FAQ.
 
 ## Data model — the tweak catalog is the source of truth
 
-Everything is data-driven. `TweakCatalog.all` is an array of `Tweak` values; adding
-a tweak = adding one entry (see [CONTRIBUTING.md](CONTRIBUTING.md)).
+Everything is data-driven. `TweakCatalog.all` is an array of **51** `Tweak` values;
+adding a tweak = adding one entry (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ```swift
 struct Tweak {
@@ -46,14 +52,19 @@ struct Tweak {
     let sipRequired: Bool
     let applyCommand, revertCommand, statusCommand: String
     let appliedWhenOutputContains: String   // substring test on statusCommand stdout
-    let tags: [TweakTag]
+    let tags: Set<TweakTag>
     let recommended: Bool
-    var privilegeRunner: (String) -> CommandResult { privilege == .admin ? .admin : .user }
+    let isBeta: Bool                     // unverified → off by default, behind a warning
+    var icon: String  { TweakCatalog.iconOverrides[key] ?? category.icon }
+    var gains: [Gain] { TweakCatalog.gainsByKey[key] ?? [] }   // the UI's benefit chips
+    var privilegeRunner: (String) -> CommandResult {
+        privilege == .admin ? CommandRunner.admin : CommandRunner.user
+    }
 }
 ```
 
 `SystemAction` is the same idea for **one-shot** commands (purge, flush DNS, restart
-Core Audio…) — no persistent on/off state.
+Core Audio…) — no persistent on/off state. `TweakCatalog.actions` holds **9** of them.
 
 ### Tweak state & probing
 
@@ -66,8 +77,14 @@ checking whether stdout contains `appliedWhenOutputContains`:
 
 ```swift
 static func probe(_ t: Tweak) -> TweakState {
-    if t.sipRequired && SystemInfo.sipEnabled { return .unavailable }   // SIP-blocked → greyed out
     let r = CommandRunner.user(t.statusCommand)
+    if t.sipRequired && SystemInfo.sipEnabled {
+        // Probe anyway rather than reporting `.unavailable` blind: a SIP tweak
+        // can have left real state behind, and hiding that also hides it from
+        // revertAll(), which only reverts what reads as `.applied`.
+        return r.output.localizedCaseInsensitiveContains(t.appliedWhenOutputContains)
+            ? .applied : .unavailable
+    }
     if r.output.isEmpty { return .notApplied }
     return r.output.localizedCaseInsensitiveContains(t.appliedWhenOutputContains) ? .applied : .notApplied
 }
@@ -170,6 +187,8 @@ Commands run through a single `run(executable:arguments:)`:
   root**, which `powermetrics --samplers gpu_power` is not — that's the whole point: the
   gauge never prompts. Anything unexpected returns `(0, 0)` rather than throwing, so a
   missing GPU counter flattens one chart instead of taking CPU and memory down with it.
+- **Network throughput** (`netDownKBps` / `netUpKBps`) is a per-tick delta of the
+  interface byte counters, shown as two stat tiles beside the meters.
 - CPU is **EMA-smoothed** so the menu-bar panel and the window converge on the same
   figure instead of catching different instantaneous spikes.
 - The Mach **host port** and **page size** are cached in statics (calling
@@ -384,7 +403,7 @@ peg `coreaudiod` — the driver runs **inside** `coreaudiod`, so the cost bills 
 
 - Single accent from the requested OKLCH colors: `accent = #F54900`
   (`oklch(64.6% 0.222 41.116)`), `accentDeep = #E7000E` (`oklch(57.7% 0.245 27.325)`).
-- `accentGradient` — a vertical top→bottom orange→red used on ring gauges, every
+- `accentGradient` — a vertical top→bottom orange→red used on the metric meters, every
   `GlyphTile`, gradient buttons and pills.
 - `GradientButtonStyle` (`.gradient` / `.gradientOutline`) is the app-wide button look.
 - The blue focus ring is disabled app-wide (`.focusEffectDisabled()` on both scenes).

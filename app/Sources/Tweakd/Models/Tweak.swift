@@ -35,7 +35,8 @@ enum TweakState: Equatable, Sendable {
     case applied        // optimization active
     case notApplied     // stock behavior
     case unknown        // couldn't determine
-    case unavailable    // can't be applied here (e.g. SIP on, or feature absent)
+    case unavailable    // can't be applied here — only ever set for a sipRequired
+                        // tweak while SIP is on (TweakEngine.probe)
 
     /// Stable token for the audit log — spelled out rather than derived from the
     /// case name so renaming a case can't silently change the log format.

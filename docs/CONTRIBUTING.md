@@ -6,7 +6,8 @@ conventions the code follows.
 
 ## Build & run
 
-Requirements: **macOS 15+**, **Xcode 16+** (Swift 6 / Swift Charts).
+Requirements: **macOS 15+**, **Xcode 16+** (Swift 6 toolchain, Swift 5 language
+mode; SwiftUI + Swift Charts).
 
 ```bash
 # compile, bundle into app/build/tweakd.app, and launch (default)
@@ -47,12 +48,17 @@ Tweak(
     revertCommand: "sysctl -w some.knob=1",
     statusCommand: "sysctl -n some.knob",
     appliedWhenOutputContains: "0",     // stdout contains this ⇒ shown as Applied
-    tags: [.prioritizePerformance], recommended: true
+    tags: [.prioritizePerformance],     // Set<TweakTag>, drives the wizard
+    recommended: true,
+    isBeta: false                       // optional; true → off by default,
+                                        //   gated behind the beta warning
 )
 ```
 
 Give it a distinct SF Symbol in `TweakCatalog.iconOverrides`
-(`"my-tweak": "sparkles"`); it falls back to the category glyph otherwise.
+(`"my-tweak": "sparkles"`); it falls back to the category glyph otherwise. Add a
+benefit chip with an entry in `TweakCatalog.gainsByKey` (`"my-tweak": [.faster]`);
+keep the `Gain` you pick in sync with the gain shown in [`TWEAKS.md`](TWEAKS.md).
 
 ### Rules of thumb (learned the hard way)
 
@@ -102,7 +108,11 @@ daemon…). Same command style; no `revert`/`status`.
 When you add a tweak, mirror it in:
 - [`TWEAKS.md`](TWEAKS.md) — the manual apply/revert reference.
 - [`web/index.html`](../web/index.html) — the web docs (same content, copy buttons).
-- [`README.md`](../README.md) — bump the tweak count if you cite it.
+- [`README.md`](../README.md) — bump the tweak count if you cite it
+  (**51 tweaks, 9 actions** today: `TweakCatalog.all` / `.actions`).
+
+A release also bumps [`app/VERSION`](../app/VERSION) (single line, e.g. `0.9.3` —
+`build.sh` stamps it into the bundle) and adds a [`CHANGELOG.md`](CHANGELOG.md) entry.
 
 ## Reviewing changes
 

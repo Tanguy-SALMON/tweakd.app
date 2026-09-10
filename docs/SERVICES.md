@@ -221,7 +221,7 @@ rows (System needs `sudo`).
 | **Disable** | `launchctl disable T; launchctl bootout T` |
 | **Enable** | `launchctl enable T; launchctl bootstrap <domain> <plist>` |
 | (no button — see below) **Restart** | `launchctl kickstart -k T` |
-| **Stop all in group** | the same `bootout` per label |
+| **Disable all** (per group) | `launchctl disable T; launchctl bootout T` for each label in the group |
 | Re-scan | re-run the `print` commands |
 
 ---

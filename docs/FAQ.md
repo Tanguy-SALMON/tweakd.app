@@ -11,9 +11,9 @@ just wraps them with a live status probe, presets, a guided setup, and one-click
 
 ### Is it safe? Will it break my Mac?
 Everything is **reversible** and verified against real macOS output. Safe tweaks are
-cosmetic/performance; **moderate** and **advanced** ones are badged. On a SIP-enabled
-Mac the riskiest system-daemon tweaks are simply **Unavailable**. See
-[SAFETY.md](SAFETY.md).
+cosmetic/performance; **moderate** and **advanced** ones are badged. The one tweak that
+needs SIP off (**Server Performance Mode**, a boot-arg) is simply **Unavailable** on a
+SIP-enabled Mac rather than half-applied. See [SAFETY.md](SAFETY.md).
 
 ### Which macOS does it need?
 **macOS 15 or later** (uses Swift 6 / Swift Charts). Built and verified on macOS 26.
@@ -28,8 +28,9 @@ the applied state (e.g. Personalized Ads were already off), it correctly reads a
 Applied. That's the probe working, not a bug.
 
 ### A tweak shows "Unavailable" and I can't toggle it.
-It's **SIP-required** and your SIP is on. Check `csrutil status`. Either leave it
-(recommended) or disable SIP — see [SAFETY.md](SAFETY.md).
+It's **Server Performance Mode**, the only SIP-required tweak, and your SIP is on.
+Check `csrutil status`. Either leave it (recommended) or disable SIP — see
+[SAFETY.md](SAFETY.md).
 
 ### I applied a `sysctl` tweak and it's gone after reboot.
 Expected. `sysctl` and `nvram` tweaks (GPU limit, TCP buffers, socket backlog, server
@@ -198,7 +199,7 @@ heat is the bill arriving:
 
 | What you cleaned | The rebuild it triggers |
 |---|---|
-| **Reindex Spotlight** | A **full-disk re-crawl**. Spawns a dozen-plus `mdworker_shared`; the heaviest thing on this list |
+| **Rebuild Spotlight Index** | A **full-disk re-crawl**. Spawns a dozen-plus `mdworker_shared`; the heaviest thing on this list |
 | `~/Library/Caches` | Every app you open regenerates its cache |
 | Xcode DerivedData | The next build is a **full** build (`swift-frontend` pinning cores) |
 | Purge memory | The file cache was dropped, so reads hit the SSD again for a while |

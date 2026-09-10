@@ -15,7 +15,7 @@ from 0.9.2 only in its version string.
   cover it, including the `ioreg`/`AGXAccelerator` one-liner it is read from
   (`Device Utilization %`, `In use system memory`) and why that beats
   `powermetrics --samplers gpu_power`: no root required.
-- **Disk Cleanup's one-tap sweep** — `docs/TOOLS.md` gains a "Clean All" section
+- **Disk Cleanup's one-tap sweep** — `docs/TOOLS.md` gains a "Clean Up Now" section
   stating the inclusion rule (`risk == .safe && !destructive`), why Trash, Docker
   prune and iOS backups are excluded, and why the sweep total is smaller than the
   headline reclaimable figure. `docs/SAFETY.md` records the `cleanup.sweep` audit

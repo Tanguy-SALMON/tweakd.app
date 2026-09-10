@@ -17,7 +17,7 @@ Everything about Tweakd — the app, and how to do all of it **by hand** in Term
   stop · disable · restart), what not to touch, and what each `launchctl` error means.
 - **[TOOLS.md](TOOLS.md)** — command-line equivalents for the remaining panes: Dashboard
   (CPU, memory, GPU) and Clear RAM, Thermal & CPU speed including live sampling, every
-  Disk Cleanup row and what the one-tap **Clean All** sweep does, Process Priority, Benchmark
+  Disk Cleanup row and what the one-tap **Clean Up Now** sweep does, Process Priority, Benchmark
   history (the JSON is yours to read), the Core Audio watchdog, and the audit trail.
 
 ## Reference
@@ -45,8 +45,8 @@ Everything about Tweakd — the app, and how to do all of it **by hand** in Term
 ## The one-paragraph version
 
 Tweakd is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
-optimizations — Performance, Power, Snappiness, Privacy, Background Services, Network,
-AI. It drives plain `defaults` / `pmset` / `sysctl` / `launchctl` / `mdutil` / `nvram`
+optimizations — Performance, Power, Snappiness, Privacy, Background Services,
+Security & Network, AI. It drives plain `defaults` / `pmset` / `sysctl` / `launchctl` / `mdutil` / `nvram`
 commands (all documented here), re-probes the real state after every change, and can
 revert everything in one click. **You don't need the app** — [TWEAKS.md](TWEAKS.md)
 lists every command to run yourself.

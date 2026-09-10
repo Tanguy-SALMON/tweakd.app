@@ -132,11 +132,13 @@ Watch it live while you reproduce a slowdown:
 sudo /usr/bin/powermetrics --samplers cpu_power,thermal -i 1000    # 🔐  Ctrl-C to stop
 ```
 
-**Live mode in the app** is exactly that command at 1 Hz: **Go live** streams per-cluster
-MHz once a second instead of taking a single point-in-time sample. It needs **Admin
+**Live mode in the app** is the `cpu_power` half of that command at 1 Hz: **Go live**
+streams per-cluster MHz once a second instead of taking a single point-in-time sample
+(thermal pressure needs no sampler — it comes from `ProcessInfo`). It needs **Admin
 Access unlocked** — a streaming root process can't run behind the password dialog, which
 only returns output once the command finishes — and it stops itself when you leave the
-page, since `powermetrics` runs as root the whole time it's on.
+page, and after 900 samples (15 minutes) in any case, since `powermetrics` runs as root
+the whole time it's on.
 
 ---
 
@@ -152,14 +154,14 @@ the size command is always safe to run.
 | **Xcode DerivedData** | `du -sh ~/Library/Developer/Xcode/DerivedData` | `rm -rf ~/Library/Developer/Xcode/DerivedData/*` |
 | **Old iOS Device Support** | `du -sh ~/Library/Developer/Xcode/iOS\ DeviceSupport` | `rm -rf ~/Library/Developer/Xcode/iOS\ DeviceSupport/*` |
 | **Simulator Caches** | `du -sh ~/Library/Developer/CoreSimulator/Caches` | `rm -rf ~/Library/Developer/CoreSimulator/Caches/*` |
-| **Unavailable Simulators** | `xcrun simctl list devices unavailable` | `xcrun simctl delete unavailable` |
+| **Unavailable Simulators** | `xcrun simctl list devices unavailable \| grep -c unavailable` (a count, not a size) | `xcrun simctl delete unavailable` |
 | **Homebrew Cache** | `du -sh "$(brew --cache)"` | `brew cleanup -s` |
 | **npm Cache** | `du -sh ~/.npm` | `npm cache clean --force` |
-| **pip Cache** | `du -sh ~/Library/Caches/pip` | `pip cache purge` |
+| **pip Cache** | `du -sh ~/Library/Caches/pip` | `pip cache purge \|\| pip3 cache purge` |
 | **Crash & Diagnostic Reports** | `du -sh ~/Library/Logs/DiagnosticReports` | `rm -rf ~/Library/Logs/DiagnosticReports/*` |
-| **QuickLook Thumbnails** | — | `qlmanage -r cache; qlmanage -r` |
+| **QuickLook Thumbnail Cache** | — (no size shown) | `qlmanage -r cache; qlmanage -r` |
 | **iOS Device Backups** | `du -sh ~/Library/Application\ Support/MobileSync/Backup` | *reveal only — never auto-deleted* |
-| **Docker Data** | `du -h ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw` | `docker system prune -af --volumes` |
+| **Docker Data (Docker.raw)** | `du -h ~/Library/Containers/com.docker.docker/Data/vms/0/data/Docker.raw` | `docker system prune -af --volumes` |
 
 Measure everything at once:
 
@@ -168,7 +170,7 @@ Measure everything at once:
   ~/Library/Logs/DiagnosticReports ~/.npm 2>/dev/null
 ```
 
-### Clean All — the one-tap sweep
+### Clean Up Now — the one-tap sweep
 
 The button at the top of the page runs the safe rows in sequence, then re-measures
 everything. It includes **only** rows that are `risk == .safe` and **not** destructive —
@@ -248,7 +250,8 @@ sudo renice -n -5 -p $(/usr/bin/pgrep -f "Google Chrome")   # 🔐
 sudo renice -n 0 -p <pid>           # 🔐
 ```
 
-Nice runs **−20 (highest priority) to +20 (lowest)**; the app clamps to a safer range.
+Nice runs **−20 (highest priority) to +20 (lowest)**; the app clamps to **−10…+20**, since
+a deeply negative nice can starve the system itself.
 Raising priority is rarely the win people expect — on a machine that's already CPU-bound,
 *lowering* a background hog does more than boosting the foreground app.
 
@@ -331,7 +334,9 @@ P=$(/usr/bin/pgrep -x coreaudiod)
 ```
 
 More than ~7 seconds of CPU accumulated over those 10 s means it's spinning ~70% of a
-core, which is the app's trip threshold. **Legitimate** work — a call with echo
+core, which is the app's trip threshold — the watchdog samples every 15 s and only acts
+after **two consecutive** samples above it (~30 s), so a single spike is ignored.
+**Legitimate** work — a call with echo
 cancellation or spatial audio — sustains 10–30%, so don't act on a lower number.
 
 Restart it (launchd relaunches it immediately):

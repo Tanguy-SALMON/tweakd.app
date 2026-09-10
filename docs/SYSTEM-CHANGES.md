@@ -76,7 +76,9 @@ password prompt was ever approved). They remain at their original values:
 - `sysctl kern.timer.coalescing_enabled`
 - `mdutil -a -i` (Spotlight indexing — still **enabled**)
 - `com.apple.mDNSResponder NoMulticastAdvertisements`
-- `com.apple.analyticsd` (blocked by SIP anyway)
+- `com.apple.analyticsd` (at the time this was believed to need SIP off; the
+  catalog since moved the tweak to `defaults write ... com.apple.SubmitDiagInfo`,
+  which works with SIP on — see docs/TWEAKS.md)
 - `com.apple.assistantd` (Siri agent — was not booted out)
 - `net.inet.tcp.autorcvbufmax` / `autosndbufmax` (Enlarge TCP Buffers — default 4 MB, resets on reboot)
 - `kern.ipc.somaxconn` (Raise Socket Backlog — default 128, resets on reboot)

@@ -15,11 +15,12 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 
 ## Features
 
-- **Dashboard** — live CPU, memory **and GPU** ring gauges (CPU/memory read straight from
+- **Dashboard** — live CPU, memory **and GPU** meters (CPU/memory read straight from
   the Mach kernel and GPU from `AGXAccelerator`'s IO-registry counters — the same figure
   Activity Monitor shows, and no root needed — no shelling out; CPU smoothed so the menu and window stay consistent; sampling is
   ref-counted so it costs nothing when no gauge is on screen), a rolling 90-second chart,
-  a **Clear RAM** button on the memory ring (purges inactive pages), system facts, and a
+  network up/down rate tiles,
+  a **Clear RAM** button on the memory row (purges inactive pages), system facts, and a
   **Core Audio Watchdog** that auto-restarts a runaway `coreaudiod` when a stuck audio
   stream (e.g. a virtual-audio HAL driver) pegs it.
 - **Re-scan** — a progress modal that re-probes every tweak against the live system, then
@@ -45,7 +46,7 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 - **Audit trail** — every change is logged to the unified log (category `audit`) and to
   `~/Library/Logs/tweakd/tweakd.log`, recording before → intended → **actual** state.
 - **51 tweaks** across 7 categories (Performance, Power, Snappiness, Privacy, Background
-  Services, Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
+  Services, Security & Network, AI & Intelligence) — CPU/GPU speed (raise GPU memory limit,
   unthrottle background I/O, server performance mode), RAM/GPU responsiveness (reduce
   transparency & motion), Finder/Dock snappiness (faster Mission Control, instant dock,
   no smooth-scroll, manual tabbing), network throughput (enlarge TCP buffers, raise
@@ -64,9 +65,10 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
   Results are **saved to disk** and plotted on a **timeline**, and an opt-in **daily
   run** (noon by default) keeps the trend going on its own — postponed while the Mac is
   warm or busy, so a build never lands in the numbers.
-- **Quick Actions** — one-shot maintenance: purge inactive memory, flush DNS, restart
-  Dock/Finder, restart Core Audio, purge bloat daemons, rebuild Spotlight, and
-  **generate an emergency revert script** (`~/Documents/tweakd_Revert.sh`) that undoes
+- **Quick Actions** — nine one-shot commands: purge inactive memory, flush DNS, update
+  the ad/tracker block list, restart Dock/Finder, purge bloat daemons, restart Core
+  Audio, rebuild the Spotlight index, and report or open Docker Desktop's resource
+  limits. Plus **generate an emergency revert script** (`~/Documents/tweakd_Revert.sh`) that undoes
   everything from Terminal.
 - **Menu-bar panel** — live CPU/MEM tiles + a labelled sparkline (shows % used), quick
   toggles for your favorites, and Apply Recommended with an inline result message.
@@ -75,11 +77,12 @@ gain, and run a guided setup that tailors everything to how *you* use your Mac.
 
 ## Documentation
 
-Full docs live in [`docs/`](docs/):
+Full docs live in [`docs/`](docs/), and the same reference is on the website:
 
 - **[web/index.html](web/index.html)** — web docs: every tweak with its exact
-  Terminal command and **click-to-copy** (works offline). This is also the page
-  published at [tweakd.app](https://tweakd.app).
+  Terminal command and **click-to-copy** (works offline). This is the page
+  `scripts/release-website.sh` publishes to
+  [tweakd-app.pages.dev](https://tweakd-app.pages.dev).
 - **[docs/TWEAKS.md](docs/TWEAKS.md)** — every tweak + one-shot action with manual
   apply/revert commands. **You can do everything by hand — no app required.**
 - **[docs/SERVICES.md](docs/SERVICES.md)** — background services: a tutorial plus the
@@ -110,7 +113,8 @@ See [docs/FAQ.md](docs/FAQ.md#it-used-to-be-called-mactweak).
 
 ## Build & run
 
-Requirements: **macOS 15+** and **Xcode 16+** (uses Swift 6 / Swift Charts).
+Requirements: **macOS 15+** and **Xcode 16+** (Swift 6 toolchain, Swift 5 language
+mode; SwiftUI + Swift Charts).
 
 ```bash
 # compile, bundle into app/build/tweakd.app, and launch (default)
@@ -204,7 +208,7 @@ of thing is always in the same place:
 | Directory | Holds |
 |---|---|
 | `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, `build.sh`, entitlements |
-| `web/` | the website: `index.html` — the page published at tweakd.app |
+| `web/` | the website: `index.html`, `privacy.html`, `terms.html`, `icon.png` — deployed by `scripts/release-website.sh` to the Cloudflare Pages project `tweakd-app` |
 | `docs/` | all markdown — the tweak/service references, `backlog/`, `CHANGELOG.md`, `CONTRIBUTING.md` |
 | `scripts/` | release and icon tooling |
 
@@ -213,11 +217,17 @@ Inside the app, all paths from the repo root:
 ```
 app/Sources/Tweakd/
   App/        TweakdApp, AppModel (+ wizard logic), Theme (design system)
-  Core/       CommandRunner (user/admin/passwordless), SystemInfo, TweakEngine
+  Core/       CommandRunner (user/admin/passwordless), TweakEngine, SystemInfo,
+              ServicesManager, DiskCleanupManager, OrphanedAppScanner,
+              PriorityManager, CoreAudioWatchdog, AdBlockManager, FeatureSearch,
+              LegacyMigration, Brand, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
-  Metrics/    SystemMetrics (Mach sampling, EMA-smoothed CPU), Benchmark
-  Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
-              Components (HeroHeader, RingGauge/StatTile, cpuHistoryMarks)
+  Metrics/    SystemMetrics (Mach sampling, EMA-smoothed CPU), Benchmark,
+              BenchmarkHistory, ThermalMonitor
+  Views/      Dashboard, TweakList/Row, Services, DiskCleanup, ProcessPriority,
+              Benchmark, Actions, Sidebar, Menu, SearchResults, ScanSheet,
+              MainWindow, Components (Gauges — HeroHeader, MetricMeter, StatTile,
+              Sparkline, cpuHistoryMarks; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
 app/build.sh              build, bundle, ad-hoc sign, launch
 scripts/make_icon.swift   regenerate AppIcon.png
