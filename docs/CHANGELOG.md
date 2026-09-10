@@ -4,6 +4,57 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.9.4] — 2026-09-10
+
+A full audit of every Markdown file and of the website's command reference
+against `TweakCatalog.swift`. No behaviour change in the app.
+
+### Fixed — "Disable Diagnostics & Analytics" was documented as needing SIP off
+
+It doesn't, and hasn't for a while. The catalog moved that tweak from
+`launchctl disable system/com.apple.analyticsd` to
+`defaults write /Library/Preferences/com.apple.SubmitDiagInfo`, which plain admin
+can do with SIP **on**. `SAFETY.md`, `FAQ.md`, `TWEAKS.md` and the website all
+still described the launchctl version and badged it 🧱. `serverperfmode` is the
+only `sipRequired: true` tweak, so the "two SIP-off tweaks" framing is gone.
+
+### Fixed — commands that would not have done what they said
+
+- **Privacy DNS** and **Disable IPv6** were documented (and shown on the site) as
+  Wi-Fi-only. The catalog loops over every network service.
+- The **ad-block revert** stripped only `# tweakd-adblock-*`. The real command
+  also strips legacy `# MacTweak-adblock-*`, so following the doc would have left
+  the old block in `/etc/hosts`.
+- **Bonjour**, **Media/Photo Analysis**, **Proactive Intelligence** and **Siri**
+  chained `launchctl bootout` with `&&` on the website. Under SIP that returns
+  150 and aborts the line.
+- **Raise mDNSResponder** used `pgrep mDNSResponder`; `PriorityManager` uses
+  `pgrep -f`.
+
+### Added — the docs and the site now cover the whole catalog
+
+`docs/TWEAKS.md` was missing 7 tweaks and 3 actions. The website was missing 9
+tweaks — including the entire **Block Ads & Trackers** hosts-file tweak — and 3
+actions, while claiming to list "every tweak and the exact command". Both are
+complete: **51 tweaks, 9 actions**.
+
+### Fixed — the app was described as smaller than it is
+
+`README.md` and `docs/ARCHITECTURE.md` omitted nine `Core/` files and eight
+`Views/`, didn't mention the network throughput tiles, called the dashboard
+meters "ring gauges" (there is no `RingGauge`), and showed a `probe(_:)` snippet
+with an early `return .unavailable` the real code doesn't do. The site's feature
+card claimed "48 reversible tweaks" and listed categories that don't exist.
+
+### Documented — two limits nobody had written down
+
+Live thermal sampling stops itself after 900 samples (~15 min), and the Core
+Audio watchdog trips only after **two consecutive** hot samples, not one.
+
+### Changed — the sweep is called "Clean Up Now"
+
+That's what the button says; the docs called it "Clean All".
+
 ## [0.9.3] — 2026-09-10
 
 Documentation and website catch-up. No behaviour change — the app binary differs
