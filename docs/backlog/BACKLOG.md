@@ -77,3 +77,24 @@ Not added: the key reads and writes fine, but whether **macOS 26 still honours i
 be settled by physically pressing the power button. There are credible reports of it being
 ignored on recent macOS, and shipping it unverified would be exactly the dead toggle the
 catalog rule forbids. Test, then add or discard.
+
+## From `BACKLOG.mg` (user requests, Aug 2026) — done
+
+Free-form notes dropped at the repo root; folded in here and the file removed.
+
+- **GPU usage diagram, like the CPU one ("like in MACtop")** — `GPUCard` +
+  `GPUMonitor`, shipped in 0.8.x
+- **A very visible one-tap button next to "~9.5 GB reclaimable right now."** —
+  `DiskCleanupManager.cleanAll()` / the `Clean Up Now` banner button, 0.9.0. Scoped
+  to `risk == .safe && !destructive`: Trash, Docker prune and iOS backups are
+  deliberately excluded, because a one-tap sweep must never be the thing that
+  deletes something you wanted.
+- **"Nominal is a result" — make the thermal state legible, explain the levels** —
+  the four-rung `pressureScale` ladder with per-level meanings, 0.9.0
+- **Live Performance/Efficiency core speeds, refreshing every second** —
+  `CommandRunner.streamAdmin` + `ThermalMonitor` live mode, 0.9.0. Needs the
+  passwordless-sudo lane: `osascript … with administrator privileges` buffers
+  stdout until exit, so it cannot stream.
+- **"Do you know the temperature?"** — no. Apple Silicon publishes no die
+  temperature to unprivileged apps, so the card says so outright rather than
+  leaving the dashed `Serious`/`Critical` rules unexplained.
