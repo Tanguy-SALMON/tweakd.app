@@ -4,6 +4,20 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.3] — 2026-09-10
+
+### Fixed — a bad URL gave you a blank page on tweakd.app
+
+`wrangler.worker.toml` sets `not_found_handling = "404-page"`, but there was no
+`web/404.html` to serve — so every mistyped or dead link returned **404 with an
+empty body**. The Pages mirror had the opposite bug: it answered unmatched paths
+with **200 and the homepage**, a soft-404 that tells search engines every URL on
+the site exists.
+
+`web/404.html` fixes both. It reuses `privacy.html`'s shell verbatim — same
+palette, same dark-mode handling — so it doesn't look like it belongs to a
+different site, and it links back to the front page and the command reference.
+
 ## [0.10.2] — 2026-09-10
 
 ### Fixed — tweakd.app was never being deployed
