@@ -1,4 +1,4 @@
-# tweakd — Architecture
+# Tweakd — Architecture
 
 How the app is built, for anyone reading or extending the code.
 
@@ -6,7 +6,7 @@ How the app is built, for anyone reading or extending the code.
 
 - **Language / UI:** Swift 6, SwiftUI, Swift Charts. Targets **macOS 15+**.
 - **Shape:** a **menu-bar app** — `MenuBarExtra(.window)` + a full `Window` scene.
-  `LSUIElement` is set so there is **no Dock icon**; the app runs as an accessory.
+  `LSUIElement` is **false**, so it shows a **Dock icon** alongside the menu-bar item.
 - **Distribution:** **not sandboxed**, **ad-hoc (locally) signed**. It has to drive
   `pmset`, `mdutil`, `launchctl`, `defaults`, `sysctl`, `nvram` and escalate through
   the native macOS password prompt — none of which is possible inside the App Sandbox.
@@ -15,7 +15,7 @@ How the app is built, for anyone reading or extending the code.
 ## Layout
 
 ```
-Sources/Tweakd/
+app/Sources/Tweakd/
   App/        TweakdApp (scenes), AppModel (+ wizard), Theme (design system)
   Core/       CommandRunner, TweakEngine, SystemInfo, CoreAudioWatchdog, Log
   Models/     Tweak, TweakCategory, TweakCatalog (+ iconOverrides), Presets
@@ -23,14 +23,16 @@ Sources/Tweakd/
   Views/      Dashboard, TweakList/Row, Benchmark, Actions, Sidebar, Menu,
               ScanSheet, MainWindow, Components (HeroHeader, RingGauge, gauges)
   Onboarding/ OnboardingView
-Scripts/      build.sh, make_icon.swift
-docs/         index.html, TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md
+app/build.sh  build, bundle, ad-hoc sign, launch
+scripts/      make_icon.swift, release-website.sh
+web/          index.html — the page published at tweakd.app
+docs/         TWEAKS.md, ARCHITECTURE.md, SAFETY.md, FAQ.md, backlog/
 ```
 
 ## Data model — the tweak catalog is the source of truth
 
 Everything is data-driven. `TweakCatalog.all` is an array of `Tweak` values; adding
-a tweak = adding one entry (see [CONTRIBUTING.md](../CONTRIBUTING.md)).
+a tweak = adding one entry (see [CONTRIBUTING.md](CONTRIBUTING.md)).
 
 ```swift
 struct Tweak {
@@ -177,7 +179,7 @@ jobs exist, run, and are invisible to any directory scan. `launchctl print` mark
 path = (submitted by smd.90609)      # smd = the Service Management daemon
 ```
 
-So tweakd asks launchd what it actually knows, and adds anything the directory scan
+So Tweakd asks launchd what it actually knows, and adds anything the directory scan
 missed. On the development machine this recovered **20 further services** the first
 phase never saw — a running Teams agent, Docker's helper, OneDrive launchers, plus
 several *ghost* Homebrew registrations (`homebrew.mxcl.php@8.1`, `opensearch`,
@@ -200,7 +202,7 @@ oversight:
 |---|---|
 | `com.apple.*` | Apple's own. SIP-protected and load-bearing |
 | Any label with a plist in `/System/Library/Launch*` | **Also Apple's, but unprefixed** — `com.openssh.ssh-agent`, `com.vix.cron`, `org.cups.cupsd`. Caught by looking for the file, not by trusting the name |
-| `application.<bundle-id>.<n>.<n>` | A *running GUI app* launchd tracks for the session (Firefox, Zed, tweakd itself). Not a service; vanishes when the app quits |
+| `application.<bundle-id>.<n>.<n>` | A *running GUI app* launchd tracks for the session (Firefox, Zed, Tweakd itself). Not a service; vanishes when the app quits |
 | `NetworkExtension.*` | VPN tunnels and content filters, managed by the NetworkExtension framework and System Settings — `launchctl enable/disable` is not the right lever |
 
 On the development machine that's 858 exclusions against 68 listed services.
@@ -235,7 +237,7 @@ first**, so a security agent can never fall through into a controllable group:
 
 1. **security** — `paloaltonetworks`/`cortex`, `crowdstrike`, `sentinelone`, `jamf`,
    `microsoft.defender`, `kandji`, `intune`… → listed **read-only**
-2. **tweakd** → our own agents
+2. **Tweakd** → our own agents
 3. **updater** — `update`, `keystone`, `autoupdate`, `sparkle`
 4. **developer** — `homebrew.mxcl.*`, or any program under `/opt/homebrew/`, or a known
    server name (`mysql`, `postgres`, `redis`, `nginx`, `ollama`…)
@@ -245,8 +247,8 @@ first**, so a security agent can never fall through into a controllable group:
 An unrecognised custom service is **still listed and still controllable**; it just lands
 in **Other**. Misclassification never hides a service — it only changes which heading it
 sits under. To teach it a new name, add a substring to the relevant array in
-`Sources/Tweakd/Core/ServicesManager.swift`; adding to the `security` list is how you
-make something *protected* from tweakd's own controls.
+`app/Sources/Tweakd/Core/ServicesManager.swift`; adding to the `security` list is how you
+make something *protected* from Tweakd's own controls.
 
 ### Cost measurement
 
@@ -361,7 +363,7 @@ excluded): **Balanced · Performance · Snappy UI · Battery · Privacy · AI / 
 
 ## Build
 
-`Scripts/build.sh` compiles, bundles into `build/tweakd.app`, generates the
+`app/build.sh` compiles, bundles into `app/build/tweakd.app`, generates the
 `Info.plist` (stamping `CFBundleVersion` with the git commit), builds the `.icns`,
-ad-hoc signs with `tweakd.entitlements`, and launches. Flags: `--no-launch`,
-`--debug`, `--help`. See [CONTRIBUTING.md](../CONTRIBUTING.md).
+ad-hoc signs with `app/tweakd.entitlements`, and launches. Flags: `--no-launch`,
+`--debug`, `--help`. See [CONTRIBUTING.md](CONTRIBUTING.md).

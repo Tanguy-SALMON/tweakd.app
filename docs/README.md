@@ -1,10 +1,10 @@
-# tweakd Documentation
+# Tweakd Documentation
 
-Everything about tweakd — the app, and how to do all of it **by hand** in Terminal.
+Everything about Tweakd — the app, and how to do all of it **by hand** in Terminal.
 
 ## Start here
 
-- **[index.html](index.html)** — the web docs. Every tweak with its exact Apply/Revert
+- **[web/index.html](../web/index.html)** — the web docs. Every tweak with its exact Apply/Revert
   command and **click-to-copy**. Open it in a browser (works offline).
 - **[TWEAKS.md](TWEAKS.md)** — the same reference in Markdown: every tweak + the one-shot
   actions, grouped by category, with manual commands.
@@ -35,15 +35,15 @@ Everything about tweakd — the app, and how to do all of it **by hand** in Term
 ## Project root
 
 - **[../README.md](../README.md)** — project overview & install.
-- **[../CONTRIBUTING.md](../CONTRIBUTING.md)** — build, and how to add a tweak safely.
-- **[../CHANGELOG.md](../CHANGELOG.md)** — version history.
-- **[../SYSTEM-CHANGES.md](../SYSTEM-CHANGES.md)** — log of settings changed on the dev
+- **[CONTRIBUTING.md](CONTRIBUTING.md)** — build, and how to add a tweak safely.
+- **[CHANGELOG.md](CHANGELOG.md)** — version history.
+- **[SYSTEM-CHANGES.md](SYSTEM-CHANGES.md)** — log of settings changed on the dev
   Mac during the 2026-07-22 testing session (all of those reverted). Not a live
   inventory — read the audit trail for what is actually applied now.
 
 ## The one-paragraph version
 
-tweakd is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
+Tweakd is a premium **menu-bar app for macOS 15+** that toggles **reversible** system
 optimizations — Performance, Power, Snappiness, Privacy, Background Services, Network,
 AI. It drives plain `defaults` / `pmset` / `sysctl` / `launchctl` / `mdutil` / `nvram`
 commands (all documented here), re-probes the real state after every change, and can

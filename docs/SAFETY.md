@@ -1,6 +1,6 @@
-# tweakd — Privileges, SIP & Safety
+# Tweakd — Privileges, SIP & Safety
 
-Everything tweakd does is **reversible**. This page explains the ground rules so
+Everything Tweakd does is **reversible**. This page explains the ground rules so
 nothing surprises you — whether you use the app or the [manual commands](TWEAKS.md).
 
 ## Privilege levels
@@ -35,6 +35,30 @@ or boot-args and **silently do nothing while SIP is on**:
 
 In the app these show as **Unavailable** (greyed out) when SIP is enabled, so you
 can't half-apply them.
+
+### `launchctl bootout` and the background-service tweaks
+
+The four background-service tweaks — **Media Analysis** (`mediaanalysisd`), **Photo
+Analysis** (`photoanalysisd`), **Siri Assistant** (`assistantd`) and **Proactive
+Intelligence** (`duetexpertd`) — are *not* marked 🧱, and their `launchctl disable`
+does persist. But the `launchctl bootout` half of each command fails under SIP:
+
+```
+Boot-out failed: 150: Operation not permitted while System Integrity Protection is engaged
+```
+
+Two consequences worth knowing:
+
+- **`disable` stops launchd from starting the daemon; it does not stop macOS from
+  spinning it up on demand** over XPC. Seeing the process alive after applying the
+  tweak is expected, not a failure. To stop it *now*, quit it: `killall -TERM
+  mediaanalysisd`.
+- **A macOS update can drop the override.** After 26.6.2 two of the four
+  (`assistantd`, `duetexpertd`) were no longer listed by
+  `launchctl print-disabled gui/$(id -u)`. Re-check after every major update.
+
+That is also why the app chains these with `;` and a trailing `true` rather than
+`&&` — otherwise a tweak that worked would report as failed.
 
 ### Disabling SIP (only if you understand the trade-off)
 
@@ -140,7 +164,7 @@ specifically to priority:
 
 ## The emergency revert script
 
-If a tweak ever makes the system misbehave and the app won't open, tweakd can write
+If a tweak ever makes the system misbehave and the app won't open, Tweakd can write
 a standalone script (**Quick Actions → Create Emergency Revert Script**) to:
 
 ```
@@ -167,19 +191,19 @@ mdutil -s /                                           # spotlight
 launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 ```
 
-This is exactly what tweakd does after every change — which is why it only marks a
+This is exactly what Tweakd does after every change — which is why it only marks a
 tweak *Applied* when the system truly reports the new state.
 
 ## Audit trail — every change is logged
 
-tweakd records each system change you make to macOS's **unified log** (the same
+Tweakd records each system change you make to macOS's **unified log** (the same
 journal `Console.app` reads) under a dedicated `audit` category, so you can always
 answer *"what did this app actually change, and did it work?"* — even weeks later,
 and even for changes made by its background agents.
 
 Read the trail:
 ```bash
-# everything tweakd changed in the last hour
+# everything Tweakd changed in the last hour
 log show --last 1h --predicate 'subsystem == "app.tweakd" AND category == "audit"' --style compact
 
 # watch changes live as you toggle things
@@ -197,7 +221,7 @@ CHANGE event=priority.setNice pid=482 process=mDNSResponder from=0 to=-5 result=
 - **`result=`** is `ok` (the probe confirmed the new state), `failed` (ran, but the
   system didn't end up where it was asked — the `error=` field says why),
   `cancelled` (you dismissed the auth prompt), or `skipped` (nothing to do).
-- `result=ok` means **verified**, not merely "the command exited 0" — tweakd
+- `result=ok` means **verified**, not merely "the command exited 0" — Tweakd
   re-probes the real state and logs `actual=` alongside the intent.
 - **Destructive actions log before they act.** Orphaned-leftover deletions write one
   `cleanup.orphaned.delete path=…` line per path *before* the delete runs, so the
@@ -227,7 +251,7 @@ done tuning** if that matters to you.
 
 ## What "not sandboxed / ad-hoc signed" means
 
-tweakd is **not** in the App Sandbox and is **locally (ad-hoc) signed**. It has to
+Tweakd is **not** in the App Sandbox and is **locally (ad-hoc) signed**. It has to
 be: driving `pmset`/`mdutil`/`launchctl`/`sysctl`/`nvram` and escalating through the
 native password prompt is impossible inside the sandbox. Everything it runs is listed
 in [TWEAKS.md](TWEAKS.md) — nothing is hidden, and you can run all of it by hand.

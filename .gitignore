@@ -1,12 +1,19 @@
-# Swift Package Manager
-/.build/
-Package.resolved
+# Swift Package Manager — the package lives in app/
+/app/.build/
+/app/Package.resolved
 
 # App bundle output
-/build/
+/app/build/
 
 # Icon intermediate (regenerated from AppIcon.png)
-/Resources/AppIcon.iconset/
+/app/Resources/AppIcon.iconset/
+
+# Wrangler local state (Cloudflare Pages deploys)
+/.wrangler/
 
 # macOS
 .DS_Store
+
+# Xcode per-user state
+xcuserdata/
+*.xcuserdatad

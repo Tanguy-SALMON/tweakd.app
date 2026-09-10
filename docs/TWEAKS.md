@@ -1,11 +1,11 @@
-# tweakd — Tweak & Command Reference
+# Tweakd — Tweak & Command Reference
 
-Every optimization tweakd can apply, with the **exact Terminal command** to
+Every optimization Tweakd can apply, with the **exact Terminal command** to
 apply and revert it **by hand** — no app required. This is the plain-text twin
-of [`index.html`](index.html).
+of [`web/index.html`](../web/index.html).
 
 > **How to use this by hand:** open **Terminal** (Applications → Utilities), paste
-> the **Apply** line, press Return. To undo, paste the **Revert** line. tweakd
+> the **Apply** line, press Return. To undo, paste the **Revert** line. Tweakd
 > runs exactly these commands.
 
 ## Before you paste — three rules
@@ -39,7 +39,7 @@ should be applied differently because of it.
 sysctl -n hw.model            # e.g. Mac14,2 = MacBook Air (M2, fanless)
 system_profiler SPHardwareDataType | grep "Model Name"   # the plain-English name
 ```
-tweakd detects this for you — the Dashboard's thermal card says *"This Mac is
+Tweakd detects this for you — the Dashboard's thermal card says *"This Mac is
 fanless"* and reports live thermal pressure, so you can see whether you're
 actually being throttled rather than guessing.
 
@@ -424,7 +424,7 @@ defaults write com.apple.AdLib allowApplePersonalizedAdvertising -bool true
 Stops the `analyticsd` telemetry daemon. Only possible with SIP disabled.
 ```bash
 # Apply
-sudo launchctl disable system/com.apple.analyticsd && sudo launchctl bootout system/com.apple.analyticsd
+sudo launchctl disable system/com.apple.analyticsd; sudo launchctl bootout system/com.apple.analyticsd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 sudo launchctl enable system/com.apple.analyticsd
 ```
@@ -475,7 +475,7 @@ for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
     'user_pref("browser.discovery.enabled", false);' > "$p/user.js"
 done
 
-# Revert (only removes the file tweakd wrote)
+# Revert (only removes the file Tweakd wrote)
 for p in "$HOME/Library/Application Support/Firefox/Profiles/"*/; do
   f="$p/user.js"
   [ -f "$f" ] && grep -q 'tweakd privacy' "$f" && rm -f "$f"
@@ -495,7 +495,7 @@ done
 Stops background scanning of photos/videos for objects and scenes (`mediaanalysisd`).
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.mediaanalysisd && launchctl bootout gui/$(id -u)/com.apple.mediaanalysisd
+launchctl disable gui/$(id -u)/com.apple.mediaanalysisd; launchctl bootout gui/$(id -u)/com.apple.mediaanalysisd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.mediaanalysisd
 ```
@@ -504,7 +504,7 @@ launchctl enable gui/$(id -u)/com.apple.mediaanalysisd
 Stops face recognition and Memories generation in Photos (`photoanalysisd`).
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.photoanalysisd && launchctl bootout gui/$(id -u)/com.apple.photoanalysisd
+launchctl disable gui/$(id -u)/com.apple.photoanalysisd; launchctl bootout gui/$(id -u)/com.apple.photoanalysisd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.photoanalysisd
 ```
@@ -599,7 +599,7 @@ routes every domain in it to `0.0.0.0` in `/etc/hosts`. System-wide — every br
 app, no extension needed.
 
 The block is written **between two markers**, so the rest of your `/etc/hosts` is
-preserved and revert removes only what tweakd added. It's idempotent (a re-run strips
+preserved and revert removes only what Tweakd added. It's idempotent (a re-run strips
 the old block first), and a failed or empty download leaves `/etc/hosts` untouched
 rather than half-written.
 
@@ -612,7 +612,7 @@ Revert is one command.
 # Apply / refresh — download the list and rebuild the marked block
 sudo /bin/zsh -c 'L=$(mktemp); T=$(mktemp); if curl -fsSL --max-time 30 https://raw.githubusercontent.com/StevenBlack/hosts/master/hosts -o "$L" && [ -s "$L" ]; then sed "/# tweakd-adblock-start/,/# tweakd-adblock-end/d" /etc/hosts > "$T"; echo "# tweakd-adblock-start" >> "$T"; grep "^0\.0\.0\.0 " "$L" >> "$T"; echo "# tweakd-adblock-end" >> "$T"; cat "$T" > /etc/hosts; dscacheutil -flushcache; killall -HUP mDNSResponder; fi; rm -f "$L" "$T"'
 
-# Revert — delete only tweakd's block
+# Revert — delete only Tweakd's block
 sudo sed -i '' '/# tweakd-adblock-start/,/# tweakd-adblock-end/d' /etc/hosts
 sudo dscacheutil -flushcache; sudo killall -HUP mDNSResponder
 
@@ -763,7 +763,7 @@ sudo renice -n 0 -p <pid>
 
 ### Apply at login (persistence)
 
-Because `renice` resets on reboot, tweakd's **Apply at login** option writes a
+Because `renice` resets on reboot, Tweakd's **Apply at login** option writes a
 per-target LaunchAgent that waits 15 seconds after login (so the target app has time
 to launch), then reapplies the same `renice` through a passwordless sudo rule. Below
 is the exact plist the app writes for Firefox — swap the label, path and `pgrep`
@@ -812,7 +812,7 @@ launchctl unload ~/Library/LaunchAgents/app.tweakd.priority.firefox.plist; rm ~/
 Boots out the Siri assistant agent (`assistantd`) and hides its menu bar item.
 ```bash
 # Apply
-defaults write com.apple.Siri StatusMenuVisible -bool false && launchctl disable gui/$(id -u)/com.apple.assistantd && launchctl bootout gui/$(id -u)/com.apple.assistantd
+defaults write com.apple.Siri StatusMenuVisible -bool false && launchctl disable gui/$(id -u)/com.apple.assistantd; launchctl bootout gui/$(id -u)/com.apple.assistantd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/com.apple.assistantd
 ```
@@ -821,7 +821,7 @@ defaults delete com.apple.Siri StatusMenuVisible; launchctl enable gui/$(id -u)/
 Stops `duetexpertd` — the on-device daemon behind Siri Suggestions and predicted actions.
 ```bash
 # Apply
-launchctl disable gui/$(id -u)/com.apple.duetexpertd && launchctl bootout gui/$(id -u)/com.apple.duetexpertd
+launchctl disable gui/$(id -u)/com.apple.duetexpertd; launchctl bootout gui/$(id -u)/com.apple.duetexpertd 2>/dev/null; true   # bootout returns 150 under SIP; the disable above is what sticks
 # Revert
 launchctl enable gui/$(id -u)/com.apple.duetexpertd
 ```
@@ -869,7 +869,7 @@ launchctl print-disabled gui/$(id -u) | grep photoanalysisd
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getglobalstate   # security & network
 ps -o pid,nice,comm -p $(pgrep mDNSResponder)                            # process priority
 ```
-tweakd does exactly this after every change — which is why it only marks a tweak
+Tweakd does exactly this after every change — which is why it only marks a tweak
 *Applied* when the system truly reports the new state.
 
 See also: [SAFETY.md](SAFETY.md) · [FAQ.md](FAQ.md) · [ARCHITECTURE.md](ARCHITECTURE.md)
