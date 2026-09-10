@@ -105,7 +105,7 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 	<key>CFBundleShortVersionString</key><string>${VERSION}</string>
 	<key>CFBundleVersion</key><string>${VERSION}+${COMMIT_HASH}</string>
 	<key>CFBundleIconFile</key><string>AppIcon</string>
-	<key>LSMinimumSystemVersion</key><string>14.0</string>
+	<key>LSMinimumSystemVersion</key><string>15.0</string>
 	<key>LSUIElement</key><false/>
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>

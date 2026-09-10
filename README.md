@@ -114,8 +114,14 @@ See [docs/FAQ.md](docs/FAQ.md#it-used-to-be-called-mactweak).
 
 ## Build & run
 
-Requirements: **macOS 15+** and **Xcode 16+** (Swift 6 toolchain, Swift 5 language
-mode; SwiftUI + Swift Charts).
+Requirements: **macOS 15+** on **Apple silicon** and **Xcode 16+** (Swift 6
+toolchain, Swift 5 language mode; SwiftUI + Swift Charts).
+
+`app/build.sh` runs a plain `swift build`, which produces a binary for the host
+architecture only — on an Apple silicon Mac that is an **arm64 slice, not a
+universal binary**, so the result will not launch on Intel. Building for both
+would mean `swift build --arch arm64 --arch x86_64`; nothing here does that
+today, and the website says Apple silicon for that reason.
 
 ```bash
 # compile, bundle into app/build/tweakd.app, and launch (default)
