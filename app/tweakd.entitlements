@@ -5,8 +5,25 @@
 	<!--
 	  Intentionally NOT sandboxed. tweakd spawns system tools (pmset, mdutil,
 	  launchctl, defaults) and escalates via the native authorization prompt,
-	  none of which is possible inside the App Sandbox. This is a personal,
-	  locally-signed build — not for the Mac App Store.
+	  none of which is possible inside the App Sandbox. Direct distribution
+	  (Developer ID + notarisation), never the Mac App Store.
+
+	  Everything below is what the Hardened Runtime — mandatory for
+	  notarisation — needs relaxed. Nothing else: the app never JITs, never
+	  loads third-party dylibs, and runs every privileged command as a *child
+	  process* (/usr/bin/sudo, /usr/bin/osascript), so library validation and
+	  the executable-memory restrictions don't apply to us.
 	-->
+
+	<!--
+	  Disk Cleanup's "Empty Trash" shells out to
+	  `osascript -e 'tell application "Finder" to empty trash'`.
+	  osascript is the process sending the Apple event, but TCC attributes it
+	  to the *responsible* process — us. Without this the event is rejected
+	  under the Hardened Runtime with errAEEventNotPermitted (-1743) and the
+	  trash silently never empties.
+	-->
+	<key>com.apple.security.automation.apple-events</key>
+	<true/>
 </dict>
 </plist>

@@ -10,9 +10,33 @@
 # Usage:
 #   scripts/package-dmg.sh          # build the app first if needed, then package
 #   scripts/package-dmg.sh --skip-build
+#   scripts/package-dmg.sh --no-notarize   # skip the Apple round-trip (local test only)
+#
+# Notarisation
+# ------------
+# A .dmg that is merely signed still trips Gatekeeper on a Mac that has never
+# seen it: "cannot be opened because the developer cannot be verified". The fix
+# is Apple's notary service, and the sequence matters —
+#
+#   1. the .app is signed with Developer ID + Hardened Runtime   (app/build.sh)
+#   2. the .dmg is built, then signed with the same identity
+#   3. the .dmg is submitted to notarytool and we wait for the verdict
+#   4. `stapler staple` writes the resulting ticket *into* the .dmg
+#
+# Step 4 is what makes the download work offline and behind captive portals:
+# without a stapled ticket the receiving Mac has to reach Apple to check, and
+# a first launch with no network fails. Stapling the .dmg also covers the .app
+# inside it, so there is no second staple to remember.
+#
+# One-time setup (the credentials live in the keychain, not in this repo):
+#
+#   xcrun notarytool store-credentials "tweakd" \
+#     --apple-id "<your Apple ID>" \
+#     --team-id "BXH6425K7L" \
+#     --password "<app-specific password from appleid.apple.com>"
 #
 # Output:
-#   dist/Tweakd-<version>.dmg
+#   dist/Tweakd-<version>.dmg   (signed, notarised, stapled)
 #
 set -euo pipefail
 
@@ -20,9 +44,15 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
 SKIP_BUILD=false
+NOTARIZE=true
+# The keychain profile created by `notarytool store-credentials`. Overridable
+# so a second machine or a CI box can use its own.
+NOTARY_PROFILE="${TWEAKD_NOTARY_PROFILE:-tweakd}"
+
 for arg in "$@"; do
   case "$arg" in
-    --skip-build) SKIP_BUILD=true ;;
+    --skip-build)  SKIP_BUILD=true ;;
+    --no-notarize) NOTARIZE=false ;;
     -h|--help) grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "Unknown argument: $arg (use --help)"; exit 1 ;;
   esac
@@ -67,12 +97,90 @@ hdiutil create \
   -ov -format UDZO \
   "$DMG" >/dev/null
 
+# ----- sign, notarise, staple ------------------------------------------------
+# Resolve the identity the same way app/build.sh does, so the .app inside and
+# the .dmg around it are never signed by two different certificates.
+SIGN_IDENTITY="${TWEAKD_SIGN_IDENTITY:-}"
+if [ -z "$SIGN_IDENTITY" ]; then
+  SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
+    | awk -F'"' '/Developer ID Application/ { print $2; exit }')"
+fi
+
+if [ -z "$SIGN_IDENTITY" ] || [ "$SIGN_IDENTITY" = "-" ]; then
+  echo
+  echo "WARNING: no Developer ID Application certificate in the keychain."
+  echo "         This .dmg is unsigned and un-notarised. Gatekeeper will refuse"
+  echo "         it on every Mac except this one. Do NOT publish it."
+  NOTARIZE=false
+else
+  # Refuse to notarise a .dmg wrapped around an ad-hoc .app. The notary service
+  # would reject it anyway, but it does so after a two-minute upload and with a
+  # log URL instead of a sentence.
+  if ! codesign --verify --strict "$APP" 2>/dev/null \
+     || codesign -dv "$APP" 2>&1 | /usr/bin/grep -q 'Signature=adhoc'; then
+    echo "ERROR: ${APP} is not Developer ID signed (ad-hoc or unsigned)."
+    echo "       Rebuild without --skip-build so app/build.sh signs it properly."
+    exit 1
+  fi
+  echo "==> signing ${DMG}"
+  echo "    identity: ${SIGN_IDENTITY}"
+  codesign --force --sign "$SIGN_IDENTITY" --timestamp "$DMG"
+  codesign --verify --strict --verbose=1 "$DMG" 2>&1 | sed 's/^/    /'
+fi
+
+if [ "$NOTARIZE" = true ]; then
+  if ! xcrun notarytool history --keychain-profile "$NOTARY_PROFILE" >/dev/null 2>&1; then
+    echo
+    echo "ERROR: no notarytool keychain profile named '${NOTARY_PROFILE}'."
+    echo "       Create it once with:"
+    echo
+    echo "         xcrun notarytool store-credentials \"${NOTARY_PROFILE}\" \\"
+    echo "           --apple-id \"<your Apple ID>\" \\"
+    echo "           --team-id \"BXH6425K7L\" \\"
+    echo "           --password \"<app-specific password>\""
+    echo
+    echo "       Or re-run with --no-notarize (local testing only — the result"
+    echo "       must not be published)."
+    exit 1
+  fi
+
+  echo "==> submitting to Apple's notary service (this takes a few minutes)"
+  # --wait blocks until Apple returns a verdict. Without it the script "succeeds"
+  # while the submission is still queued, and we would staple nothing.
+  if ! xcrun notarytool submit "$DMG" \
+        --keychain-profile "$NOTARY_PROFILE" \
+        --wait \
+        --timeout 30m; then
+    echo
+    echo "ERROR: notarisation failed. Read the actual reason with:"
+    echo "         xcrun notarytool log <submission-id> --keychain-profile ${NOTARY_PROFILE}"
+    exit 1
+  fi
+
+  echo "==> stapling the ticket"
+  xcrun stapler staple "$DMG"
+
+  # The real check. `spctl --assess` is Gatekeeper itself, asked the same
+  # question a stranger's Mac will ask on first open — a clean notarytool run
+  # with a botched staple still fails here, which is the whole point.
+  echo "==> Gatekeeper assessment"
+  spctl --assess --type open --context context:primary-signature -vv "$DMG" 2>&1 | sed 's/^/    /'
+  xcrun stapler validate "$DMG" 2>&1 | sed 's/^/    /'
+else
+  echo "==> notarisation SKIPPED"
+fi
+
 SIZE="$(/usr/bin/du -h "$DMG" | awk '{print $1}')"
 SHA="$(shasum -a 256 "$DMG" | awk '{print $1}')"
 
 echo
 echo "==> ${DMG} (${SIZE})"
 echo "    sha256: ${SHA}"
+if [ "$NOTARIZE" = true ]; then
+  echo "    signed, notarised, stapled"
+else
+  echo "    NOT notarised — local testing only"
+fi
 echo
 echo "Publish:  scripts/release-download.sh"
 echo

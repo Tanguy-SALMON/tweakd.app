@@ -59,6 +59,45 @@ The Download button points at **`/api/download`**, a Pages Function
   `onRequestGet` and `onRequestHead`; without the HEAD export, HEAD falls
   through to the static handler and answers with the homepage.
 
+## Signing and notarisation
+
+The `.dmg` is public, so it must survive Gatekeeper on a Mac that has never
+seen it. Ad-hoc signing (`codesign --sign -`) does not — it produces
+*"Tweakd is damaged and can't be opened"*, which reads like a corrupt download
+and is unfixable by the person seeing it.
+
+- **Team `BXH6425K7L`**, cert *Developer ID Application: Tanguy SALMON*. This is
+  a different certificate from the *Apple Distribution* one used for the App
+  Store; only Developer ID works outside the store.
+- `app/build.sh` picks the identity out of the keychain automatically and signs
+  with `--options runtime --timestamp`. **Hardened Runtime is mandatory for
+  notarisation and can only be set at signing time.** With no cert present it
+  falls back to ad-hoc and says so. Force a lane with `TWEAKD_SIGN_IDENTITY`.
+- The only entitlement is `com.apple.security.automation.apple-events`, needed
+  because Disk Cleanup shells out to `osascript … "tell application \"Finder\"
+  to empty trash"` and TCC attributes that event to us, not to osascript.
+  Everything privileged runs as a *child process*, so library validation and the
+  executable-memory exceptions are not required — do not add them.
+- `scripts/package-dmg.sh` signs the image, submits it with `notarytool
+  --wait`, then **staples** the ticket. Stapling is what lets a first launch
+  work offline; without it the receiving Mac must reach Apple. Stapling the
+  `.dmg` covers the `.app` inside it.
+- `scripts/release-download.sh` refuses to upload a `.dmg` with no ticket
+  (`stapler validate` + `spctl --assess`). An un-notarised image uploads
+  perfectly happily and only fails days later on someone else's machine.
+
+One-time credential setup — an app-specific password from
+appleid.apple.com, stored in the keychain, never in the repo:
+
+```bash
+xcrun notarytool store-credentials "tweakd" \
+  --apple-id "<apple id>" --team-id "BXH6425K7L" \
+  --password "<app-specific password>"
+```
+
+`scripts/package-dmg.sh --no-notarize` skips the Apple round-trip for local
+testing. The result must not be published.
+
 Release, in order:
 
 ```bash

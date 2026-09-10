@@ -60,6 +60,24 @@ scripts/package-dmg.sh "${PKG_ARGS[@]+"${PKG_ARGS[@]}"}"
 [ -f "$DMG" ] || fail "Expected $DMG, not found"
 ok "$DMG"
 
+# Last gate before the artifact becomes public. An un-notarised .dmg uploads
+# just as happily as a notarised one, and the failure surfaces days later on
+# someone else's Mac as "Tweakd is damaged and can't be opened" — with no way
+# to tell from here that anything went wrong. `stapler validate` reads the
+# ticket embedded in the image, so it answers the actual question: will a Mac
+# that has never seen this file open it?
+step "Verify notarisation"
+if [ "$DRY_RUN" = false ]; then
+    xcrun stapler validate "$DMG" >/dev/null 2>&1 \
+        || fail "$DMG has no notarisation ticket. Gatekeeper will block it on every other Mac.
+       Re-run scripts/package-dmg.sh without --no-notarize."
+    spctl --assess --type open --context context:primary-signature "$DMG" >/dev/null 2>&1 \
+        || fail "$DMG fails Gatekeeper assessment despite having a ticket."
+    ok "Notarised and stapled"
+else
+    info "skipped (dry run)"
+fi
+
 step "Upload to R2"
 info "→ r2://${BUCKET}/${KEY}"
 run npx wrangler r2 object put "${BUCKET}/${KEY}" \

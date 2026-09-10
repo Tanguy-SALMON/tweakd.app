@@ -2,7 +2,8 @@
 #
 # build.sh — compile tweakd and wrap the SPM binary in a proper,
 # menu-bar-only macOS .app bundle (correct Info.plist, AppIcon, entitlements,
-# and the Finder hide-extension flag). Ad-hoc signed, not sandboxed.
+# and the Finder hide-extension flag). Not sandboxed. Signed with the
+# Developer ID cert when one is in the keychain, ad-hoc otherwise.
 #
 # Adapted from the Queried/SQLAgent build script so the same build mental
 # model carries across both projects — minus the brand/Pro/Lite flavor
@@ -109,6 +110,12 @@ cat > "${APP_BUNDLE}/Contents/Info.plist" <<PLIST
 	<key>LSUIElement</key><false/>
 	<key>NSHighResolutionCapable</key><true/>
 	<key>NSPrincipalClass</key><string>NSApplication</string>
+	<!-- Shown in the TCC prompt the first time Disk Cleanup asks Finder to
+	     empty the trash. Required alongside the apple-events entitlement:
+	     the entitlement permits the event, this string is what macOS puts in
+	     the consent dialog. Omit it and the prompt never appears — the app
+	     just gets denied. -->
+	<key>NSAppleEventsUsageDescription</key><string>Tweakd asks Finder to empty the Trash when you run Disk Cleanup.</string>
 </dict>
 </plist>
 PLIST
@@ -129,18 +136,56 @@ else
     echo "NOTE: no icon source found — app will use the generic icon."
 fi
 
-# ----- 4. ad-hoc sign with entitlements -------------------------------------
-# Ad-hoc signature ("-") + entitlements. Enough for local launch; real
-# distribution would need a Developer ID cert + notarisation.
-echo "==> ad-hoc codesign with entitlements"
-if [[ -f "tweakd.entitlements" ]]; then
+# ----- 4. codesign ----------------------------------------------------------
+# Two lanes, chosen by what's in the keychain:
+#
+#   Developer ID Application present  ->  real signature + Hardened Runtime +
+#                                         a trusted timestamp. This is the only
+#                                         thing `notarytool` will accept, and
+#                                         the only thing that opens on a Mac
+#                                         that isn't this one.
+#   nothing                           ->  ad-hoc ("-"), fine for local launch,
+#                                         rejected by Gatekeeper everywhere else.
+#
+# --options runtime is the load-bearing flag: notarisation *requires* the
+# Hardened Runtime, and it can only be turned on at signing time. See
+# app/tweakd.entitlements for why the apple-events exception is the only one.
+#
+# Override the identity with TWEAKD_SIGN_IDENTITY=... (e.g. to force ad-hoc
+# with TWEAKD_SIGN_IDENTITY=-).
+SIGN_IDENTITY="${TWEAKD_SIGN_IDENTITY:-}"
+if [[ -z "${SIGN_IDENTITY}" ]]; then
+    SIGN_IDENTITY="$(security find-identity -v -p codesigning 2>/dev/null \
+        | awk -F'"' '/Developer ID Application/ { print $2; exit }')"
+fi
+
+if [[ -n "${SIGN_IDENTITY}" && "${SIGN_IDENTITY}" != "-" ]]; then
+    echo "==> codesign (Developer ID, hardened runtime)"
+    echo "    identity: ${SIGN_IDENTITY}"
+    # --timestamp contacts Apple's timestamp server, so this step needs the
+    # network. A signature without one is accepted today and starts failing the
+    # day the certificate expires, which is precisely the failure you cannot
+    # debug two years from now — so treat a timestamp failure as fatal rather
+    # than silently downgrading.
+    codesign --force --sign "${SIGN_IDENTITY}" \
+        --entitlements "tweakd.entitlements" \
+        --options runtime \
+        --timestamp \
+        "${APP_BUNDLE}"
+    SIGNED_MODE="developer-id"
+else
+    echo "==> ad-hoc codesign (no Developer ID cert found — local use only)"
     codesign --force --sign - --entitlements "tweakd.entitlements" --timestamp=none "${APP_BUNDLE}" >/dev/null 2>&1 || {
         echo "WARNING: codesign with entitlements failed; retrying without."
         codesign --force --sign - "${APP_BUNDLE}" >/dev/null 2>&1 || true
     }
-else
-    codesign --force --sign - "${APP_BUNDLE}" >/dev/null 2>&1 || true
+    SIGNED_MODE="ad-hoc"
 fi
+
+# Verify what we actually produced rather than trusting codesign's exit code:
+# --strict --deep walks the whole bundle, and this is the cheapest place to
+# catch a signature that will only fail later, inside notarytool.
+codesign --verify --strict --deep --verbose=1 "${APP_BUNDLE}" 2>&1 | sed 's/^/    /'
 
 # ----- 5. mark the .app extension as hidden ---------------------------------
 # So Finder shows "tweakd" instead of "tweakd.app" even with
@@ -163,7 +208,10 @@ fi
 APP_FROM_ROOT="app/${APP_BUNDLE}"
 SIZE=$(du -sh "${APP_BUNDLE}" | awk '{print $1}')
 echo
-echo "==> built ${APP_FROM_ROOT} (${SIZE}, v${VERSION}+${COMMIT_HASH})"
+echo "==> built ${APP_FROM_ROOT} (${SIZE}, v${VERSION}+${COMMIT_HASH}, ${SIGNED_MODE})"
+if [[ "${SIGNED_MODE}" == "ad-hoc" ]]; then
+    echo "    NOTE: ad-hoc signed — Gatekeeper will refuse this on any other Mac."
+fi
 echo
 echo "Install:        cp -R ${APP_FROM_ROOT} /Applications/"
 echo "Verify bundle:  plutil -lint ${APP_FROM_ROOT}/Contents/Info.plist"
