@@ -4,6 +4,25 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.5] — 2026-09-10
+
+### Fixed — 0.10.3's 404 page could shadow /api/download
+
+Adding `web/404.html` alongside `not_found_handling = "404-page"` gave the asset
+router something to answer with, and `/api/download` matches no file in `web/` —
+so the router could resolve the request to the 404 page **before the Worker
+script ran**, turning the Download button into "That page doesn't exist."
+
+`run_worker_first = ["/api/*"]` routes the prefix to the Worker explicitly, so
+the download no longer depends on which layer wins. The 404 page still works for
+genuinely missing paths.
+
+### Changed — the header button downloads instead of scrolling
+
+The hero button and the nav item pointed at `#get`, which scrolled to the bottom
+block rather than fetching anything. All three Download links now hit
+`/api/download`.
+
 ## [0.10.4] — 2026-09-10
 
 ### Fixed — the site promised Intel support the build has never produced
