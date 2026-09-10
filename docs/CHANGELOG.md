@@ -4,6 +4,18 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Fixed — the ad-hoc guard passed the bundle it was meant to stop
+
+`package-dmg.sh` refuses to wrap an ad-hoc `.app`, but the check was
+`codesign -dv "$APP" 2>&1 | grep -q 'Signature=adhoc'` under `set -o pipefail`.
+`grep -q` exits the moment it matches, `codesign` dies of SIGPIPE, and pipefail
+reports the rightmost failure — so the pipeline returned **141 because the
+pattern matched**, and the guard read a successful match as "not ad-hoc".
+
+Caught by running the guard against a deliberately ad-hoc build; it packaged it
+without complaint. Now reads the signature into a variable and matches with
+`case`, so there is no pipeline to misreport.
+
 ## [0.10.6] — 2026-09-10
 
 ### Added — the download is signed with a Developer ID and notarised by Apple

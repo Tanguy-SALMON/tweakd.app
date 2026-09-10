@@ -118,10 +118,23 @@ else
   # Refuse to notarise a .dmg wrapped around an ad-hoc .app. The notary service
   # would reject it anyway, but it does so after a two-minute upload and with a
   # log URL instead of a sentence.
-  if ! codesign --verify --strict "$APP" 2>/dev/null \
-     || codesign -dv "$APP" 2>&1 | /usr/bin/grep -q 'Signature=adhoc'; then
-    echo "ERROR: ${APP} is not Developer ID signed (ad-hoc or unsigned)."
-    echo "       Rebuild without --skip-build so app/build.sh signs it properly."
+  #
+  # Read the signature into a variable rather than piping into `grep -q`.
+  # Under `set -o pipefail` that pipeline is unreliable: grep -q exits the
+  # instant it matches, codesign dies of SIGPIPE, and pipefail reports the
+  # rightmost failure — so the pipeline returns 141 *because* the pattern
+  # matched. The guard read a successful match as "not ad-hoc" and packaged
+  # the unsigned bundle anyway.
+  APP_SIG="$(codesign -dv "$APP" 2>&1 || true)"
+  case "$APP_SIG" in
+    *"Signature=adhoc"*|*"not signed"*|*"code object is not signed"*)
+      echo "ERROR: ${APP} is not Developer ID signed (ad-hoc or unsigned)."
+      echo "       Rebuild without --skip-build so app/build.sh signs it properly."
+      exit 1
+      ;;
+  esac
+  if ! codesign --verify --strict "$APP" 2>/dev/null; then
+    echo "ERROR: ${APP} fails signature verification."
     exit 1
   fi
   echo "==> signing ${DMG}"
