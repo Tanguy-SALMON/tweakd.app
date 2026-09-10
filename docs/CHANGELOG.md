@@ -4,6 +4,17 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.1] — 2026-09-10
+
+### Documented — the download machinery 0.10.0 added
+
+`README.md` and `docs/ARCHITECTURE.md` still described a repo with no
+`functions/`, no `wrangler.toml`, no `dist/`, and a `scripts/` holding two files
+instead of four. Both layouts now match what's on disk, and the README gains a
+short "Publishing a release" section: `release-download.sh` then
+`release-website.sh`, with the reason the first one re-reads
+`X-Tweakd-Version` from the live endpoint rather than trusting the upload.
+
 ## [0.10.0] — 2026-09-10
 
 ### Added — the Download button actually downloads
