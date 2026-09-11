@@ -4,6 +4,8 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.7] — 2026-09-10
+
 ### Fixed — the ad-hoc guard passed the bundle it was meant to stop
 
 `package-dmg.sh` refuses to wrap an ad-hoc `.app`, but the check was
@@ -15,6 +17,31 @@ pattern matched**, and the guard read a successful match as "not ad-hoc".
 Caught by running the guard against a deliberately ad-hoc build; it packaged it
 without complaint. Now reads the signature into a variable and matches with
 `case`, so there is no pipeline to misreport.
+
+### Added — one release entry point, matching the other projects
+
+`scripts/release.sh` (with `--apps-only`, `--web-only`, `--dry-run`,
+`--no-bump`) and the `scripts/release-site.sh` shim, in the same shape as the
+SQLAgent/MyD1 scripts — reaching for `./scripts/release-site.sh` here used to
+find nothing. The bump moves `app/VERSION` and the `web/index.html` version
+pills together and then checks they agree, because doing that by hand in two
+places is what let the site advertise v0.4.0 for six weeks.
+
+Neither script reimplements the pipeline: `release-download.sh` and
+`release-website.sh` keep the verification that makes them worth trusting and
+stay runnable directly.
+
+### Added — CI checks
+
+`.github/workflows/checks.yml`: the website version against `app/VERSION`, the
+advertised catalog size against `TweakCatalog.swift`, no GitHub links on the
+site, the Download buttons still pointing at `/api/download`, and both front
+doors still deployed together — each one a regression that has happened here.
+Cheap text checks run on Linux; only `swift build` takes a macOS runner, which
+GitHub bills at 10x.
+
+No signing key, Apple credential or Cloudflare token goes into CI. Releases
+stay on the maintainer's Mac, where the Developer ID private key already lives.
 
 ## [0.10.6] — 2026-09-10
 
