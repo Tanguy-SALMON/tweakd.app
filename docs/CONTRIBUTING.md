@@ -11,16 +11,16 @@ mode; SwiftUI + Swift Charts).
 
 ```bash
 # compile, bundle into app/build/tweakd.app, and launch (default)
-app/build.sh
+scripts/build.sh
 
 # build + bundle without launching
-app/build.sh --no-launch
+scripts/build.sh --no-launch
 
 # debug build
-app/build.sh --debug
+scripts/build.sh --debug
 
 # all flags
-app/build.sh --help
+scripts/build.sh --help
 ```
 
 The script kills any running instance, compiles the `.icns` from

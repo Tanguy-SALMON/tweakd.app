@@ -10,11 +10,11 @@
 # machinery tweakd doesn't have.
 #
 # Usage:
-#   app/build.sh               # release build, then auto-launch
-#   app/build.sh --debug       # debug build, then auto-launch
-#   app/build.sh --no-launch   # release build, do NOT launch
-#   app/build.sh run           # alias for the default (build + launch)
-#   app/build.sh --help        # show this header
+#   scripts/build.sh               # release build, then auto-launch
+#   scripts/build.sh --debug       # debug build, then auto-launch
+#   scripts/build.sh --no-launch   # release build, do NOT launch
+#   scripts/build.sh run           # alias for the default (build + launch)
+#   scripts/build.sh --help        # show this header
 #
 # Flags can combine; order does not matter.
 #
@@ -24,12 +24,12 @@
 #
 set -euo pipefail
 
-# Run from app/ — this script's own directory — so `swift build` finds
+# Run from app/ — NOT this script's own directory — so `swift build` finds
 # Package.swift, and Resources/, VERSION and tweakd.entitlements resolve,
-# regardless of where the user invoked us from. (Before the repo adopted the
-# shared app/ web/ docs/ layout this was `dirname "$0"/..`, because the script
-# lived in Scripts/ and the package sat at the repo root; now both are in app/.)
-cd "$(dirname "$0")"
+# regardless of where the user invoked us from. The script itself lives in
+# scripts/ alongside release.sh, so everything that acts on the project is
+# reachable from one place; the `cd` is what keeps that free.
+cd "$(dirname "$0")/../app"
 
 # ----- flags -----------------------------------------------------------------
 CONFIG="release"

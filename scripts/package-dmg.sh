@@ -18,7 +18,7 @@
 # seen it: "cannot be opened because the developer cannot be verified". The fix
 # is Apple's notary service, and the sequence matters —
 #
-#   1. the .app is signed with Developer ID + Hardened Runtime   (app/build.sh)
+#   1. the .app is signed with Developer ID + Hardened Runtime   (scripts/build.sh)
 #   2. the .dmg is built, then signed with the same identity
 #   3. the .dmg is submitted to notarytool and we wait for the verdict
 #   4. `stapler staple` writes the resulting ticket *into* the .dmg
@@ -69,7 +69,7 @@ trap 'rm -rf "$STAGE"' EXIT
 
 if [ "$SKIP_BUILD" = false ] || [ ! -d "$APP" ]; then
   echo "==> building v${VERSION}"
-  app/build.sh --no-launch >/dev/null
+  scripts/build.sh --no-launch >/dev/null
 fi
 
 [ -d "$APP" ] || { echo "ERROR: $APP not found"; exit 1; }
@@ -100,7 +100,7 @@ hdiutil create \
   "$DMG" >/dev/null
 
 # ----- sign, notarise, staple ------------------------------------------------
-# Resolve the identity the same way app/build.sh does, so the .app inside and
+# Resolve the identity the same way scripts/build.sh does, so the .app inside and
 # the .dmg around it are never signed by two different certificates.
 SIGN_IDENTITY="${TWEAKD_SIGN_IDENTITY:-}"
 if [ -z "$SIGN_IDENTITY" ]; then
@@ -129,7 +129,7 @@ else
   case "$APP_SIG" in
     *"Signature=adhoc"*|*"not signed"*|*"code object is not signed"*)
       echo "ERROR: ${APP} is not Developer ID signed (ad-hoc or unsigned)."
-      echo "       Rebuild without --skip-build so app/build.sh signs it properly."
+      echo "       Rebuild without --skip-build so scripts/build.sh signs it properly."
       exit 1
       ;;
   esac

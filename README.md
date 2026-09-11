@@ -117,7 +117,7 @@ See [docs/FAQ.md](docs/FAQ.md#it-used-to-be-called-mactweak).
 Requirements: **macOS 15+** on **Apple silicon** and **Xcode 16+** (Swift 6
 toolchain, Swift 5 language mode; SwiftUI + Swift Charts).
 
-`app/build.sh` runs a plain `swift build`, which produces a binary for the host
+`scripts/build.sh` runs a plain `swift build`, which produces a binary for the host
 architecture only — on an Apple silicon Mac that is an **arm64 slice, not a
 universal binary**, so the result will not launch on Intel. Building for both
 would mean `swift build --arch arm64 --arch x86_64`; nothing here does that
@@ -125,19 +125,19 @@ today, and the website says Apple silicon for that reason.
 
 ```bash
 # compile, bundle into app/build/tweakd.app, and launch (default)
-app/build.sh
+scripts/build.sh
 
 # build + bundle without launching
-app/build.sh --no-launch
+scripts/build.sh --no-launch
 
 # debug build
-app/build.sh --debug
+scripts/build.sh --debug
 ```
 
 The script kills any running instance first, compiles the `.icns` from
 `app/Resources/AppIcon.iconset`, ad-hoc signs with `app/tweakd.entitlements`, stamps
 the bundle version with the short git commit, and hides the `.app` extension in
-Finder. Run `app/build.sh --help` for all flags.
+Finder. Run `scripts/build.sh --help` for all flags.
 
 Or open `app/Package.swift` in Xcode and hit Run (note: running the bare SPM executable
 skips the `Info.plist`, so use the script for the real menu-bar experience).
@@ -204,7 +204,7 @@ sysctls/keys that don't exist rather than shipping dead toggles.
 
 ```bash
 swift scripts/make_icon.swift app/Resources/AppIcon.png
-# then rebuild the .icns (see the iconset steps) and run app/build.sh
+# then rebuild the .icns (see the iconset steps) and run scripts/build.sh
 ```
 
 ## Project layout
@@ -214,7 +214,7 @@ of thing is always in the same place:
 
 | Directory | Holds |
 |---|---|
-| `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, `build.sh`, entitlements |
+| `app/` | the application — `Package.swift`, `Sources/`, `Resources/`, `VERSION`, entitlements |
 | `web/` | the website: `index.html`, `privacy.html`, `terms.html`, `icon.png` — deployed by `scripts/release-website.sh` to both tweakd.app (a Worker) and the `tweakd-app` Pages project |
 | `docs/` | all markdown — the tweak/service references, `backlog/`, `CHANGELOG.md`, `CONTRIBUTING.md` |
 | `functions/` | Cloudflare Pages Functions — `api/download.js` serves the current `.dmg` from R2 |
@@ -240,7 +240,7 @@ app/Sources/Tweakd/
               MainWindow, Components (Gauges — HeroHeader, MetricMeter, StatTile,
               Sparkline, cpuHistoryMarks; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
-app/build.sh                 build, bundle, ad-hoc sign, launch
+scripts/build.sh                 build, bundle, ad-hoc sign, launch
 scripts/make_icon.swift      regenerate AppIcon.png
 scripts/package-dmg.sh       .app -> dist/Tweakd-<version>.dmg
 scripts/release-download.sh  package, upload to R2, verify the live endpoint

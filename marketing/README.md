@@ -31,7 +31,7 @@ The app must already be running — a window caught mid-launch shows empty panes
 and a spinner.
 
 ```bash
-app/build.sh                              # build and launch
+scripts/build.sh                              # build and launch
 scripts/shot/capture.sh --list            # what is on screen
 scripts/shot/capture.sh --name dashboard  # → marketing/shots/dashboard@2x.png
 ```

@@ -30,7 +30,7 @@ app/Sources/Tweakd/
               MainWindow, Components (Gauges — HeroHeader, MetricMeter,
               StatTile, Sparkline; ThermalCard, BetaWarningDialog)
   Onboarding/ OnboardingView
-app/build.sh  build, bundle, ad-hoc sign, launch
+scripts/build.sh  build, bundle, ad-hoc sign, launch
 scripts/      make_icon.swift, release-website.sh, package-dmg.sh,
               release-download.sh
 web/          index.html, privacy.html, terms.html — deployed by
@@ -426,7 +426,7 @@ excluded): **Balanced · Performance · Snappy UI · Battery · Privacy · AI / 
 
 ## Build
 
-`app/build.sh` compiles, bundles into `app/build/tweakd.app`, generates the
+`scripts/build.sh` compiles, bundles into `app/build/tweakd.app`, generates the
 `Info.plist` (stamping `CFBundleVersion` with the git commit), builds the `.icns`,
 ad-hoc signs with `app/tweakd.entitlements`, and launches. Flags: `--no-launch`,
 `--debug`, `--help`. See [CONTRIBUTING.md](CONTRIBUTING.md).

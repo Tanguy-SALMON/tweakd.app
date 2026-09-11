@@ -3,17 +3,18 @@
 ## Repo layout
 
 ```
-app/        Swift package + build.sh (produces app/build/tweakd.app)
+app/        Swift package and Resources (the build output lands in app/build/)
 app/VERSION single line, e.g. 0.9.3 — the build stamps this into the bundle
 web/        index.html, privacy.html, terms.html — the public site
 docs/       the Markdown reference (TWEAKS.md, TOOLS.md, SAFETY.md, …)
-scripts/    release.sh (entry point), release-site.sh, release-download.sh,
-            release-website.sh, package-dmg.sh, make_icon.swift
+scripts/    build.sh (entry point), release.sh (entry point), release-site.sh,
+            release-download.sh, release-website.sh, package-dmg.sh,
+            make_icon.swift
 scripts/shot/  capture.sh (app screenshots), snap.swift (html->png), winlist.swift
 marketing/  shots/ and hero/ — presentation assets, nothing the build needs
 ```
 
-Build: `app/build.sh --no-launch` (release) — `app/build.sh` also launches.
+Build: `scripts/build.sh --no-launch` (release) — `scripts/build.sh` also launches.
 
 ## The website has TWO front doors, deployed two different ways
 
@@ -72,7 +73,7 @@ and is unfixable by the person seeing it.
 - **Team `BXH6425K7L`**, cert *Developer ID Application: Tanguy SALMON*. This is
   a different certificate from the *Apple Distribution* one used for the App
   Store; only Developer ID works outside the store.
-- `app/build.sh` picks the identity out of the keychain automatically and signs
+- `scripts/build.sh` picks the identity out of the keychain automatically and signs
   with `--options runtime --timestamp`. **Hardened Runtime is mandatory for
   notarisation and can only be set at signing time.** With no cert present it
   falls back to ad-hoc and says so. Force a lane with `TWEAKD_SIGN_IDENTITY`.

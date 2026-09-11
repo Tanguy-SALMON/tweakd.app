@@ -131,7 +131,7 @@ jobs:
       # path. That is deliberate: this proves the bundle assembles, not that it
       # is publishable. Signing and notarisation happen on the maintainer's Mac.
       - name: Assemble the .app bundle
-        run: TWEAKD_SIGN_IDENTITY=- app/build.sh --no-launch
+        run: TWEAKD_SIGN_IDENTITY=- scripts/build.sh --no-launch
 
       - name: Info.plist is valid and matches app/VERSION
         run: |

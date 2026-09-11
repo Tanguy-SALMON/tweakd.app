@@ -4,6 +4,20 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Changed — the build script moved to `scripts/build.sh`
+
+It was `app/build.sh`, which meant the two things you actually run on this
+project lived in different places and only one of them was where you would look
+for it. Everything that acts on the project is now under `scripts/`:
+`build.sh`, `release.sh`, `release-site.sh`, and the rest.
+
+The script still `cd`s into `app/` before doing anything, so `swift build`
+finds `Package.swift` and `Resources/`, `VERSION` and `tweakd.entitlements`
+resolve as before. The output path is unchanged — `app/build/tweakd.app`.
+
+Earlier changelog entries still say `app/build.sh`; they were accurate when
+written and are left as the historical record.
+
 ## [0.10.7] — 2026-09-10
 
 ### Fixed — the ad-hoc guard passed the bundle it was meant to stop
