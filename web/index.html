@@ -266,6 +266,34 @@
     .btn { width: 100%; justify-content: center; }
     footer { padding: 36px 0 48px; font-size: 11.5px; }
   }
+
+  /* ---- product shot -------------------------------------------------------
+     Captured from a real build with scripts/shot/capture.sh, not a mockup.
+     The source lives in marketing/shots/; only the resized copy ships in web/,
+     because wrangler uploads this directory and nothing else. */
+  .shot-section { padding: 0 0 12px; }
+  .shot-frame {
+    max-width: 960px;
+    margin: 0 auto;
+    border-radius: 14px;
+    overflow: hidden;
+    /* screencapture -o writes the window without its drop shadow, so the depth
+       is added here and can be retuned without re-shooting. */
+    box-shadow: 0 30px 60px rgba(0,0,0,0.16), 0 0 0 1px var(--hairline);
+  }
+  .shot-frame img { display: block; width: 100%; height: auto; }
+  .shot-caption {
+    text-align: center;
+    margin-top: 18px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+  @media (prefers-color-scheme: dark) {
+    .shot-frame { box-shadow: 0 30px 60px rgba(0,0,0,0.5), 0 0 0 1px var(--hairline); }
+  }
+  @media (max-width: 760px) {
+    .shot-frame { border-radius: 10px; }
+  }
 </style>
 </head>
 <body>
@@ -300,6 +328,15 @@
   </div>
   <span class="pill">macOS 15+ · Menu bar · Reversible · 51 tweaks + 9 actions</span>
 </div></header>
+
+<section class="shot-section"><div class="wrap">
+  <div class="shot-frame">
+    <img src="shot-dashboard.png" width="1800" height="1181"
+         alt="Tweakd's dashboard: live CPU, GPU and memory charts, network throughput, and a sidebar listing each tweak category with how many are applied."
+         loading="lazy" decoding="async">
+  </div>
+  <p class="shot-caption">The dashboard, on a real Mac. Every number is read live from the system.</p>
+</div></section>
 
 <section id="about"><div class="wrap">
   <p class="eyebrow">What it does</p>

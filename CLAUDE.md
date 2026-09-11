@@ -9,6 +9,8 @@ web/        index.html, privacy.html, terms.html — the public site
 docs/       the Markdown reference (TWEAKS.md, TOOLS.md, SAFETY.md, …)
 scripts/    release.sh (entry point), release-site.sh, release-download.sh,
             release-website.sh, package-dmg.sh, make_icon.swift
+scripts/shot/  capture.sh (app screenshots), snap.swift (html->png), winlist.swift
+marketing/  shots/ and hero/ — presentation assets, nothing the build needs
 ```
 
 Build: `app/build.sh --no-launch` (release) — `app/build.sh` also launches.
@@ -139,6 +141,31 @@ is broken, so trusting the upload alone is not a check.
 - The hero pill quotes the catalog size. Verify it against
   `app/Sources/Tweakd/Models/TweakCatalog.swift` before changing it
   (`static let all` and `static let actions`) — it was wrong once already.
+
+## Marketing assets
+
+`marketing/` at the repo root holds anything used to *present* Tweakd and
+nothing the app or site needs to run — `shots/` for screenshots, `hero/` for
+hero art. The test: if removing it breaks a build or a page, it does not belong
+there. `app/Resources/AppIcon.*` is a build input and `web/icon.png` is served
+to browsers, so both stay where they are.
+
+Screenshots are captured from a real running build:
+
+```bash
+scripts/shot/capture.sh --list            # window IDs currently on screen
+scripts/shot/capture.sh --name dashboard  # -> marketing/shots/dashboard@2x.png
+```
+
+**Screen Recording denial is silent.** `screencapture` writes the desktop
+wallpaper and exits 0, so never trust its exit code — a real window capture is
+exactly 2x the size `--list` reports, which is why `capture.sh` prints the
+dimensions.
+
+Screenshots are committed (they depend on live system state and cannot be
+reproduced on demand); rendered hero art is gitignored (one command rebuilds it
+from `hero.html` + a screenshot). Only the resized copy in `web/` ships —
+`wrangler` uploads `web/` and nothing else.
 
 ## Gotchas
 

@@ -1,0 +1,18 @@
+# Rendered hero art. Fully derived from hero.html + shots/, and regenerated in
+# one command:
+#
+#   swift scripts/shot/snap.swift marketing/hero/hero.html \
+#     marketing/hero/hero@2x.png 1600 900
+#
+# At ~4 MB a copy, and re-rendered every time the copy or the screenshot
+# changes, committing it would add several MB to every future clone for a file
+# that is never the source of truth. The screenshots it composes ARE kept —
+# those depend on live system state and cannot be reproduced on demand.
+hero@*.png
+
+# Large exports are generated for a specific store listing, not kept.
+*-5k.png
+*@4x.png
+*.mov
+*.mp4
+.DS_Store

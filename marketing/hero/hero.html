@@ -1,0 +1,94 @@
+<!doctype html>
+<!--
+  Hero art source. Rendered to PNG by WebKit so the type is real type:
+
+    swift scripts/shot/snap.swift marketing/hero/hero.html \
+      marketing/hero/hero@2x.png 1600 900
+
+  The screenshot is pulled from ../shots/, which is why snap.swift grants read
+  access two directories up. Palette matches web/index.html — --accent #F54900
+  through --accent-deep #E7000E.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    width: 1600px;
+    height: 900px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* Rendered with a transparent WKWebView background, so this gradient is
+       the only thing painting the canvas — no white box travels with the PNG
+       if a corner is ever rounded. */
+    background: linear-gradient(135deg, #F54900 0%, #E7000E 100%);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+  }
+
+  .stage { display: flex; align-items: center; gap: 80px; padding: 0 90px; }
+
+  .copy { width: 480px; flex: none; color: #fff; }
+
+  .mark {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 30px;
+  }
+  .mark svg { width: 60px; height: 60px; }
+  .mark span { font-size: 40px; font-weight: 700; letter-spacing: -0.02em; }
+
+  h1 {
+    font-size: 62px; line-height: 1.05; font-weight: 700;
+    letter-spacing: -0.03em; margin-bottom: 24px;
+  }
+
+  p {
+    font-size: 25px; line-height: 1.45; font-weight: 400;
+    color: rgba(255,255,255,0.88);
+  }
+
+  .note {
+    margin-top: 34px; font-size: 19px; color: rgba(255,255,255,0.7);
+  }
+
+  .shot {
+    flex: none;
+    width: 830px;
+    border-radius: 15px;
+    /* The capture is taken with `screencapture -o`, i.e. shadowless, so the
+       depth is added here where it can be tuned without re-shooting. */
+    box-shadow: 0 50px 100px rgba(0,0,0,0.42), 0 0 0 1px rgba(255,255,255,0.12);
+    display: block;
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="copy">
+      <div class="mark">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <rect width="100" height="100" rx="23.4" fill="rgba(255,255,255,0.18)"/>
+          <g stroke="#fff" stroke-width="6.5" stroke-linecap="round">
+            <line x1="24" y1="34" x2="76" y2="34"/>
+            <line x1="24" y1="50" x2="76" y2="50"/>
+            <line x1="24" y1="66" x2="76" y2="66"/>
+          </g>
+          <g fill="none" stroke="#fff" stroke-width="5">
+            <circle cx="42" cy="34" r="7.5"/>
+            <circle cx="60" cy="50" r="7.5"/>
+            <circle cx="38" cy="66" r="7.5"/>
+          </g>
+        </svg>
+        <span>Tweakd</span>
+      </div>
+      <h1>Your Mac,<br>tuned your way.</h1>
+      <p>51 reversible tweaks and 9 actions, in one menu-bar app. Every change shows the exact command it runs.</p>
+      <div class="note">macOS 15+ · Apple silicon</div>
+    </div>
+    <img class="shot" src="../shots/dashboard@2x.png" alt="Tweakd dashboard">
+  </div>
+</body>
+</html>
