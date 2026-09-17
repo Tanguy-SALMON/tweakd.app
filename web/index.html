@@ -359,8 +359,11 @@
     security tweaks it switches on for you. <b>Balanced</b>, the default, turns on only the ones rated
     <em>Safe</em> — the ones that harden the firewall and DNS without costing you anything you would notice.
     <b>Security-Hardened</b> turns on every security tweak, including the ones rated Moderate or Advanced, which
-    do trade a convenience away: stealth mode makes your Mac stop answering pings, and a locked-down firewall can
-    block an app that expects an incoming connection. <b>Performance-First</b> turns on none of them, and lets the
+    do trade a convenience away. Concretely, in <b>System Settings &rsaquo; Network &rsaquo; Firewall</b>: Balanced
+    gets you the firewall itself plus <em>Enable stealth mode</em>, so your Mac stops answering pings;
+    Security-Hardened also switches off both <em>&ldquo;Automatically allow &hellip; to receive incoming
+    connections&rdquo;</em> options, after which every app &mdash; Apple&rsquo;s included &mdash; has to be approved
+    before it can accept an inbound connection. <b>Performance-First</b> turns on none of them, and lets the
     performance-tagged tweaks win wherever the two disagree. Whichever you choose, the next screen lists every
     tweak it selected before anything is applied, and each one keeps its one-click revert.</p>
   </div>
@@ -759,7 +762,7 @@ done</code><button>Copy</button></div>
 
   <div class="tweak">
     <div class="th"><h3>Block Auto-Allow Signed Apps</h3><span class="badge sudo">sudo</span><span class="badge note">moderate · more firewall prompts</span><span class="gain"><svg viewBox="0 0 24 24"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="m9 12.8 1.8 1.8 3.4-3.6"/></svg>Hardened<svg class="up" viewBox="0 0 24 24"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg></span></div>
-    <p class="desc">Stops the firewall from automatically trusting Apple-signed and developer-signed apps — every app has to be approved individually, at the cost of more "Allow incoming connections?" prompts.</p>
+    <p class="desc">Turns off both <b>&ldquo;Automatically allow &hellip; to receive incoming connections&rdquo;</b> switches in <b>System Settings &rsaquo; Network &rsaquo; Firewall</b> &mdash; the one for built-in software and the one for downloaded signed software. Every app then has to be approved individually, at the cost of more &ldquo;Allow incoming connections?&rdquo; prompts.<br><b>Note the Check command prints two lines</b>, one per switch. Both must read <span class="inline-code">DISABLED</span>; flipping either one back on in System Settings undoes half of this.</p>
     <div class="cmd apply"><span class="lbl">Apply</span><code>sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned off --setallowsignedapp off</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Revert</span><code>sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setallowsignedapp on</code><button>Copy</button></div>
     <div class="cmd"><span class="lbl">Check</span><code>sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned</code><button>Copy</button></div>

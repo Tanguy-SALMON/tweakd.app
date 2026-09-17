@@ -124,6 +124,18 @@ one notch stricter (**moderate**): it makes every app, including Apple's own, as
 before accepting inbound connections, so expect more prompts until you allow the
 apps you use regularly.
 
+All three map onto switches you can also see in **System Settings ▸ Network ▸
+Firewall**, and nothing stops you changing them there instead — Tweakd is only
+running `socketfilterfw` for you. One thing to know if you do: *Block Auto-Allow
+Signed Apps* covers **two** switches (built-in software, and downloaded signed
+software). They are independent, so turning just one back on in System Settings
+leaves the other off. Tweakd reports the tweak as applied only when both are off.
+
+Which of these the **guided setup** turns on depends on the security posture you
+pick on its second screen: **Balanced** enables the firewall and stealth mode;
+**Security-Hardened** additionally turns off the two auto-allow switches;
+**Performance-First** turns on none of them.
+
 ## Privacy DNS — plaintext, not encrypted
 
 **Use Privacy DNS (Cloudflare)** changes which resolver your Mac asks, not *how* it

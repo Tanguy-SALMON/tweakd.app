@@ -645,16 +645,21 @@ sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getstealthmode
 ```
 
 ### Block Auto-Allow Signed Apps — 🔐
-Stops the firewall from automatically trusting Apple-signed and developer-signed
-apps — every app has to be approved individually. **More firewall prompts.**
+Turns off **both** *"Automatically allow … to receive incoming connections"* switches in
+**System Settings ▸ Network ▸ Firewall** — the one for built-in software and the one for
+downloaded signed software. Every app then has to be approved individually.
+**More firewall prompts.**
 ```bash
 # Apply
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned off --setallowsignedapp off
 # Revert
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setallowsignedapp on
-# Check
+# Check — prints TWO lines, one per switch; both must read DISABLED
 sudo /usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned
 ```
+Those two switches are independent, and System Settings lets you flip either one on its
+own. A half-applied state is therefore a real state, not a glitch — turning just one back
+on leaves the other off, and only one of the two lines above changes.
 
 ### Block Ads & Trackers (hosts file) — 🔐
 Downloads the [StevenBlack](https://github.com/StevenBlack/hosts) ad/tracker list and
