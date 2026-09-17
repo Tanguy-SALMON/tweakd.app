@@ -401,11 +401,17 @@ enum TweakCatalog {
         Tweak(
             key: "firewall-block-signed",
             title: "Block Auto-Allow Signed Apps",
-            summary: "Even signed apps must be approved for incoming connections. You'll get more firewall prompts.",
+            summary: "Turns off both \"automatically allow ... to receive incoming connections\" switches in System Settings \u{203A} Network \u{203A} Firewall, so even signed apps must be approved. Expect more firewall prompts.",
             category: .security, privilege: .admin, risk: .moderate, sipRequired: false,
             applyCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned off --setallowsignedapp off",
             revertCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --setallowsigned on --setallowsignedapp on",
-            statusCommand: "/usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned 2>/dev/null | grep -qi disabled && echo ON || echo OFF",
+            // `--getallowsigned` prints TWO lines — built-in software, and
+            // downloaded signed software — which System Settings shows as two
+            // separate switches the user can flip independently. `grep -q
+            // disabled` matched either one, so turning just one of them back on
+            // left this reporting Applied while half the change was undone.
+            // Count them instead: both, or it is not applied.
+            statusCommand: "[ \"$(/usr/libexec/ApplicationFirewall/socketfilterfw --getallowsigned 2>/dev/null | grep -ci DISABLED)\" = \"2\" ] && echo ON || echo OFF",
             appliedWhenOutputContains: "ON",
             tags: [.security], recommended: false
         ),

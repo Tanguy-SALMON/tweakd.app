@@ -4,6 +4,24 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+### Fixed — "Block Auto-Allow Signed Apps" reported Applied when only half was
+
+`socketfilterfw --getallowsigned` prints **two** lines — built-in signed
+software, and downloaded signed software — and System Settings ▸ Network ▸
+Firewall exposes them as two switches that can be flipped independently. The
+status check was `grep -q disabled`, which matched either line, so turning one
+of them back on in System Settings left the tweak still showing *Applied* with
+half the change undone.
+
+It now counts the disabled lines and requires both. The summary also names the
+two System Settings switches, so the tweak is findable by someone who went
+looking in the firewall pane first.
+
+For reference, the guided setup's posture decides which of these you get:
+**Balanced** turns on the firewall and stealth mode; only **Security-Hardened**
+also turns off the two auto-allow switches, since that is the one that costs you
+extra approval prompts.
+
 ## [0.10.8] — 2026-09-17
 
 > **The website ships ahead of the download this release.** The Developer ID
