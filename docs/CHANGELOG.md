@@ -4,6 +4,17 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.9] — 2026-09-17
+
+> **Still website-only.** The Developer ID certificate has not been restored, so
+> no signable image exists and `/api/download` continues to serve the notarised
+> **0.10.7**. The site now advertises v0.10.9, which is **two** releases ahead of
+> the file it hands out. Everything in 0.10.8 and 0.10.9 is in the repository and
+> nothing is lost — but none of it is in anyone's hands. Restore the certificate,
+> re-run `notarytool store-credentials "Tweakd"`, then
+> `scripts/release.sh --apps-only --no-bump` to ship the accumulated work as
+> 0.10.9 in one go.
+
 ### Fixed — "Block Auto-Allow Signed Apps" reported Applied when only half was
 
 `socketfilterfw --getallowsigned` prints **two** lines — built-in signed
@@ -66,6 +77,19 @@ offered a throwaway build alongside — and sometimes instead of — the copy in
 `/Applications`, launching a stale version from a directory long forgotten.
 `build.sh` now writes `.metadata_never_index` into `build/`, which excludes the
 subtree and is recreated on each build.
+
+### Changed — the firewall tweaks are documented against Apple's own wording
+
+Anyone who opened System Settings first, saw three firewall switches and went
+looking in the docs had nothing to match on: the site and `TWEAKS.md` described
+the effect but never named the controls, and this tweak is called *Block
+Auto-Allow Signed Apps* while Apple calls it *"Automatically allow … to receive
+incoming connections"*. Both now quote Apple verbatim, and say that the `Check`
+command prints two lines which must both read `DISABLED`.
+
+`SAFETY.md` and the site's guided-setup section also now state which posture
+produces which firewall state: **Balanced** is the firewall plus stealth mode,
+and only **Security-Hardened** turns the two auto-allow switches off.
 
 ### Changed — the build script moved to `scripts/build.sh`
 
