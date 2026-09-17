@@ -4,6 +4,51 @@ All notable changes to Tweakd. Dates are `YYYY-MM-DD`.
 
 ## [Unreleased]
 
+## [0.10.8] — 2026-09-17
+
+> **The website ships ahead of the download this release.** The Developer ID
+> certificate and its private key did not survive the move to a new Mac, so
+> nothing signable was produced — `security find-identity` reports zero
+> identities and the `Tweakd` notary profile is gone. The site advertises
+> v0.10.8 while `/api/download` still serves the notarised **0.10.7** image,
+> which is the newest one that exists. Restore the certificate (the private key
+> cannot be re-downloaded from Apple — export a `.p12` from the old Mac, or
+> revoke and reissue), re-run `notarytool store-credentials "Tweakd"`, then
+> `scripts/release.sh --apps-only --no-bump` to close the gap.
+
+### Added — the guided setup says what "Security posture" costs
+
+The three options named a stance but not a consequence, and they differ in
+exactly one way: how many security-tagged tweaks the wizard switches on. There
+was no way to tell Balanced from Security-Hardened short of picking one and
+counting the review list.
+
+A line under the picker now states the count and moves with the selection. It
+reads that count from the loaded catalog rather than carrying a number in a
+string — `WizardAnswers.recommendedKeys()` is what actually decides, so a
+hardcoded figure goes stale the first time a security tweak is added. The
+website carries the longer explanation, naming the specific trade:
+Security-Hardened turns on stealth mode (your Mac stops answering pings) and a
+stricter firewall (which can block an app expecting an incoming connection).
+
+### Added — progress while a tailored setup is applied
+
+Applying shells out once per tweak and blocks on an authorization prompt for
+the admin ones, so the button stayed pressed for several seconds with no other
+feedback — indistinguishable from a hang. The engine publishes batch progress
+(reusing `ScanProgress`: same shape, already proven against the scan modal) and
+the wizard blurs behind a card showing the ring, the tweak being applied and
+the count. The ring is real progress; the single faint pulse is the only motion
+not tied to it.
+
+### Fixed — dev builds competed with the installed app in Spotlight
+
+Every `build/` tree on the machine was indexed as an application, so ⌘Space
+offered a throwaway build alongside — and sometimes instead of — the copy in
+`/Applications`, launching a stale version from a directory long forgotten.
+`build.sh` now writes `.metadata_never_index` into `build/`, which excludes the
+subtree and is recreated on each build.
+
 ### Changed — the build script moved to `scripts/build.sh`
 
 It was `app/build.sh`, which meant the two things you actually run on this
