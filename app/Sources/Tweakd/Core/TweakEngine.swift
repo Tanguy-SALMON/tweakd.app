@@ -47,6 +47,16 @@ final class TweakEngine: ObservableObject {
     @Published private(set) var adminUnlocked = false
     @Published private(set) var batchRunning = false
 
+    /// Live progress of the batch `batchRunning` refers to — nil when idle.
+    /// Reuses `ScanProgress` rather than a parallel type: the shape is
+    /// identical (done / total / current title) and the scan modal already
+    /// proves it drives a bar correctly.
+    ///
+    /// Applying a tailored setup can take a while — each tweak shells out, and
+    /// the admin ones wait on an authorization prompt — so without this the
+    /// wizard sits on a dead button and looks hung.
+    @Published private(set) var batchProgress: ScanProgress?
+
     /// Fired after a single tweak's state is (re)established via `set()`. Lets
     /// the app keep Swift-side companion state in sync (e.g. the ad-block
     /// auto-updater LaunchAgent) without the data-driven catalog knowing about it.
@@ -300,12 +310,20 @@ final class TweakEngine: ObservableObject {
     /// Apply/revert a batch, owning the busy flag and success/failure tally.
     private func runBatch(_ items: [Tweak], to target: TweakState) async -> (done: Int, failed: Int) {
         batchRunning = true
-        defer { batchRunning = false }
+        batchProgress = ScanProgress(done: 0, total: items.count, current: items.first?.title ?? "")
+        defer {
+            batchRunning = false
+            batchProgress = nil
+        }
         var done = 0, failed = 0
-        for t in items {
+        for (i, t) in items.enumerated() {
+            // Published before the work, not after: the label has to name the
+            // tweak currently being applied, and `set` is the slow part.
+            batchProgress = ScanProgress(done: i, total: items.count, current: t.title)
             await set(t, to: target)
             if state(of: t) == target { done += 1 } else { failed += 1 }
         }
+        batchProgress = ScanProgress(done: items.count, total: items.count, current: "")
         return (done, failed)
     }
 

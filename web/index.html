@@ -352,6 +352,18 @@
     <div class="card"><div class="ic"><svg class="ic-line" viewBox="0 0 24 24"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg></div><h3>Thermal pressure, in plain English</h3><p>A four-rung ladder — <b>Nominal / Fair / Serious / Critical</b> — each spelling out what it means for you, over a 90-second trend. Unlock admin and it also samples <b>Performance</b> and <b>Efficiency</b> core speeds in MHz, refreshed every second. No degrees: Apple silicon publishes no die temperature to apps, so macOS’s own pressure level is the honest signal.</p></div>
     <div class="card"><div class="ic"><svg class="ic-line" viewBox="0 0 24 24"><line x1="22" x2="2" y1="12" y2="12"/><path d="M5.45 5.11 2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"/><line x1="6" x2="6.01" y1="16" y2="16"/><line x1="10" x2="10.01" y1="16" y2="16"/></svg></div><h3>Disk Cleanup, one tap</h3><p><b>Clean Up Now</b> clears every safe, regenerable cache in one pass — app caches, DerivedData, simulator and Homebrew/npm/pip caches, thumbnails, crash reports. It lists them before it runs, and it never touches your <b>Trash</b>, <b>Docker</b> data or <b>iOS device backups</b> — those stay one deliberate tap each.</p></div>
   </div>
+
+  <div class="callout">
+    <p><b>What "Security posture" means in the guided setup.</b> The wizard's second screen asks you to pick
+    Security-Hardened, Balanced or Performance-First, and the three differ in exactly one way: how many of the
+    security tweaks it switches on for you. <b>Balanced</b>, the default, turns on only the ones rated
+    <em>Safe</em> — the ones that harden the firewall and DNS without costing you anything you would notice.
+    <b>Security-Hardened</b> turns on every security tweak, including the ones rated Moderate or Advanced, which
+    do trade a convenience away: stealth mode makes your Mac stop answering pings, and a locked-down firewall can
+    block an app that expects an incoming connection. <b>Performance-First</b> turns on none of them, and lets the
+    performance-tagged tweaks win wherever the two disagree. Whichever you choose, the next screen lists every
+    tweak it selected before anything is applied, and each one keeps its one-click revert.</p>
+  </div>
 </div></section>
 
 <section id="manual"><div class="wrap">

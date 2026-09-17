@@ -234,6 +234,26 @@ enum SecurityPosture: String, CaseIterable, Identifiable {
         case .performanceFirst: return "Performance-First"
         }
     }
+
+    /// One line saying what the choice actually *does*, with real counts pulled
+    /// from the catalog rather than written down here — the three options only
+    /// differ in how many of the security-tagged tweaks the wizard switches on,
+    /// and a number typed into a string goes stale the first time a tweak is
+    /// added.
+    ///
+    /// `total` is every tweak tagged `.security`; `safe` is the subset rated
+    /// `.safe`. See `WizardAnswers.recommendedKeys()` — this text and that
+    /// switch have to keep saying the same thing.
+    func detail(total: Int, safe: Int) -> String {
+        switch self {
+        case .hardened:
+            return "Turns on all \(total) security tweaks, including the ones that trade a convenience away."
+        case .balanced:
+            return "Turns on only the \(safe) security tweaks that cost you nothing."
+        case .performanceFirst:
+            return "Turns on no security tweaks — where speed and hardening disagree, speed wins."
+        }
+    }
 }
 
 struct WizardAnswers {

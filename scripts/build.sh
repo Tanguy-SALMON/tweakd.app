@@ -87,6 +87,14 @@ fi
 # ----- 3. assemble the .app structure ---------------------------------------
 echo "==> assembling ${APP_BUNDLE}"
 mkdir -p "${APP_BUNDLE}/Contents/MacOS" "${APP_BUNDLE}/Contents/Resources"
+
+# Keep the dev build out of Spotlight. Without this, every build/ tree on the
+# machine is indexed as an application, so ⌘Space offers the throwaway build
+# alongside — and often instead of — the copy in /Applications, and launches a
+# stale version from a directory the user forgot existed. The marker excludes
+# this whole subtree; it is recreated on each build because build/ is wiped
+# first.
+: > "build/.metadata_never_index"
 cp "${BIN_PATH}" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 chmod +x "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
 

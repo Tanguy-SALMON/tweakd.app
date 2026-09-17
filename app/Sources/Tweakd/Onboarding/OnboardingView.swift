@@ -11,6 +11,7 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject var model: AppModel
     @State private var step = 0
+    @State private var pulse = false
     private let lastStep = 3
 
     var body: some View {
@@ -25,8 +26,102 @@ struct OnboardingView: View {
                 controls
             }
             .padding(Space.l)
+            // Blurred rather than hidden: the setup you just reviewed stays
+            // recognisable behind the progress, so it reads as "this is being
+            // applied" instead of a new screen.
+            .blur(radius: model.engine.batchProgress == nil ? 0 : 6)
+            .allowsHitTesting(model.engine.batchProgress == nil)
+
+            applyingOverlay
         }
+        .animation(.easeInOut(duration: 0.22), value: model.engine.batchProgress == nil)
         .tint(Theme.accent)
+    }
+
+    // MARK: Applying
+
+    /// Shown while the wizard's batch runs. Applying a tailored setup shells out
+    /// once per tweak and blocks on an authorization prompt for the admin ones,
+    /// so the old behaviour — a button that stayed pressed for several seconds
+    /// with no other feedback — was indistinguishable from a hang.
+    ///
+    /// Deliberately quiet: one ring, one accent, no bounce. The ring is real
+    /// progress from `batchProgress`, not a spinner pretending to be busy.
+    @ViewBuilder private var applyingOverlay: some View {
+        if let p = model.engine.batchProgress {
+            ZStack {
+                // Near-opaque: at 0.82 the form behind stayed legible and
+                // competed with the progress text for attention, which made the
+                // whole thing read as washed out rather than focused.
+                Theme.canvas.opacity(0.94).ignoresSafeArea()
+
+                VStack(spacing: Space.l) {
+                    ZStack {
+                        // Track.
+                        Circle()
+                            .stroke(Theme.accent.opacity(0.12), lineWidth: 3)
+                            .frame(width: 88, height: 88)
+
+                        // A single slow breath outwards. The only motion that
+                        // is not tied to real progress, so it stays faint —
+                        // it says "working", the ring says how far.
+                        Circle()
+                            .stroke(Theme.accent.opacity(0.35), lineWidth: 2)
+                            .frame(width: 88, height: 88)
+                            .scaleEffect(pulse ? 1.18 : 1.0)
+                            .opacity(pulse ? 0 : 0.5)
+
+                        Circle()
+                            .trim(from: 0, to: max(0.015, p.fraction))
+                            .stroke(Theme.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round))
+                            .frame(width: 88, height: 88)
+                            .rotationEffect(.degrees(-90))
+                            .animation(.easeOut(duration: 0.28), value: p.fraction)
+
+                        Image(systemName: "wand.and.stars")
+                            .font(.system(size: 26, weight: .semibold))
+                            .foregroundStyle(Theme.accent)
+                    }
+
+                    VStack(spacing: 5) {
+                        Text("Applying your setup")
+                            .font(.system(size: 17, weight: .semibold))
+
+                        // Keyed on the title so each tweak crossfades in place
+                        // rather than the label snapping between names.
+                        Text(p.current.isEmpty ? "Finishing up" : p.current)
+                            .font(.system(size: 12))
+                            .foregroundStyle(.secondary)
+                            .id(p.current)
+                            .transition(.opacity)
+                            .animation(.easeInOut(duration: 0.18), value: p.current)
+
+                        Text("\(p.done) of \(p.total)")
+                            .font(.system(size: 11).monospacedDigit())
+                            .foregroundStyle(.tertiary)
+                            .contentTransition(.numericText())
+                            .animation(.easeOut(duration: 0.2), value: p.done)
+                    }
+                }
+                .padding(.vertical, Space.l)
+                .padding(.horizontal, Space.xl)
+                // Sits on the same card language as every other grouped element
+                // in the wizard, so the progress looks like part of the app
+                // rather than a system dialog dropped on top of it.
+                .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.card, style: .continuous))
+                .overlay(RoundedRectangle(cornerRadius: Radius.card, style: .continuous)
+                    .strokeBorder(Theme.hairline))
+                .shadow(color: .black.opacity(0.10), radius: 20, y: 8)
+                .padding(.horizontal, Space.l)
+            }
+            .transition(.opacity)
+            .onAppear {
+                pulse = false
+                withAnimation(.easeOut(duration: 1.1).repeatForever(autoreverses: false)) {
+                    pulse = true
+                }
+            }
+        }
     }
 
     // MARK: Steps
@@ -180,6 +275,16 @@ struct OnboardingView: View {
 
     // MARK: Bits
 
+    /// Every tweak the wizard treats as security-driven, and the subset that is
+    /// rated safe. Read from the loaded catalog so the copy above cannot drift
+    /// from `WizardAnswers.recommendedKeys()`.
+    private var securityTweakCount: Int {
+        model.engine.tweaks.filter { $0.tags.contains(.security) }.count
+    }
+    private var safeSecurityTweakCount: Int {
+        model.engine.tweaks.filter { $0.tags.contains(.security) && $0.risk == .safe }.count
+    }
+
     private func stepTitle(_ title: String, _ sub: String) -> some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(title).font(.system(size: 22, weight: .bold))
@@ -209,7 +314,8 @@ struct OnboardingView: View {
                 Image(systemName: "lock.shield").font(.system(size: 16)).frame(width: 26).foregroundStyle(.secondary)
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Security posture").font(.system(size: 13, weight: .semibold))
-                    Text("Firewall, stealth mode, and privacy DNS").font(.system(size: 11)).foregroundStyle(.secondary)
+                    Text("How much of the firewall, stealth mode and DNS hardening to switch on")
+                        .font(.system(size: 11)).foregroundStyle(.secondary)
                 }
             }
             Picker("Security posture", selection: $model.wizard.securityPosture) {
@@ -219,6 +325,18 @@ struct OnboardingView: View {
             }
             .labelsHidden()
             .pickerStyle(.segmented)
+
+            // The three labels name a stance but not a consequence, so the only
+            // way to tell them apart was to pick one and count the review list.
+            // This line says what changes, and it moves with the selection so
+            // the answer is there before committing to it.
+            Text(model.wizard.securityPosture.detail(total: securityTweakCount,
+                                                     safe: safeSecurityTweakCount))
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .animation(.easeInOut(duration: 0.18), value: model.wizard.securityPosture)
         }
         .padding(Space.s)
         .background(Theme.surface, in: RoundedRectangle(cornerRadius: Radius.tile, style: .continuous))
